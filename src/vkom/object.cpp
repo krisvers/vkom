@@ -6,6 +6,10 @@ bool IBase::supportsInterface(IID const& iid) const noexcept {
     return (iid == IBASE_IID);
 }
 
+bool INullable::supportsInterface(IID const& iid) const noexcept {
+    return (iid == INULLABLE_IID) || IBase::supportsInterface(iid);
+}
+
 bool IHandled::supportsInterface(IID const& iid) const noexcept {
     return (iid == IHANDLED_IID) || IBase::supportsInterface(iid);
 }

@@ -1,6 +1,14 @@
 #include <vkom/instance.hpp>
-#include <SDL3/SDL.h>
 
 int main(int argc, char** argv) {
-    vkom::Instance instance = vkom::Instance();
+    vkom::InstanceLoaderInfo loaderInfo = {};
+    loaderInfo.loaderPath = "vulkan-1.dll";
+
+    vkom::IInstance* instance;
+    if (vkom::createInstance(true, &loaderInfo, &instance) != vkom::Result::Success) {
+
+    }
+
+    instance->release();
+    return 0;
 }

@@ -35,7 +35,7 @@ struct AdapterLimits {
 
 inline const IID IADAPTER_IID = IID("4a7e1c14-4f8f-4455-858b-f4f171b411f9");
 
-class IAdapter : virtual public IHandled, IChild, IParent {
+class IAdapter : virtual public IHandled, virtual public IChild, virtual public IParent {
 public:
     virtual void queryFeatures(AdapterFeatures* features) = 0;
 

@@ -7,7 +7,7 @@ namespace vkom {
 
 inline const IID IINSTANCE_IID = IID("b77e41e7-8ad1-435d-979c-4b537954048f");
 
-class IInstance : virtual public INullable, IHandled, ICollected, IParent, IDispatchable {
+class IInstance : virtual public INullable, virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IDispatchable {
 public:
 
 

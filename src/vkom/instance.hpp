@@ -19,6 +19,7 @@ struct InstanceLoaderInfo {
     const char* loaderPath = nullptr;
     void* vkGetInstanceProcAddr = nullptr;
     void* vkInstanceHandle = nullptr;
+    void* vkAllocationCallbacks = nullptr;
 };
 
 Result createInstance(bool debug, InstanceLoaderInfo const* loaderInfo, IInstance** instance);

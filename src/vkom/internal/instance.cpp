@@ -4,7 +4,7 @@ namespace vkom {
 
 namespace internal {
 
-VulkanInstance::VulkanInstance(bool debug, IDynlib* dynlib, VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) : _debug(debug), _vulkanDynlib(dynlib), _vkInstance(vkInstance), _vkGetInstanceProcAddr(vkGetInstanceProcAddr) {
+VulkanInstance::VulkanInstance(bool debug, bool inheritedHandle, IDynlib* dynlib, VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanInstanceFunctionPointers const& functionPointers) : _debug(debug), _inheritedHandle(inheritedHandle), _vulkanDynlib(dynlib), _vkInstance(vkInstance), _vkGetInstanceProcAddr(vkGetInstanceProcAddr), _vkAllocationCallbacks(vkAllocationCallbacks), _functionPointers(functionPointers) {
 
 }
 
@@ -16,6 +16,14 @@ VulkanInstance::~VulkanInstance() {
                 /* TODO: report mismanaged references */
             }
         }
+    }
+
+    if (!_inheritedHandle && _functionPointers.instance10.vkDestroyInstance != nullptr) {
+        _functionPointers.instance10.vkDestroyInstance(_vkInstance, _vkAllocationCallbacks);
+    }
+
+    if (_vulkanDynlib != nullptr) {
+        _vulkanDynlib->destroy();
     }
 }
 
@@ -88,11 +96,13 @@ Result createInstance(bool debug, InstanceLoaderInfo const* loaderInfo, IInstanc
     const char* loaderPath = nullptr;
     PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = nullptr;
     VkInstance vkInstance = nullptr;
+    VkAllocationCallbacks const* vkAllocationCallbacks = nullptr;
 
     if (loaderInfo != nullptr) {
         loaderPath = loaderInfo->loaderPath;
         vkGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(loaderInfo->vkGetInstanceProcAddr);
         vkInstance = reinterpret_cast<VkInstance>(loaderInfo->vkInstanceHandle);
+        vkAllocationCallbacks = reinterpret_cast<VkAllocationCallbacks*>(loaderInfo->vkAllocationCallbacks);
     }
 
     if (vkGetInstanceProcAddr == nullptr) {
@@ -120,11 +130,53 @@ Result createInstance(bool debug, InstanceLoaderInfo const* loaderInfo, IInstanc
         }
     }
 
-    if (vkInstance == nullptr) {
-        /* create a Vulkan instance */
+    uint32_t maxInstanceVersion = VK_API_VERSION_1_0;
+
+    PFN_vkEnumerateInstanceVersion vkEnumerateInstanceVersion = dynlib->loadSymbol<PFN_vkEnumerateInstanceVersion>("vkEnumerateInstanceVersion");
+    if (vkEnumerateInstanceVersion != nullptr) {
+        vkEnumerateInstanceVersion(&maxInstanceVersion);
     }
 
-    *instance = new internal::VulkanInstance(debug, dynlib, vkInstance, vkGetInstanceProcAddr);
+    bool inheritedVkInstance = (vkInstance != nullptr);
+    if (vkInstance == nullptr) {
+        VkApplicationInfo appInfo = {};
+        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        appInfo.pApplicationName = "vkom";
+        appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+        appInfo.pEngineName = "vkom";
+        appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+        appInfo.apiVersion = maxInstanceVersion;
+
+        VkInstanceCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        createInfo.pApplicationInfo = &appInfo;
+
+        PFN_vkCreateInstance vkCreateInstance = dynlib->loadSymbol<PFN_vkCreateInstance>("vkCreateInstance");
+        if (vkCreateInstance == nullptr) {
+            /* loaded library is not a valid Vulkan dynlib */
+            dynlib->destroy();
+            return Result::ErrorInitializationFailed;
+        }
+
+        if (vkCreateInstance(&createInfo, vkAllocationCallbacks, &vkInstance) != VK_SUCCESS) {
+            /* failed to create Vulkan instance */
+            dynlib->destroy();
+            return Result::ErrorInitializationFailed;
+        }
+    }
+
+    internal::VulkanInstanceFunctionPointers functionPointers = {};
+    if (!functionPointers.instance10.load(vkInstance, vkGetInstanceProcAddr)) {
+        /* loaded library is not a valid Vulkan dynlib */
+        if (!inheritedVkInstance && functionPointers.instance10.vkDestroyInstance != nullptr) {
+            functionPointers.instance10.vkDestroyInstance(vkInstance, vkAllocationCallbacks);
+        }
+
+        dynlib->destroy();
+        return Result::ErrorInitializationFailed;
+    }
+
+    *instance = new internal::VulkanInstance(debug, inheritedVkInstance, dynlib, vkInstance, vkGetInstanceProcAddr, vkAllocationCallbacks, functionPointers);
     return Result::Success;
 }
 

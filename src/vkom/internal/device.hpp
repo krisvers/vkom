@@ -1,0 +1,70 @@
+#pragma once
+
+#include <vector>
+
+#include <vkom/enums.hpp>
+#include <vkom/device.hpp>
+
+#include <vkom/internal/funcptrs.hpp>
+
+#define VK_NO_PROTOTYPES
+#include <vulkan/vulkan.h>
+
+namespace vkom {
+
+namespace internal {
+
+struct VulkanDeviceFunctionPointers {
+    DeviceFunctionPointers10 device10;
+    DeviceFunctionPointers11 device11;
+    DeviceFunctionPointers12 device12;
+};
+
+class VulkanInstance;
+class VulkanAdapter;
+
+class VulkanDevice : public IDevice {
+private:
+    bool _debug = false;
+    VulkanInstance* _instance = nullptr;
+    VulkanAdapter* _adapter = nullptr;
+    VkDevice _vkDevice = nullptr;
+    PFN_vkGetDeviceProcAddr _vkGetDeviceProcAddr = nullptr;
+    VkAllocationCallbacks const* _vkAllocationCallbacks = nullptr;
+    VulkanDeviceFunctionPointers _functionPointers = {};
+
+    /* ICollected */
+    uint32_t _referenceCount = 1;
+
+    /* IParent */
+    std::vector<IChild*> _children = {};
+
+public:
+    VulkanDevice(bool debug, VulkanAdapter* adapter, VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanDeviceFunctionPointers const& functions);
+    ~VulkanDevice();
+
+    /* INullable */
+    bool isNull() const noexcept override;
+
+    /* IHandled */
+    uint64_t handle() const noexcept override;
+    ObjectType handleType() const noexcept override;
+
+    /* ICollected */
+    uint32_t release() override;
+    uint32_t retain() override;
+
+    /* IParent */
+    bool hasChild(IChild const* child) const noexcept override;
+    IChild* enumerateChildren(uint32_t id) const noexcept override;
+
+    /* IDispatchable */
+    void* loadDispatchSymbol(const char* symbol) override;
+
+    /* IInterface */
+    bool supportsInterface(IID const& iid) const noexcept override;
+};
+
+}
+
+}

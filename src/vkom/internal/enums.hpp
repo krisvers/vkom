@@ -21,6 +21,20 @@ inline operator vkT_(vkomT_ v) { \
 inline operator vkomT_(vkT_ v) { \
     return castEnum(v); \
 }
+
+#define VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(primT_, vkomT_) \
+inline primT_ castEnum(vkomT_ v) { \
+    return static_cast<primT_>(static_cast<std::underlying_type_t<vkomT_>>(v)); \
+} \
+inline vkomT_ castEnum(primT_ v) { \
+    return static_cast<vkomT_>(v); \
+} \
+inline operator primT_(vkomT_ v) { \
+    return castEnum(v); \
+} \
+inline operator vkomT_(primT_ v) { \
+    return castEnum(v); \
+}
 #else
 #define VKOM_INTERNAL_ENUM_DEFINE_CAST(vkT_, vkomT_) \
 inline vkT_ castEnum(vkomT_ v) { \
@@ -28,6 +42,14 @@ inline vkT_ castEnum(vkomT_ v) { \
 } \
 inline vkomT_ castEnum(vkT_ v) { \
     return static_cast<vkomT_>(static_cast<std::underlying_type_t<vkT_>>(v)); \
+}
+
+#define VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(primT_, vkomT_) \
+inline primT_ castEnum(vkomT_ v) { \
+    return static_cast<primT_>(static_cast<std::underlying_type_t<vkomT_>>(v)); \
+} \
+inline vkomT_ castEnum(primT_ v) { \
+    return static_cast<vkomT_>(v); \
 }
 #endif
 
@@ -37,6 +59,9 @@ namespace internal {
 
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkObjectType, ObjectType)
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkResult, Result)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(uint32_t, VendorID)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkDriverId, DriverID)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkPhysicalDeviceType, AdapterType)
 
 }
 

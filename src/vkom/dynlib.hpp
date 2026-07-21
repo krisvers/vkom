@@ -6,7 +6,7 @@ namespace vkom {
 
 inline const IID IDYNLIB_IID = IID("b5130b86-58bb-4868-b040-8aed3202cfc8");
 
-class IDynlib : virtual public IInterface {
+class IDynlib : public IInterface {
 public:
     virtual bool valid() const noexcept = 0;
     virtual void* loadSymbol(const char* symbol) = 0;

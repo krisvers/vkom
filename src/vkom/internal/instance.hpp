@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 
 #include <vkom/enums.hpp>
 #include <vkom/instance.hpp>
@@ -21,15 +22,22 @@ struct VulkanInstanceFunctionPointers {
     InstanceFunctionPointers12 instance12;
 };
 
+class VulkanAdapter;
+
 class VulkanInstance : public IInstance {
 private:
     bool _debug = false;
     bool _inheritedHandle = false;
     IDynlib* _vulkanDynlib = nullptr;
+    uint32_t _vkApiVersion = 0;
     VkInstance _vkInstance = nullptr;
     PFN_vkGetInstanceProcAddr _vkGetInstanceProcAddr = nullptr;
     VkAllocationCallbacks const* _vkAllocationCallbacks = nullptr;
     VulkanInstanceFunctionPointers _functionPointers = {};
+    std::vector<const char*> _enabledExtensions = {};
+
+    /* IInstance */
+    std::vector<VulkanAdapter*> _adapters = {};
 
     /* ICollected */
     uint32_t _referenceCount = 1;
@@ -37,12 +45,17 @@ private:
     /* IParent */
     std::vector<IChild*> _children = {};
 
+    friend class VulkanAdapter;
+
+    uint32_t vkApiVersion() const noexcept;
+    bool isExtensionEnabled(const char* name) const noexcept;
+
 public:
-    VulkanInstance(bool debug, bool inheritedHandle, IDynlib* dynlib, VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanInstanceFunctionPointers const& functionPointers);
+    VulkanInstance(bool debug, uint32_t vkApiVersion, bool inheritedHandle, IDynlib* dynlib, VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanInstanceFunctionPointers const& functionPointers, std::vector<const char*> const& enabledExtensions);
     ~VulkanInstance();
 
     /* IInstance */
-
+    IAdapter* enumerateAdapters(uint32_t id) const noexcept override;
 
     /* INullable */
     bool isNull() const noexcept override;

@@ -23,12 +23,12 @@ struct VulkanInstanceFunctionPointers {
 
 class VulkanAdapter;
 
-class VulkanInstance : public IInstance {
+class VulkanInstance final : public IInstance {
 private:
     bool _debug = false;
+    uint32_t _vkApiVersion = 0;
     bool _inheritedHandle = false;
     IDynlib* _vulkanDynlib = nullptr;
-    uint32_t _vkApiVersion = 0;
     VkInstance _vkInstance = nullptr;
     PFN_vkGetInstanceProcAddr _vkGetInstanceProcAddr = nullptr;
     VkAllocationCallbacks const* _vkAllocationCallbacks = nullptr;

@@ -39,16 +39,16 @@
 
 #ifdef VKOM_COMPILER_MSVC
 #define VKOM_FORCE_EXPORT __declspec(dllexport)
-#elif VKOM_COMPILER_MINGW
+#elif defined(VKOM_COMPILER_MINGW)
 #define VKOM_FORCE_EXPORT __attribute__((dllexport))
-#elif VKOM_COMPILER_CLANG
+#elif defined(VKOM_COMPILER_CLANG)
 #define VKOM_FORCE_EXPORT __attribute__((__visibility__("default")))
-#elif VKOM_COMPILER_GCC
+#elif defined(VKOM_COMPILER_GCC)
 #define VKOM_FORCE_EXPORT __attribute__((__visibility__("default")))
 #endif
 
 #ifdef VKOM_COMPILING_DYNAMIC_LIBRARY
 #define VKOM_VISIBLE VKOM_FORCE_EXPORT
 #else
-#define VKOM_VISIBLE 
+#define VKOM_VISIBLE
 #endif

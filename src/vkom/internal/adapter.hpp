@@ -20,7 +20,7 @@ struct VulkanAdapterFunctionPointers {
 class VulkanInstance;
 class VulkanDevice;
 
-class VulkanAdapter : public IAdapter {
+class VulkanAdapter final : public IAdapter {
 private:
     bool _debug = false;
     VulkanInstance* _instance = nullptr;

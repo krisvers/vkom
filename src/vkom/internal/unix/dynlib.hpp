@@ -11,12 +11,12 @@ namespace internal {
 
 namespace unix {
 
-class UnixDynlib : public IDynlib {
+class UnixDynlib final : public IDynlib {
 private:
     void* _libraryHandle = nullptr;
 
 public:
-    UnixDynlib(HMODULE libraryHandle);
+    UnixDynlib(void* libraryHandle);
     ~UnixDynlib();
 
     /* IDynlib */

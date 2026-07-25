@@ -13,24 +13,24 @@ inline T_ operator op_(T_ const& a) { \
     return static_cast<T_>(op_ static_cast<std::underlying_type_t<T_>>(a)); \
 }
 
-#define VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY_ASSIGNMENT(T_, op_) \
-inline T_& operator op_=(T_& a, T_ const& b) { \
+#define VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY_ASSIGNMENT(T_, op_, opeq_) \
+inline T_& operator opeq_(T_& a, T_ const& b) { \
     return (a = static_cast<T_>(static_cast<std::underlying_type_t<T_>>(a) op_ static_cast<std::underlying_type_t<T_>>(b))); \
 }
 
-#define VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_UNARY_ASSIGNMENT(T_, op_) \
-inline T_& operator op_=(T_& a) { \
+#define VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_UNARY_ASSIGNMENT(T_, op_, opeq_) \
+inline T_& operator opeq_(T_& a) { \
     return (a = static_cast<T_>(op_ static_cast<std::underlying_type_t<T_>>(a))); \
 }
 
 #define VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(T_) \
     VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_UNARY(T_, ~) \
     VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY(T_, |) \
-    VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY_ASSIGNMENT(T_, |) \
+    VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY_ASSIGNMENT(T_, |, |=) \
     VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY(T_, &) \
-    VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY_ASSIGNMENT(T_, &) \
+    VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY_ASSIGNMENT(T_, &, &=) \
     VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY(T_, ^) \
-    VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY_ASSIGNMENT(T_, ^)
+    VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY_ASSIGNMENT(T_, ^, ^=)
 
 namespace vkom {
 

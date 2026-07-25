@@ -1,3 +1,4 @@
+#include "vkom/dynlib.hpp"
 #include <vkom/internal/instance.hpp>
 
 #include <cstring>
@@ -172,7 +173,30 @@ VkBool32 VulkanInstance::debugUtilsMessengerCallback(VkDebugUtilsMessageSeverity
 }
 
 static IDynlib* loadVulkanDynlibDefaultPaths() {
-    /* TODO: attempt to load from possible default paths */
+    /* adapted from https://github.com/libsdl-org/SDL/blob/855cbec702f246661ff00a0bce9e0683012840c2/src/video/offscreen/SDL_offscreenvulkan.c#L29 */
+    const char* defaultPaths[] = {
+        #ifdef VKOM_PLATFORM_FAMILY_NT
+        "vulkan-1.dll",
+        #elif defined(VKOM_PLATFORM_FAMILY_APPLE)
+        "vulkan.framework/vulkan",
+        "libvulkan.1.dylib",
+        "libvulkan.dylib",
+        "MoltenVK.framework/MoltenVK",
+        "libMoltenVK.dylib",
+        #elif defined(VKOM_PLATFORM_OPENBSD)
+        "libvulkan.so",
+        #else
+        "libvulkan.so.1",
+        #endif
+    };
+
+    for (const char* path : defaultPaths) {
+        IDynlib* dynlib = loadDynlib(path);
+        if (dynlib != nullptr) {
+            return dynlib;
+        }
+    }
+
     return nullptr;
 }
 

@@ -8,8 +8,8 @@ namespace vkom {
 
 namespace internal {
 
-VulkanDevice::VulkanDevice(bool debug, bool inheritedHandle, VulkanAdapter* adapter, VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanDeviceFunctionPointers const& functionPointers, std::vector<const char*> const& enabledExtensions) : _debug(debug), _inheritedHandle(inheritedHandle), _adapter(_adapter), _instance(reinterpret_cast<VulkanInstance*>(adapter->parent())), _vkDevice(vkDevice), _vkGetDeviceProcAddr(vkGetDeviceProcAddr), _vkAllocationCallbacks(vkAllocationCallbacks), _functionPointers(functionPointers), _enabledExtensions(enabledExtensions) {
-    
+VulkanDevice::VulkanDevice(bool debug, bool inheritedHandle, VulkanAdapter* adapter, VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanDeviceFunctionPointers const& functionPointers, std::vector<const char*> const& enabledExtensions) : _debug(debug), _inheritedHandle(inheritedHandle), _adapter(adapter), _instance(static_cast<VulkanInstance*>(adapter->parent())), _vkDevice(vkDevice), _vkGetDeviceProcAddr(vkGetDeviceProcAddr), _vkAllocationCallbacks(vkAllocationCallbacks), _functionPointers(functionPointers), _enabledExtensions(enabledExtensions) {
+
 }
 
 VulkanDevice::~VulkanDevice() {
@@ -25,6 +25,15 @@ VulkanDevice::~VulkanDevice() {
     if (!_inheritedHandle && _functionPointers.device10.vkDestroyDevice != nullptr) {
         _functionPointers.device10.vkDestroyDevice(_vkDevice, _vkAllocationCallbacks);
     }
+}
+
+/* IDevice */
+Result VulkanDevice::waitIdle() const noexcept {
+    return Result::Incomplete;
+}
+
+Result VulkanDevice::acquireQueue(QueueFlags flags, IQueue** queue) noexcept {
+    return Result::Incomplete;
 }
 
 /* INullable */

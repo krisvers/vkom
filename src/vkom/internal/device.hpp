@@ -21,12 +21,12 @@ struct VulkanDeviceFunctionPointers {
 class VulkanInstance;
 class VulkanAdapter;
 
-class VulkanDevice : public IDevice {
+class VulkanDevice final : public IDevice {
 private:
     bool _debug = false;
     bool _inheritedHandle = false;
-    VulkanInstance* _instance = nullptr;
     VulkanAdapter* _adapter = nullptr;
+    VulkanInstance* _instance = nullptr;
     VkDevice _vkDevice = nullptr;
     PFN_vkGetDeviceProcAddr _vkGetDeviceProcAddr = nullptr;
     VkAllocationCallbacks const* _vkAllocationCallbacks = nullptr;
@@ -42,6 +42,10 @@ private:
 public:
     VulkanDevice(bool debug, bool inheritedHandle, VulkanAdapter* adapter, VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanDeviceFunctionPointers const& functionPointers, std::vector<const char*> const& enabledExtensions);
     ~VulkanDevice();
+
+    /* IDevice */
+    Result waitIdle() const noexcept override;
+    Result acquireQueue(QueueFlags flags, IQueue** queue) noexcept override;
 
     /* INullable */
     bool isNull() const noexcept override;

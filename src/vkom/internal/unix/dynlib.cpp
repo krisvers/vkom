@@ -4,6 +4,8 @@
 
 #include <stdexcept>
 
+#include <dlfcn.h>
+
 namespace vkom {
 
 namespace internal {
@@ -43,7 +45,7 @@ bool UnixDynlib::supportsInterface(IID const& iid) const noexcept {
 }
 
 IDynlib* loadDynlib(const char* path) {
-    void* libraryHandle = dlopen(path);
+    void* libraryHandle = dlopen(path, RTLD_LAZY);
     if (libraryHandle == nullptr) {
         return nullptr;
     }

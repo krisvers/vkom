@@ -13,7 +13,7 @@ namespace internal {
 
 namespace nt {
 
-class NTDynlib : public IDynlib {
+class NTDynlib final : public IDynlib {
 private:
     HMODULE _libraryHandle = nullptr;
 

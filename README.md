@@ -1,3 +1,3 @@
-# klatr
+# vkom
 
-restarting from scratch
+COM-style C++ library wrapping around Vulkan

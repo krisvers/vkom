@@ -51,10 +51,6 @@ struct AdapterLimits {
     uint64_t availableHostMemory;
 };
 
-struct AdapterQueueInfo {
-
-};
-
 inline const IID IADAPTER_IID = IID("4a7e1c14-4f8f-4455-858b-f4f171b411f9");
 
 class IAdapter : public IHandled, public IChild, public IParent, public IDispatchable {

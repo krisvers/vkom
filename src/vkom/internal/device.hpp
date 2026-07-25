@@ -6,9 +6,7 @@
 #include <vkom/device.hpp>
 
 #include <vkom/internal/funcptrs.hpp>
-
-#define VK_NO_PROTOTYPES
-#include <vulkan/vulkan.h>
+#include <vkom/internal/vulkan.hpp>
 
 namespace vkom {
 
@@ -26,12 +24,14 @@ class VulkanAdapter;
 class VulkanDevice : public IDevice {
 private:
     bool _debug = false;
+    bool _inheritedHandle = false;
     VulkanInstance* _instance = nullptr;
     VulkanAdapter* _adapter = nullptr;
     VkDevice _vkDevice = nullptr;
     PFN_vkGetDeviceProcAddr _vkGetDeviceProcAddr = nullptr;
     VkAllocationCallbacks const* _vkAllocationCallbacks = nullptr;
     VulkanDeviceFunctionPointers _functionPointers = {};
+    std::vector<const char*> _enabledExtensions = {};
 
     /* ICollected */
     uint32_t _referenceCount = 1;
@@ -40,7 +40,7 @@ private:
     std::vector<IChild*> _children = {};
 
 public:
-    VulkanDevice(bool debug, VulkanAdapter* adapter, VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanDeviceFunctionPointers const& functions);
+    VulkanDevice(bool debug, bool inheritedHandle, VulkanAdapter* adapter, VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanDeviceFunctionPointers const& functionPointers, std::vector<const char*> const& enabledExtensions);
     ~VulkanDevice();
 
     /* INullable */
@@ -57,6 +57,9 @@ public:
     /* IParent */
     bool hasChild(IChild const* child) const noexcept override;
     IChild* enumerateChildren(uint32_t id) const noexcept override;
+
+    /* IChild */
+    IParent* parent() const noexcept override;
 
     /* IDispatchable */
     void* loadDispatchSymbol(const char* symbol) override;

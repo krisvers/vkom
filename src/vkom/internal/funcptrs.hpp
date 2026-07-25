@@ -1,7 +1,6 @@
 #pragma once
 
-#define VK_NO_PROTOTYPES
-#include <vulkan/vulkan.h>
+#include <vkom/internal/vulkan.hpp>
 
 #define VKOM_INTERNAL_FUNCPTRS_LOAD(getProcAddr_, handle_, func_, name_) ((func_ = reinterpret_cast<PFN_##func_>(getProcAddr_(handle_, name_))) != nullptr)
 
@@ -23,11 +22,36 @@ struct InstanceFunctionPointers10 {
 };
 
 struct InstanceFunctionPointers11 {
+    InstanceFunctionPointers11() = default;
 
+    inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
+        bool successful = false;
+        return successful;
+    }
 };
 
 struct InstanceFunctionPointers12 {
+    InstanceFunctionPointers12() = default;
 
+    inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
+        bool successful = false;
+        return successful;
+    }
+};
+
+struct InstanceFunctionPointersDebugUtilsEXT {
+    PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT = nullptr;
+    PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = nullptr;
+    PFN_vkSubmitDebugUtilsMessageEXT vkSubmitDebugUtilsMessageEXT = nullptr;
+
+    InstanceFunctionPointersDebugUtilsEXT() = default;
+
+    inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
+        bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkCreateDebugUtilsMessengerEXT, "vkCreateDebugUtilsMessengerEXT");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkDestroyDebugUtilsMessengerEXT, "vkDestroyDebugUtilsMessengerEXT");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkSubmitDebugUtilsMessageEXT, "vkSubmitDebugUtilsMessageEXT");
+        return successful;
+    }
 };
 
 struct PhysicalDeviceFunctionPointers10 {
@@ -87,15 +111,32 @@ struct PhysicalDeviceFunctionPointers11 {
 };
 
 struct DeviceFunctionPointers10 {
+    PFN_vkDestroyDevice vkDestroyDevice = nullptr;
 
+    DeviceFunctionPointers10() = default;
+
+    inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
+        bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyDevice, "vkDestroyDevice");
+        return successful;
+    }
 };
 
 struct DeviceFunctionPointers11 {
+    DeviceFunctionPointers11() = default;
 
+    inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
+        bool successful = false;
+        return successful;
+    }
 };
 
 struct DeviceFunctionPointers12 {
+    DeviceFunctionPointers12() = default;
 
+    inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
+        bool successful = false;
+        return successful;
+    }
 };
 
 }

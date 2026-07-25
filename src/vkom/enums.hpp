@@ -104,6 +104,24 @@ enum class ObjectType : int32_t {
     DebugUtilsMessengerEXT = 1000128000,
 };
 
+enum class DebugMessageSeverityFlags : int32_t {
+    Verbose = 0x0001,
+    Info = 0x0010,
+    Warning = 0x0100,
+    Error = 0x1000,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(DebugMessageSeverityFlags)
+
+enum class DebugMessageTypeFlags : int32_t {
+    General = 0x0001,
+    Validation = 0x0002,
+    Performance = 0x0004,
+    DeviceAddressBinding = 0x0008,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(DebugMessageTypeFlags)
+
 enum class VendorID : uint32_t {
     Unknown = 0x0000,
     AMD = 0x1002,
@@ -157,6 +175,19 @@ enum class AdapterType : uint32_t {
     Virtual = 3,
     CPU = 4,
 };
+
+enum class QueueFlags : int32_t {
+    Graphics = 0x00000001,
+    Transfer = 0x00000002,
+    Compute = 0x00000004,
+    SparseBinding = 0x00000008,
+    Protected = 0x00000010,
+    VideoDecode = 0x00000020,
+    VideoEncode = 0x00000040,
+    Present = 0x40000000,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(QueueFlags)
 
 enum class MemoryLocationFlags : uint32_t {
     None = 0x00,

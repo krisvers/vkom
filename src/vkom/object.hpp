@@ -78,7 +78,7 @@ public:
 
     template<typename PFN>
     PFN loadDispatchSymbol(const char* symbol) {
-        return reinterpret_cast<PFN>(IDispatchable::loadDispatchSymbol(symbol));
+        return reinterpret_cast<PFN>(loadDispatchSymbol(symbol));
     }
 
     /* IInterface */

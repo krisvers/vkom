@@ -6,9 +6,7 @@
 #include <vkom/adapter.hpp>
 
 #include <vkom/internal/funcptrs.hpp>
-
-#define VK_NO_PROTOTYPES
-#include <vulkan/vulkan.h>
+#include <vkom/internal/vulkan.hpp>
 
 namespace vkom {
 

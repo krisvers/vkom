@@ -86,8 +86,8 @@ VulkanAdapter::VulkanAdapter(bool debug, VulkanInstance* instance, VkPhysicalDev
         _functionPointers.physical10.vkGetPhysicalDeviceMemoryProperties(_vkPhysicalDevice, &memoryProperties2.memoryProperties);
     }
 
-    _info.vendorID = castEnum(properties2.properties.vendorID);
-    _info.driverID = castEnum(driverProperties.driverID);
+    _info.vendorID = castEnum<VendorID>(properties2.properties.vendorID);
+    _info.driverID = castEnum<DriverID>(driverProperties.driverID);
     _info.deviceID = properties2.properties.deviceID;
     _info.driverVersion = properties2.properties.driverVersion;
 
@@ -184,9 +184,132 @@ void VulkanAdapter::queryLimits(AdapterLimits* limits) const noexcept {
 }
 
 Result VulkanAdapter::createDevice(IDevice** device) {
-    std::vector<const char*> enabledExtensions = {};
+    std::vector<const char*> enabledExtensions(_availableExtensions.size());
+    for (size_t i = 0; i < _availableExtensions.size(); i += 1) {
+        enabledExtensions[i] = _availableExtensions[i].extensionName;
+    }
 
-    return Result::ErrorInitializationFailed;
+    VkPhysicalDeviceFeatures2 features2 = {};
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.features.shaderInt16 = _features.shaderInt16;
+    features2.features.shaderInt64 = _features.shaderInt64;
+    features2.features.shaderFloat64 = _features.shaderFloat64;
+
+    VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {};
+    dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
+    dynamicRenderingFeatures.pNext = features2.pNext;
+    dynamicRenderingFeatures.dynamicRendering = _features.dynamicRendering;
+    if (_features.dynamicRendering) {
+        features2.pNext = &dynamicRenderingFeatures;
+    }
+
+    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
+    bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    bufferDeviceAddressFeatures.pNext = features2.pNext;
+    bufferDeviceAddressFeatures.bufferDeviceAddress = _features.bufferDeviceAddress;
+    if (_features.bufferDeviceAddress) {
+        features2.pNext = &bufferDeviceAddressFeatures;
+    }
+
+    VkPhysicalDeviceShaderFloat16Int8Features shaderFloat16Int8Features = {};
+    shaderFloat16Int8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES;
+    shaderFloat16Int8Features.pNext = features2.pNext;
+    shaderFloat16Int8Features.shaderInt8 = _features.shaderInt8;
+    shaderFloat16Int8Features.shaderFloat16 = _features.shaderFloat16;
+    if (_features.shaderInt8 || _features.shaderFloat16) {
+        features2.pNext = &shaderFloat16Int8Features;
+    }
+
+    VkPhysicalDeviceShaderFloat8FeaturesEXT shaderFloat8Features = {};
+    shaderFloat8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT8_FEATURES_EXT;
+    shaderFloat8Features.pNext = features2.pNext;
+    shaderFloat8Features.shaderFloat8 = _features.shaderFloat8;
+    if (_features.shaderFloat8) {
+        features2.pNext = &shaderFloat8Features;
+    }
+
+    uint32_t queueFamilyCount;
+    _functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    _functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, &queueFamilies[0]);
+
+    uint32_t totalQueueCount = 0;
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos(queueFamilyCount);
+    for (uint32_t qf = 0; qf < queueFamilyCount; qf += 1) {
+        totalQueueCount += queueFamilies[qf].queueCount;
+    }
+
+    std::vector<float> queuePriorities(totalQueueCount);
+
+    uint32_t currentTotalQueueIndex = 0;
+    for (uint32_t qf = 0; qf < queueFamilyCount; qf += 1) {
+        uint32_t lowPriorityCount = queueFamilies[qf].queueCount / 3;
+        for (uint32_t i = 0; i < queueFamilies[qf].queueCount; i += 1) {
+            if (i < (queueFamilies[qf].queueCount - lowPriorityCount)) {
+                /* normal priority */
+                queuePriorities[currentTotalQueueIndex + i] = 0.5f;
+            } else {
+                /* low priority */
+                queuePriorities[currentTotalQueueIndex + i] = 0.0f;
+            }
+        }
+
+        queueCreateInfos[qf] = {};
+        queueCreateInfos[qf].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfos[qf].queueFamilyIndex = qf;
+        queueCreateInfos[qf].queueCount = queueFamilies[qf].queueCount;
+        queueCreateInfos[qf].pQueuePriorities = &queuePriorities[currentTotalQueueIndex];
+
+        currentTotalQueueIndex += queueFamilies[qf].queueCount;
+    }
+
+    void* next = &features2;
+
+    PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr = static_cast<IDispatchable*>(_instance)->loadDispatchSymbol<PFN_vkGetDeviceProcAddr>("vkGetDeviceProcAddr");
+    if (vkGetDeviceProcAddr == nullptr) {
+        /* failed to load vkGetDeviceProcAddr */
+        return Result::ErrorInitializationFailed;
+    }
+
+    VkDeviceCreateFlags createFlags = {};
+
+    VkDeviceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.flags = createFlags;
+    createInfo.pNext = next;
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    createInfo.pQueueCreateInfos = &queueCreateInfos[0];
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size());
+    createInfo.ppEnabledExtensionNames = enabledExtensions.empty() ? nullptr : &enabledExtensions[0];
+
+    VkDevice vkDevice;
+    VkResult result = _functionPointers.physical10.vkCreateDevice(_vkPhysicalDevice, &createInfo, _vkAllocationCallbacks, &vkDevice);
+    if (result != VK_SUCCESS) {
+        return castEnum<Result>(result);
+    }
+
+    VulkanDeviceFunctionPointers functionPointers = {};
+    if (!functionPointers.device10.load(vkDevice, vkGetDeviceProcAddr)) {
+        /* failed to load device function pointers */
+        PFN_vkDestroyDevice vkDestroyDevice = reinterpret_cast<PFN_vkDestroyDevice>(vkGetDeviceProcAddr(vkDevice, "vkDestroyDevice"));
+        if (vkDestroyDevice != nullptr) {
+            vkDestroyDevice(vkDevice, _vkAllocationCallbacks);
+        }
+
+        return Result::ErrorInitializationFailed;
+    }
+
+    functionPointers.device11.load(vkDevice, vkGetDeviceProcAddr);
+    functionPointers.device12.load(vkDevice, vkGetDeviceProcAddr);
+
+    try {
+        *device = new VulkanDevice(_debug, false, this, vkDevice, vkGetDeviceProcAddr, _vkAllocationCallbacks, functionPointers, enabledExtensions);
+    } catch (std::runtime_error const& err) {
+        return Result::ErrorInitializationFailed;
+    }
+
+    return Result::Success;
 }
 
 /* IHandled */

@@ -6,6 +6,7 @@
 #include <vkom/internal/instance.hpp>
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/enums.hpp>
+#include <vkom/internal/vksurface.hpp>
 
 namespace vkom {
 
@@ -184,11 +185,6 @@ void VulkanAdapter::queryLimits(AdapterLimits* limits) const noexcept {
 }
 
 Result VulkanAdapter::createDevice(IDevice** device) {
-    std::vector<const char*> enabledExtensions(_availableExtensions.size());
-    for (size_t i = 0; i < _availableExtensions.size(); i += 1) {
-        enabledExtensions[i] = _availableExtensions[i].extensionName;
-    }
-
     VkPhysicalDeviceFeatures2 features2 = {};
     features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     features2.features.shaderInt16 = _features.shaderInt16;
@@ -265,6 +261,23 @@ Result VulkanAdapter::createDevice(IDevice** device) {
     }
 
     void* next = &features2;
+
+    bool enabledExtensionBufferDeviceAddress = false;
+    
+    std::vector<const char*> enabledExtensions = {};
+    for (VkExtensionProperties const& extension : _availableExtensions) {
+        if (std::strcmp(extension.extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0) {
+            enabledExtensions.push_back(extension.extensionName);
+        } else if (!enabledExtensionBufferDeviceAddress && std::strcmp(extension.extensionName, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) == 0) {
+            enabledExtensions.push_back(extension.extensionName);
+            enabledExtensionBufferDeviceAddress = true;
+        } else if (!enabledExtensionBufferDeviceAddress && std::strcmp(extension.extensionName, VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) == 0) {
+            enabledExtensions.push_back(extension.extensionName);
+            enabledExtensionBufferDeviceAddress = true;
+        } else if (std::strcmp(extension.extensionName, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0) {
+            enabledExtensions.push_back(extension.extensionName);
+        }
+    }
 
     PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr = static_cast<IDispatchable*>(_instance)->loadDispatchSymbol<PFN_vkGetDeviceProcAddr>("vkGetDeviceProcAddr");
     if (vkGetDeviceProcAddr == nullptr) {
@@ -364,6 +377,10 @@ bool VulkanAdapter::isExtensionAvailable(const char* name) const noexcept {
     }
 
     return false;
+}
+
+bool VulkanAdapter::queueFamilySupportsPresent(uint32_t family) const noexcept {
+    return physicalDeviceQueueFamilySupportsPresentation(_instance->_vkInstance, _instance->_vkGetInstanceProcAddr, _vkPhysicalDevice, family);
 }
 
 }

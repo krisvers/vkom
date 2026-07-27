@@ -15,6 +15,7 @@ namespace internal {
 struct VulkanAdapterFunctionPointers {
     PhysicalDeviceFunctionPointers10 physical10;
     PhysicalDeviceFunctionPointers11 physical11;
+    PhysicalDeviceFunctionPointersSurfaceKHR surfaceKHR;
 };
 
 class VulkanInstance;
@@ -41,6 +42,7 @@ private:
     friend class VulkanDevice;
 
     bool isExtensionAvailable(const char* name) const noexcept;
+    bool queueFamilySupportsPresent(uint32_t family) const noexcept;
 
 public:
     VulkanAdapter(bool debug, VulkanInstance* instance, VkPhysicalDevice vkPhysicalDevice, VulkanAdapterFunctionPointers const& functionPointers);

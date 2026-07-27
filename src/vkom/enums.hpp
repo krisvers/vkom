@@ -105,6 +105,7 @@ enum class ObjectType : int32_t {
 };
 
 enum class DebugMessageSeverityFlags : int32_t {
+    None = 0x0000,
     Verbose = 0x0001,
     Info = 0x0010,
     Warning = 0x0100,
@@ -177,6 +178,7 @@ enum class AdapterType : uint32_t {
 };
 
 enum class QueueFlags : int32_t {
+    None = 0x00000000,
     Graphics = 0x00000001,
     Transfer = 0x00000002,
     Compute = 0x00000004,

@@ -16,6 +16,9 @@ VulkanInstance::VulkanInstance(bool debug, uint32_t vkApiVersion, bool inherited
         throw std::runtime_error("Failed to load physical device functions");
     }
 
+    adapterFunctionPointers.physical11.load(vkInstance, vkGetInstanceProcAddr);
+    adapterFunctionPointers.surfaceKHR.load(vkInstance, vkGetInstanceProcAddr);
+
     uint32_t physicalDeviceCount;
     if (_functionPointers.instance10.vkEnumeratePhysicalDevices(_vkInstance, &physicalDeviceCount, nullptr) != VK_SUCCESS) {
         throw std::runtime_error("vkEnumeratePhysicalDevices failed");
@@ -278,12 +281,28 @@ Result createInstance(bool debug, InstanceLoaderInfo const* loaderInfo, IInstanc
     std::vector<const char*> enabledExtensions = {};
     for (VkExtensionProperties const& props : availableExtensions) {
         if (std::strcmp(props.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0) {
-            enabledExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            enabledExtensions.push_back(props.extensionName);
         } else if (std::strcmp(props.extensionName, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0) {
             #ifdef VKOM_PLATFORM_FAMILY_APPLE
-            enabledExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+            enabledExtensions.push_back(props.extensionName);
             portabilityEnumeration = true;
             #endif
+        } else if (std::strcmp(props.extensionName, VK_KHR_SURFACE_EXTENSION_NAME) == 0) {
+            enabledExtensions.push_back(props.extensionName);
+        } else if (std::strcmp(props.extensionName, "VK_KHR_win32_surface") == 0) {
+            enabledExtensions.push_back(props.extensionName);
+        } else if (std::strcmp(props.extensionName, "VK_KHR_xlib_surface") == 0) {
+            enabledExtensions.push_back(props.extensionName);
+        } else if (std::strcmp(props.extensionName, "VK_KHR_xcb_surface") == 0) {
+            enabledExtensions.push_back(props.extensionName);
+        } else if (std::strcmp(props.extensionName, "VK_KHR_wayland_surface") == 0) {
+            enabledExtensions.push_back(props.extensionName);
+        } else if (std::strcmp(props.extensionName, "VK_EXT_metal_surface") == 0) {
+            enabledExtensions.push_back(props.extensionName);
+        } else if (std::strcmp(props.extensionName, "VK_MVK_macos_surface") == 0) {
+            enabledExtensions.push_back(props.extensionName);
+        } else if (std::strcmp(props.extensionName, "VK_MVK_ios_surface") == 0) {
+            enabledExtensions.push_back(props.extensionName);
         }
     }
 

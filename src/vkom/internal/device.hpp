@@ -20,6 +20,13 @@ struct VulkanDeviceFunctionPointers {
 
 class VulkanInstance;
 class VulkanAdapter;
+class VulkanQueue;
+
+struct VulkanDeviceQueueFamily {
+    QueueFlags flags;
+    VkQueueFamilyProperties properties;
+    std::vector<VulkanQueue*> queues;
+};
 
 class VulkanDevice final : public IDevice {
 private:
@@ -33,11 +40,15 @@ private:
     VulkanDeviceFunctionPointers _functionPointers = {};
     std::vector<const char*> _enabledExtensions = {};
 
+    std::vector<VulkanDeviceQueueFamily> _queueFamilies = {};
+
     /* ICollected */
     uint32_t _referenceCount = 1;
 
     /* IParent */
     std::vector<IChild*> _children = {};
+
+    friend class VulkanQueue;
 
 public:
     VulkanDevice(bool debug, bool inheritedHandle, VulkanAdapter* adapter, VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanDeviceFunctionPointers const& functionPointers, std::vector<const char*> const& enabledExtensions);
@@ -45,7 +56,7 @@ public:
 
     /* IDevice */
     Result waitIdle() const noexcept override;
-    Result acquireQueue(QueueFlags flags, IQueue** queue) noexcept override;
+    Result acquireQueue(uint32_t family, QueueFlags flags, IQueue** queue) noexcept override;
 
     /* INullable */
     bool isNull() const noexcept override;

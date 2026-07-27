@@ -110,13 +110,168 @@ struct PhysicalDeviceFunctionPointers11 {
     }
 };
 
+struct PhysicalDeviceFunctionPointersSurfaceKHR {
+    PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR = nullptr;
+    PFN_vkGetPhysicalDeviceSurfaceFormatsKHR vkGetPhysicalDeviceSurfaceFormatsKHR = nullptr;
+    PFN_vkGetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR = nullptr;
+    PFN_vkGetPhysicalDeviceSurfaceSupportKHR vkGetPhysicalDeviceSurfaceSupportKHR = nullptr;
+
+    PhysicalDeviceFunctionPointersSurfaceKHR() = default;
+
+    inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
+        bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkGetPhysicalDeviceSurfaceCapabilitiesKHR, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkGetPhysicalDeviceSurfaceFormatsKHR, "vkGetPhysicalDeviceSurfaceFormatsKHR");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkGetPhysicalDeviceSurfacePresentModesKHR, "vkGetPhysicalDeviceSurfacePresentModesKHR");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkGetPhysicalDeviceSurfaceSupportKHR, "vkGetPhysicalDeviceSurfaceSupportKHR");
+        return successful;
+    }
+};
+
 struct DeviceFunctionPointers10 {
     PFN_vkDestroyDevice vkDestroyDevice = nullptr;
+    PFN_vkGetDeviceQueue vkGetDeviceQueue = nullptr;
+    PFN_vkDeviceWaitIdle vkDeviceWaitIdle = nullptr;
+    PFN_vkAllocateMemory vkAllocateMemory = nullptr;
+    PFN_vkFreeMemory vkFreeMemory = nullptr;
+    PFN_vkMapMemory vkMapMemory = nullptr;
+    PFN_vkUnmapMemory vkUnmapMemory = nullptr;
+    PFN_vkFlushMappedMemoryRanges vkFlushMappedMemoryRanges = nullptr;
+    PFN_vkInvalidateMappedMemoryRanges vkInvalidateMappedMemoryRanges = nullptr;
+    PFN_vkGetDeviceMemoryCommitment vkGetDeviceMemoryCommitment = nullptr;
+    PFN_vkBindBufferMemory vkBindBufferMemory = nullptr;
+    PFN_vkBindImageMemory vkBindImageMemory = nullptr;
+    PFN_vkGetBufferMemoryRequirements vkGetBufferMemoryRequirements = nullptr;
+    PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements = nullptr;
+    PFN_vkGetImageSparseMemoryRequirements vkGetImageSparseMemoryRequirements = nullptr;
+    PFN_vkCreateFence vkCreateFence = nullptr;
+    PFN_vkDestroyFence vkDestroyFence = nullptr;
+    PFN_vkResetFences vkResetFences = nullptr;
+    PFN_vkGetFenceStatus vkGetFenceStatus = nullptr;
+    PFN_vkWaitForFences vkWaitForFences = nullptr;
+    PFN_vkCreateSemaphore vkCreateSemaphore = nullptr;
+    PFN_vkDestroySemaphore vkDestroySemaphore = nullptr;
+    PFN_vkCreateQueryPool vkCreateQueryPool = nullptr;
+    PFN_vkDestroyQueryPool vkDestroyQueryPool = nullptr;
+    PFN_vkGetQueryPoolResults vkGetQueryPoolResults = nullptr;
+    PFN_vkCreateBuffer vkCreateBuffer = nullptr;
+    PFN_vkDestroyBuffer vkDestroyBuffer = nullptr;
+    PFN_vkCreateImage vkCreateImage = nullptr;
+    PFN_vkDestroyImage vkDestroyImage = nullptr;
+    PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout = nullptr;
+    PFN_vkCreateImageView vkCreateImageView = nullptr;
+    PFN_vkDestroyImageView vkDestroyImageView = nullptr;
+    PFN_vkCreateCommandPool vkCreateCommandPool = nullptr;
+    PFN_vkDestroyCommandPool vkDestroyCommandPool = nullptr;
+    PFN_vkResetCommandPool vkResetCommandPool = nullptr;
+    PFN_vkAllocateCommandBuffers vkAllocateCommandBuffers = nullptr;
+    PFN_vkFreeCommandBuffers vkFreeCommandBuffers = nullptr;
+    PFN_vkCreateEvent vkCreateEvent = nullptr;
+    PFN_vkDestroyEvent vkDestroyEvent = nullptr;
+    PFN_vkGetEventStatus vkGetEventStatus = nullptr;
+    PFN_vkSetEvent vkSetEvent = nullptr;
+    PFN_vkResetEvent vkResetEvent = nullptr;
+    PFN_vkCreateBufferView vkCreateBufferView = nullptr;
+    PFN_vkDestroyBufferView vkDestroyBufferView = nullptr;
+    PFN_vkCreateShaderModule vkCreateShaderModule = nullptr;
+    PFN_vkDestroyShaderModule vkDestroyShaderModule = nullptr;
+    PFN_vkCreatePipelineCache vkCreatePipelineCache = nullptr;
+    PFN_vkDestroyPipelineCache vkDestroyPipelineCache = nullptr;
+    PFN_vkGetPipelineCacheData vkGetPipelineCacheData = nullptr;
+    PFN_vkMergePipelineCaches vkMergePipelineCaches = nullptr;
+    PFN_vkCreateComputePipelines vkCreateComputePipelines = nullptr;
+    PFN_vkDestroyPipeline vkDestroyPipeline = nullptr;
+    PFN_vkCreatePipelineLayout vkCreatePipelineLayout = nullptr;
+    PFN_vkDestroyPipelineLayout vkDestroyPipelineLayout = nullptr;
+    PFN_vkCreateSampler vkCreateSampler = nullptr;
+    PFN_vkDestroySampler vkDestroySampler = nullptr;
+    PFN_vkCreateDescriptorSetLayout vkCreateDescriptorSetLayout = nullptr;
+    PFN_vkDestroyDescriptorSetLayout vkDestroyDescriptorSetLayout = nullptr;
+    PFN_vkCreateDescriptorPool vkCreateDescriptorPool = nullptr;
+    PFN_vkDestroyDescriptorPool vkDestroyDescriptorPool = nullptr;
+    PFN_vkResetDescriptorPool vkResetDescriptorPool = nullptr;
+    PFN_vkAllocateDescriptorSets vkAllocateDescriptorSets = nullptr;
+    PFN_vkFreeDescriptorSets vkFreeDescriptorSets = nullptr;
+    PFN_vkUpdateDescriptorSets vkUpdateDescriptorSets = nullptr;
+    PFN_vkCreateGraphicsPipelines vkCreateGraphicsPipelines = nullptr;
+    PFN_vkCreateFramebuffer vkCreateFramebuffer = nullptr;
+    PFN_vkDestroyFramebuffer vkDestroyFramebuffer = nullptr;
+    PFN_vkCreateRenderPass vkCreateRenderPass = nullptr;
+    PFN_vkDestroyRenderPass vkDestroyRenderPass = nullptr;
+    PFN_vkGetRenderAreaGranularity vkGetRenderAreaGranularity = nullptr;
 
     DeviceFunctionPointers10() = default;
 
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyDevice, "vkDestroyDevice");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetDeviceQueue, "vkGetDeviceQueue");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDeviceWaitIdle, "vkDeviceWaitIdle");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkAllocateMemory, "vkAllocateMemory");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkFreeMemory, "vkFreeMemory");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkMapMemory, "vkMapMemory");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkUnmapMemory, "vkUnmapMemory");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkFlushMappedMemoryRanges, "vkFlushMappedMemoryRanges");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkInvalidateMappedMemoryRanges, "vkInvalidateMappedMemoryRanges");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetDeviceMemoryCommitment, "vkGetDeviceMemoryCommitment");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkBindBufferMemory, "vkBindBufferMemory");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkBindImageMemory, "vkBindImageMemory");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetBufferMemoryRequirements, "vkGetBufferMemoryRequirements");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetImageMemoryRequirements, "vkGetImageMemoryRequirements");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetImageSparseMemoryRequirements, "vkGetImageSparseMemoryRequirements");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateFence, "vkCreateFence");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyFence, "vkDestroyFence");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkResetFences, "vkResetFences");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetFenceStatus, "vkGetFenceStatus");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkWaitForFences, "vkWaitForFences");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateSemaphore, "vkCreateSemaphore");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroySemaphore, "vkDestroySemaphore");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateQueryPool, "vkCreateQueryPool");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyQueryPool, "vkDestroyQueryPool");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetQueryPoolResults, "vkGetQueryPoolResults");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateBuffer, "vkCreateBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyBuffer, "vkDestroyBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateImage, "vkCreateImage");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyImage, "vkDestroyImage");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetImageSubresourceLayout, "vkGetImageSubresourceLayout");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateImageView, "vkCreateImageView");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyImageView, "vkDestroyImageView");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateCommandPool, "vkCreateCommandPool");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyCommandPool, "vkDestroyCommandPool");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkResetCommandPool, "vkResetCommandPool");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkAllocateCommandBuffers, "vkAllocateCommandBuffers");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkFreeCommandBuffers, "vkFreeCommandBuffers");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateEvent, "vkCreateEvent");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyEvent, "vkDestroyEvent");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetEventStatus, "vkGetEventStatus");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkSetEvent, "vkSetEvent");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkResetEvent, "vkResetEvent");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateBufferView, "vkCreateBufferView");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyBufferView, "vkDestroyBufferView");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateShaderModule, "vkCreateShaderModule");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyShaderModule, "vkDestroyShaderModule");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreatePipelineCache, "vkCreatePipelineCache");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyPipelineCache, "vkDestroyPipelineCache");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetPipelineCacheData, "vkGetPipelineCacheData");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkMergePipelineCaches, "vkMergePipelineCaches");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateComputePipelines, "vkCreateComputePipelines");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyPipeline, "vkDestroyPipeline");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreatePipelineLayout, "vkCreatePipelineLayout");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyPipelineLayout, "vkDestroyPipelineLayout");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateSampler, "vkCreateSampler");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroySampler, "vkDestroySampler");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateDescriptorSetLayout, "vkCreateDescriptorSetLayout");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyDescriptorSetLayout, "vkDestroyDescriptorSetLayout");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateDescriptorPool, "vkCreateDescriptorPool");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyDescriptorPool, "vkDestroyDescriptorPool");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkResetDescriptorPool, "vkResetDescriptorPool");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkAllocateDescriptorSets, "vkAllocateDescriptorSets");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkFreeDescriptorSets, "vkFreeDescriptorSets");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkUpdateDescriptorSets, "vkUpdateDescriptorSets");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateGraphicsPipelines, "vkCreateGraphicsPipelines");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateFramebuffer, "vkCreateFramebuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyFramebuffer, "vkDestroyFramebuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateRenderPass, "vkCreateRenderPass");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyRenderPass, "vkDestroyRenderPass");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetRenderAreaGranularity, "vkGetRenderAreaGranularity");
         return successful;
     }
 };
@@ -135,6 +290,21 @@ struct DeviceFunctionPointers12 {
 
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
         bool successful = false;
+        return successful;
+    }
+};
+
+struct QueueFunctionPointers10 {
+    PFN_vkQueueSubmit vkQueueSubmit = nullptr;
+    PFN_vkQueueWaitIdle vkQueueWaitIdle = nullptr;
+    PFN_vkQueueBindSparse vkQueueBindSparse = nullptr;
+
+    QueueFunctionPointers10() = default;
+
+    inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
+        bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkQueueSubmit, "vkQueueSubmit");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkQueueWaitIdle, "vkQueueWaitIdle");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkQueueBindSparse, "vkQueueBindSparse");
         return successful;
     }
 };

@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     }
 
     vkom::IQueue* queue;
-    if (device->acquireQueue(vkom::QueueFlags::Graphics | vkom::QueueFlags::Present, &queue) != vkom::Result::Success) {
+    if (device->acquireQueue(vkom::QUEUE_FAMILY_ANY, vkom::QueueFlags::Graphics | vkom::QueueFlags::Present, &queue) != vkom::Result::Success) {
         device->release();
         instance->release();
         return 1;

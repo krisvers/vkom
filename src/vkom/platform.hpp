@@ -16,6 +16,9 @@
 #define VKOM_PLATFORM_FAMILY_DARWIN
 #define VKOM_PLATFORM_OS_MACOS
 #endif
+#elif defined(__ANDROID__)
+#define VKOM_PLATFORM_FAMILY_UNIX
+#define VKOM_PLATFORM_OS_ANDROID
 #elif defined(__linux__)
 #define VKOM_PLATFORM_FAMILY_UNIX
 #define VKOM_PLATFORM_OS_LINUX

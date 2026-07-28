@@ -51,6 +51,9 @@ public:
 
     Result waitIdle() const noexcept override;
 
+    Result acquireCommandEncoder(ICommandEncoder** encoder) noexcept override;
+    Result acquireCommandBatch(ICommandBatch** batch) noexcept override;
+
     /* INullable */
     bool isNull() const noexcept override;
 

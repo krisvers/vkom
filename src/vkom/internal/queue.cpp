@@ -41,6 +41,14 @@ Result VulkanQueue::waitIdle() const noexcept {
     return castEnum<Result>(_functionPointers.queue10.vkQueueWaitIdle(_vkQueue));
 }
 
+Result VulkanQueue::acquireCommandEncoder(ICommandEncoder** encoder) noexcept {
+    return Result::ErrorInitializationFailed;
+}
+
+Result VulkanQueue::acquireCommandBatch(ICommandBatch** batch) noexcept {
+    return Result::ErrorInitializationFailed;
+}
+
 /* INullable */
 bool VulkanQueue::isNull() const noexcept {
     return (_vkQueue != nullptr);

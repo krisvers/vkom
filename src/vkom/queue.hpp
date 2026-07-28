@@ -2,6 +2,8 @@
 
 #include <vkom/enums.hpp>
 #include <vkom/object.hpp>
+#include <vkom/cmdencoder.hpp>
+#include <vkom/cmdbatch.hpp>
 
 namespace vkom {
 
@@ -14,6 +16,9 @@ public:
     virtual QueueFlags flags() const noexcept = 0;
 
     virtual Result waitIdle() const noexcept = 0;
+
+    virtual Result acquireCommandEncoder(ICommandEncoder** encoder) noexcept = 0;
+    virtual Result acquireCommandBatch(ICommandBatch** batch) noexcept = 0;
 
     /* IInterface */
     bool supportsInterface(IID const& iid) const noexcept override;

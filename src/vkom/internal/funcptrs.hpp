@@ -309,6 +309,17 @@ struct QueueFunctionPointers10 {
     }
 };
 
+struct QueueFunctionPointersSwapchainKHR {
+    PFN_vkQueuePresentKHR vkQueuePresentKHR = nullptr;
+
+    QueueFunctionPointersSwapchainKHR() = default;
+
+    inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
+        bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkQueuePresentKHR, "vkQueuePresentKHR");
+        return successful;
+    }
+};
+
 }
 
 }

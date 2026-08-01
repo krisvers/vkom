@@ -57,6 +57,8 @@ public:
     /* IDevice */
     Result waitIdle() const noexcept override;
     Result acquireQueue(uint32_t family, QueueFlags flags, IQueue** queue) noexcept override;
+    IHeap* defaultHeap() noexcept override;
+    Result createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags textureUsages, MemoryLocationFlags memoryLocation, IHeap** heap) noexcept override;
 
     /* INullable */
     bool isNull() const noexcept override;

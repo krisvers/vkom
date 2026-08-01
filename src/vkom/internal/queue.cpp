@@ -1,6 +1,8 @@
 #include <vkom/internal/queue.hpp>
 
 #include <vkom/internal/enums.hpp>
+#include <vkom/internal/cmdencoder.hpp>
+#include <vkom/internal/cmdbatch.hpp>
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
@@ -11,6 +13,15 @@ namespace internal {
 
 VulkanQueue::VulkanQueue(bool debug, bool inheritedHandle, VulkanDevice* device, uint32_t family, uint32_t index, QueueFlags flags, VkQueue vkQueue, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanQueueFunctionPointers const& functionPointers) : _debug(debug), _inheritedHandle(inheritedHandle), _device(device), _adapter(static_cast<VulkanAdapter*>(_device->parent())), _instance(static_cast<VulkanInstance*>(_adapter->parent())), _family(family), _index(index), _flags(flags), _vkQueue(vkQueue), _vkAllocationCallbacks(vkAllocationCallbacks), _functionPointers(functionPointers) {
     _device->_queueFamilies[_family].queues.push_back(this);
+
+    VkCommandPoolCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    createInfo.queueFamilyIndex = _family;
+
+    if (_device->_functionPointers.device10.vkCreateCommandPool(_device->_vkDevice, &createInfo, _vkAllocationCallbacks, &_vkCommandPool) != VK_SUCCESS) {
+        throw std::runtime_error("vkCreateCommandPool failed");
+    }
 }
 
 VulkanQueue::~VulkanQueue() {
@@ -22,6 +33,17 @@ VulkanQueue::~VulkanQueue() {
             break;
         }
     }
+
+    for (IChild* child : _children) {
+        if (child->supportsInterface(ICOLLECTED_IID)) {
+            ICollected* collected = reinterpret_cast<ICollected*>(child);
+            if (collected->release() != 0) {
+                /* TODO: report mismanaged references */
+            }
+        }
+    }
+
+    _device->_functionPointers.device10.vkDestroyCommandPool(_device->_vkDevice, _vkCommandPool, _vkAllocationCallbacks);
 }
 
 /* IQueue */
@@ -42,11 +64,37 @@ Result VulkanQueue::waitIdle() const noexcept {
 }
 
 Result VulkanQueue::acquireCommandEncoder(ICommandEncoder** encoder) noexcept {
-    return Result::ErrorInitializationFailed;
+    VulkanCommandEncoderFunctionPointers functionPointers = {};
+    if (!functionPointers.commandBuffer10.load(_device->_vkDevice, _device->_vkGetDeviceProcAddr)) {
+        return Result::ErrorInitializationFailed;
+    }
+
+    functionPointers.debugUtilsEXT.load(_device->_vkDevice, _device->_vkGetDeviceProcAddr);
+
+    VkCommandBuffer vkCommandBuffer = acquireCommandBuffer(true);
+    if (vkCommandBuffer == nullptr) {
+        return Result::ErrorInitializationFailed;
+    }
+
+    *encoder = new VulkanCommandEncoder(_debug, _inheritedHandle, this, vkCommandBuffer, _vkAllocationCallbacks, functionPointers);
+    return Result::Success;
 }
 
 Result VulkanQueue::acquireCommandBatch(ICommandBatch** batch) noexcept {
-    return Result::ErrorInitializationFailed;
+    VulkanCommandBatchFunctionPointers functionPointers = {};
+    if (!functionPointers.commandBuffer10.load(_device->_vkDevice, _device->_vkGetDeviceProcAddr)) {
+        return Result::ErrorInitializationFailed;
+    }
+
+    functionPointers.debugUtilsEXT.load(_device->_vkDevice, _device->_vkGetDeviceProcAddr);
+
+    VkCommandBuffer vkCommandBuffer = acquireCommandBuffer(false);
+    if (vkCommandBuffer == nullptr) {
+        return Result::ErrorInitializationFailed;
+    }
+
+    *batch = new VulkanCommandBatch(_debug, _inheritedHandle, this, vkCommandBuffer, _vkAllocationCallbacks, functionPointers);
+    return Result::Success;
 }
 
 /* INullable */
@@ -115,6 +163,30 @@ void* VulkanQueue::loadDispatchSymbol(const char* symbol) {
 /* IInterface */
 bool VulkanQueue::supportsInterface(IID const& iid) const noexcept {
     return IQueue::supportsInterface(iid);
+}
+
+/* internal */
+VkCommandBuffer VulkanQueue::acquireCommandBuffer(bool secondary) {
+    /* TODO: smarter command buffer allocation scheme */
+    VkCommandBufferAllocateInfo allocateInfo = {};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.commandPool = _vkCommandPool;
+    allocateInfo.level = (secondary) ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocateInfo.commandBufferCount = 1;
+
+    VkCommandBuffer vkCommandBuffer;
+    if (_device->_functionPointers.device10.vkAllocateCommandBuffers(_device->_vkDevice, &allocateInfo, &vkCommandBuffer) != VK_SUCCESS) {
+        return nullptr;
+    }
+
+    return vkCommandBuffer;
+}
+
+void VulkanQueue::releaseCommandBuffer(VkCommandBuffer vkCommandBuffer) {
+    /* TODO: fine grained wait for command buffer to leave pending */
+    waitIdle();
+
+    _device->_functionPointers.device10.vkFreeCommandBuffers(_device->_vkDevice, _vkCommandPool, 1, &vkCommandBuffer);
 }
 
 }

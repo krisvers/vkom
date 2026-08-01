@@ -11,7 +11,9 @@ struct CommandBatchSubmitInfo {
 
 class ICommandEncoder;
 
-class ICommandBatch : public INullable, public IHandled, public IParent, public IChild, public IDispatchable {
+inline const IID ICOMMANDBATCH_IID = IID("23c48793-8e53-4043-91a7-a2cf3837b3ed");
+
+class ICommandBatch : public INullable, public IHandled, public IChild, public IDispatchable {
 public:
     virtual Result record(ICommandEncoder* encoder) noexcept = 0;
     virtual Result submit(CommandBatchSubmitInfo const* submitInfo) noexcept = 0;

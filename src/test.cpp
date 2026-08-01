@@ -3,6 +3,9 @@
 #include <vkom/instance.hpp>
 #include <vkom/adapter.hpp>
 #include <vkom/device.hpp>
+#include <vkom/queue.hpp>
+#include <vkom/cmdencoder.hpp>
+#include <vkom/cmdbatch.hpp>
 
 #include <cstdio>
 
@@ -32,6 +35,32 @@ int main(int argc, char** argv) {
         instance->release();
         return 1;
     }
+
+    vkom::ICommandEncoder* encoder;
+    if (queue->acquireCommandEncoder(&encoder) != vkom::Result::Success) {
+        queue->release();
+        device->release();
+        instance->release();
+        return 1;
+    }
+
+    encoder->insertDebugLabel("vkom was here");
+
+    vkom::ICommandBatch* batch;
+    if (encoder->batch(&batch) != vkom::Result::Success) {
+        encoder->release();
+        queue->release();
+        device->release();
+        instance->release();
+        return 1;
+    }
+
+    if (batch->submit(nullptr) != vkom::Result::Success) {
+
+    }
+
+    batch->discard();
+    encoder->release();
 
     queue->release();
     device->release();

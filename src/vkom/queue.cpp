@@ -1,4 +1,4 @@
-#include <vkom/device.hpp>
+#include <vkom/queue.hpp>
 
 namespace vkom {
 

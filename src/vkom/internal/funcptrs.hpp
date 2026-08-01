@@ -320,6 +320,125 @@ struct QueueFunctionPointersSwapchainKHR {
     }
 };
 
+struct CommandBufferFunctionPointers10 {
+    PFN_vkBeginCommandBuffer vkBeginCommandBuffer = nullptr;
+    PFN_vkEndCommandBuffer vkEndCommandBuffer = nullptr;
+    PFN_vkResetCommandBuffer vkResetCommandBuffer = nullptr;
+
+    PFN_vkCmdCopyBuffer vkCmdCopyBuffer = nullptr;
+    PFN_vkCmdCopyImage vkCmdCopyImage = nullptr;
+    PFN_vkCmdCopyBufferToImage vkCmdCopyBufferToImage = nullptr;
+    PFN_vkCmdCopyImageToBuffer vkCmdCopyImageToBuffer = nullptr;
+    PFN_vkCmdUpdateBuffer vkCmdUpdateBuffer = nullptr;
+    PFN_vkCmdFillBuffer vkCmdFillBuffer = nullptr;
+    PFN_vkCmdPipelineBarrier vkCmdPipelineBarrier = nullptr;
+    PFN_vkCmdBeginQuery vkCmdBeginQuery = nullptr;
+    PFN_vkCmdEndQuery vkCmdEndQuery = nullptr;
+    PFN_vkCmdResetQueryPool vkCmdResetQueryPool = nullptr;
+    PFN_vkCmdWriteTimestamp vkCmdWriteTimestamp = nullptr;
+    PFN_vkCmdCopyQueryPoolResults vkCmdCopyQueryPoolResults = nullptr;
+    PFN_vkCmdExecuteCommands vkCmdExecuteCommands = nullptr;
+
+    PFN_vkCmdBindPipeline vkCmdBindPipeline = nullptr;
+    PFN_vkCmdBindDescriptorSets vkCmdBindDescriptorSets = nullptr;
+    PFN_vkCmdClearColorImage vkCmdClearColorImage = nullptr;
+    PFN_vkCmdDispatch vkCmdDispatch = nullptr;
+    PFN_vkCmdDispatchIndirect vkCmdDispatchIndirect = nullptr;
+    PFN_vkCmdSetEvent vkCmdSetEvent = nullptr;
+    PFN_vkCmdResetEvent vkCmdResetEvent = nullptr;
+    PFN_vkCmdWaitEvents vkCmdWaitEvents = nullptr;
+    PFN_vkCmdPushConstants vkCmdPushConstants = nullptr;
+
+    PFN_vkCmdSetViewport vkCmdSetViewport = nullptr;
+    PFN_vkCmdSetScissor vkCmdSetScissor = nullptr;
+    PFN_vkCmdSetLineWidth vkCmdSetLineWidth = nullptr;
+    PFN_vkCmdSetDepthBias vkCmdSetDepthBias = nullptr;
+    PFN_vkCmdSetBlendConstants vkCmdSetBlendConstants = nullptr;
+    PFN_vkCmdSetDepthBounds vkCmdSetDepthBounds = nullptr;
+    PFN_vkCmdSetStencilCompareMask vkCmdSetStencilCompareMask = nullptr;
+    PFN_vkCmdSetStencilWriteMask vkCmdSetStencilWriteMask = nullptr;
+    PFN_vkCmdSetStencilReference vkCmdSetStencilReference = nullptr;
+    PFN_vkCmdBindIndexBuffer vkCmdBindIndexBuffer = nullptr;
+    PFN_vkCmdBindVertexBuffers vkCmdBindVertexBuffers = nullptr;
+    PFN_vkCmdDraw vkCmdDraw = nullptr;
+    PFN_vkCmdDrawIndexed vkCmdDrawIndexed = nullptr;
+    PFN_vkCmdDrawIndirect vkCmdDrawIndirect = nullptr;
+    PFN_vkCmdDrawIndexedIndirect vkCmdDrawIndexedIndirect = nullptr;
+    PFN_vkCmdBlitImage vkCmdBlitImage = nullptr;
+    PFN_vkCmdClearDepthStencilImage vkCmdClearDepthStencilImage = nullptr;
+    PFN_vkCmdClearAttachments vkCmdClearAttachments = nullptr;
+    PFN_vkCmdResolveImage vkCmdResolveImage = nullptr;
+    PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass = nullptr;
+    PFN_vkCmdNextSubpass vkCmdNextSubpass = nullptr;
+    PFN_vkCmdEndRenderPass vkCmdEndRenderPass = nullptr;
+
+    CommandBufferFunctionPointers10() = default;
+
+    inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
+        bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkBeginCommandBuffer, "vkBeginCommandBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkEndCommandBuffer, "vkEndCommandBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkResetCommandBuffer, "vkResetCommandBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdCopyBuffer, "vkCmdCopyBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdCopyImage, "vkCmdCopyImage");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdCopyBufferToImage, "vkCmdCopyBufferToImage");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdCopyImageToBuffer, "vkCmdCopyImageToBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdUpdateBuffer, "vkCmdUpdateBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdFillBuffer, "vkCmdFillBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdPipelineBarrier, "vkCmdPipelineBarrier");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdBeginQuery, "vkCmdBeginQuery");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdEndQuery, "vkCmdEndQuery");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdResetQueryPool, "vkCmdResetQueryPool");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdWriteTimestamp, "vkCmdWriteTimestamp");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdCopyQueryPoolResults, "vkCmdCopyQueryPoolResults");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdExecuteCommands, "vkCmdExecuteCommands");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdBindPipeline, "vkCmdBindPipeline");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdBindDescriptorSets, "vkCmdBindDescriptorSets");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdClearColorImage, "vkCmdClearColorImage");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdDispatch, "vkCmdDispatch");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdDispatchIndirect, "vkCmdDispatchIndirect");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetEvent, "vkCmdSetEvent");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdResetEvent, "vkCmdResetEvent");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdWaitEvents, "vkCmdWaitEvents");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdPushConstants, "vkCmdPushConstants");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetViewport, "vkCmdSetViewport");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetScissor, "vkCmdSetScissor");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetLineWidth, "vkCmdSetLineWidth");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetDepthBias, "vkCmdSetDepthBias");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetBlendConstants, "vkCmdSetBlendConstants");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetDepthBounds, "vkCmdSetDepthBounds");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetStencilCompareMask, "vkCmdSetStencilCompareMask");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetStencilWriteMask, "vkCmdSetStencilWriteMask");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdSetStencilReference, "vkCmdSetStencilReference");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdBindIndexBuffer, "vkCmdBindIndexBuffer");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdBindVertexBuffers, "vkCmdBindVertexBuffers");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdDraw, "vkCmdDraw");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdDrawIndexed, "vkCmdDrawIndexed");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdDrawIndirect, "vkCmdDrawIndirect");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdDrawIndexedIndirect, "vkCmdDrawIndexedIndirect");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdBlitImage, "vkCmdBlitImage");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdClearDepthStencilImage, "vkCmdClearDepthStencilImage");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdClearAttachments, "vkCmdClearAttachments");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdResolveImage, "vkCmdResolveImage");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdBeginRenderPass, "vkCmdBeginRenderPass");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdNextSubpass, "vkCmdNextSubpass");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdEndRenderPass, "vkCmdEndRenderPass");
+        return successful;
+    }
+};
+
+struct CommandBufferFunctionPointersDebugUtilsEXT {
+    PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT = nullptr;
+    PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT = nullptr;
+    PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXT = nullptr;
+
+    inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
+        bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdBeginDebugUtilsLabelEXT, "vkCmdBeginDebugUtilsLabelEXT");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdEndDebugUtilsLabelEXT, "vkCmdEndDebugUtilsLabelEXT");
+        successful = successful && VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdInsertDebugUtilsLabelEXT, "vkCmdInsertDebugUtilsLabelEXT");
+        return successful;
+    }
+};
+
 }
 
 }

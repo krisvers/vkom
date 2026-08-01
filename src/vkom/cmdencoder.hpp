@@ -39,14 +39,14 @@ struct ResourceQueueFamilyTransfer {
 };
 
 class ICommandBatch;
-class IComputeEncoder;
-class IRenderEncoder;
+
+inline const IID ICOMMANDENCODER_IID = IID("2039d9ec-fa70-42c3-b337-08fa2ee6e38a");
 
 class ICommandEncoder : public INullable, public IHandled, public ICollected, public IParent, public IChild, public IDispatchable {
 public:
     /* passes */
-    virtual Result beginComputePass(ComputePassDescriptor const* descriptor, IComputeEncoder** encoder) noexcept = 0;
-    virtual Result beginRenderPass(RenderPassDescriptor const* descriptor, IRenderEncoder** encoder) noexcept = 0;
+    virtual Result beginComputePass(ComputePassDescriptor const* descriptor, IComputePass** encoder) noexcept = 0;
+    virtual Result beginRenderPass(RenderPassDescriptor const* descriptor, IRenderPass** encoder) noexcept = 0;
 
     /* debug utilities */
     virtual void insertDebugLabel(const char* label) noexcept = 0;

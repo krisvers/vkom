@@ -34,11 +34,20 @@ private:
     VkAllocationCallbacks const* _vkAllocationCallbacks = nullptr;
     VulkanQueueFunctionPointers _functionPointers = {};
 
+    /* TODO: possibly expand to multiple pools? */
+    VkCommandPool _vkCommandPool = nullptr;
+
     /* ICollected */
     uint32_t _referenceCount = 1;
 
     /* IParent */
     std::vector<IChild*> _children = {};
+
+    VkCommandBuffer acquireCommandBuffer(bool secondary);
+    void releaseCommandBuffer(VkCommandBuffer vkCommandBuffer);
+
+    friend class VulkanCommandEncoder;
+    friend class VulkanCommandBatch;
 
 public:
     VulkanQueue(bool debug, bool inheritedHandle, VulkanDevice* device, uint32_t family, uint32_t index, QueueFlags flags, VkQueue vkQueue, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanQueueFunctionPointers const& functionPointers);

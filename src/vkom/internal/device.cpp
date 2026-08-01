@@ -95,6 +95,14 @@ Result VulkanDevice::acquireQueue(uint32_t family, QueueFlags flags, IQueue** qu
     return Result::Success;
 }
 
+IHeap* VulkanDevice::defaultHeap() noexcept {
+    return nullptr;
+}
+
+Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags textureUsages, MemoryLocationFlags memoryLocation, IHeap** heap) noexcept {
+    return Result::ErrorUnknown;
+}
+
 /* INullable */
 bool VulkanDevice::isNull() const noexcept {
     return (_vkDevice == nullptr);

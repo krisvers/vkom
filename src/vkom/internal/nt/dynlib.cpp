@@ -34,8 +34,12 @@ void NTDynlib::destroy() {
     delete this;
 }
 
-bool NTDynlib::supportsInterface(IID const& iid) const noexcept {
-    return IDynlib::supportsInterface(iid);
+void* NTDynlib::queryInterface(IID const& iid) noexcept {
+    if (iid == IDynlib::iid()) {
+        return static_cast<IDynlib*>(this);
+    }
+
+    return nullptr;
 }
 
 }

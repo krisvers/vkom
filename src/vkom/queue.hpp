@@ -7,8 +7,6 @@
 
 namespace vkom {
 
-inline const IID IQUEUE_IID = IID("0a67cb8d-be6d-4365-b210-1847a84075d9");
-
 class IQueue : public INullable, public IHandled, public ICollected, public IParent, public IChild, public IDispatchable {
 public:
     virtual uint32_t family() const noexcept = 0;
@@ -20,8 +18,10 @@ public:
     virtual Result acquireCommandEncoder(ICommandEncoder** encoder) noexcept = 0;
     virtual Result acquireCommandBatch(ICommandBatch** batch) noexcept = 0;
 
-    /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("0a67cb8d-be6d-4365-b210-1847a84075d9");
+        return iid;
+    }
 };
 
 }

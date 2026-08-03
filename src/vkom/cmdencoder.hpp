@@ -40,8 +40,6 @@ struct ResourceQueueFamilyTransfer {
 
 class ICommandBatch;
 
-inline const IID ICOMMANDENCODER_IID = IID("2039d9ec-fa70-42c3-b337-08fa2ee6e38a");
-
 class ICommandEncoder : public INullable, public IHandled, public ICollected, public IParent, public IChild, public IDispatchable {
 public:
     /* passes */
@@ -73,8 +71,10 @@ public:
     /* equivalent to ICommandEncoder::finish + IQueue::acquireCommandBatch + ICommandBatch::record */
     virtual Result batch(ICommandBatch** batch) noexcept = 0;
 
-    /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("2039d9ec-fa70-42c3-b337-08fa2ee6e38a");
+        return iid;
+    }
 };
 
 }

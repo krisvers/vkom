@@ -20,6 +20,7 @@ struct VulkanAdapterFunctionPointers {
 
 class VulkanInstance;
 class VulkanDevice;
+class VulkanHeap;
 
 class VulkanAdapter final : public IAdapter {
 private:
@@ -40,6 +41,7 @@ private:
     std::vector<IChild*> _children = {};
 
     friend class VulkanDevice;
+    friend class VulkanHeap;
 
     bool isExtensionAvailable(const char* name) const noexcept;
     bool queueFamilySupportsPresent(uint32_t family) const noexcept;
@@ -70,7 +72,7 @@ public:
     void* loadDispatchSymbol(const char* symbol) override;
 
     /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    void* queryInterface(IID const& iid) noexcept override;
 };
 
 }

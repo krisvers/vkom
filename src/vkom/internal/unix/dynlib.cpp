@@ -36,8 +36,12 @@ void UnixDynlib::destroy() {
     delete this;
 }
 
-bool UnixDynlib::supportsInterface(IID const& iid) const noexcept {
-    return IDynlib::supportsInterface(iid);
+void* UnixDynlib::queryInterface(IID const& iid) noexcept {
+    if (iid == IDynlib::iid()) {
+        return static_cast<IDynlib*>(this);
+    }
+
+    return nullptr;
 }
 
 }

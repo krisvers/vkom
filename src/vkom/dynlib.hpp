@@ -4,8 +4,6 @@
 
 namespace vkom {
 
-inline const IID IDYNLIB_IID = IID("b5130b86-58bb-4868-b040-8aed3202cfc8");
-
 class IDynlib : public IInterface {
 public:
     virtual bool valid() const noexcept = 0;
@@ -17,8 +15,10 @@ public:
         return reinterpret_cast<PFN>(loadSymbol(symbol));
     }
 
-    /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("b5130b86-58bb-4868-b040-8aed3202cfc8");
+        return iid;
+    }
 };
 
 IDynlib* loadDynlib(const char* path);

@@ -85,7 +85,7 @@ public:
     void* loadDispatchSymbol(const char* symbol) override;
 
     /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    void* queryInterface(IID const& iid) noexcept override;
 };
 
 }

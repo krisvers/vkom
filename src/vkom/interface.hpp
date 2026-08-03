@@ -8,7 +8,12 @@ using IID = UUID;
 
 class IInterface {
 public:
-    virtual bool supportsInterface(IID const& iid) const noexcept = 0;
+    virtual void* queryInterface(IID const& iid) noexcept = 0;
+
+    template<typename T>
+    T* queryInterface() {
+        return reinterpret_cast<T*>(queryInterface(T::iid()));
+    }
 };
 
 }

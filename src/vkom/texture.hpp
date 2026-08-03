@@ -32,14 +32,14 @@ struct TextureInfo {
     bool queueConcurrency;
 };
 
-inline const IID ITEXTURE_IID = IID("1f198966-b5ae-402d-880a-ce0e5e4cb79e");
-
 class ITexture : public IResource {
 public:
     virtual void getInfo(TextureInfo* info) const noexcept = 0;
 
-    /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("1f198966-b5ae-402d-880a-ce0e5e4cb79e");
+        return iid;
+    }
 };
 
 }

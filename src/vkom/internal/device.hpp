@@ -7,6 +7,7 @@
 
 #include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/vma.hpp>
 
 namespace vkom {
 
@@ -21,6 +22,7 @@ struct VulkanDeviceFunctionPointers {
 class VulkanInstance;
 class VulkanAdapter;
 class VulkanQueue;
+class VulkanHeap;
 
 struct VulkanDeviceQueueFamily {
     QueueFlags flags;
@@ -41,6 +43,8 @@ private:
     std::vector<const char*> _enabledExtensions = {};
 
     std::vector<VulkanDeviceQueueFamily> _queueFamilies = {};
+    VmaAllocator _vmaAllocator = nullptr;
+    VulkanHeap* _defaultHeap = nullptr;
 
     /* ICollected */
     uint32_t _referenceCount = 1;
@@ -49,6 +53,7 @@ private:
     std::vector<IChild*> _children = {};
 
     friend class VulkanQueue;
+    friend class VulkanHeap;
 
 public:
     VulkanDevice(bool debug, bool inheritedHandle, VulkanAdapter* adapter, VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanDeviceFunctionPointers const& functionPointers, std::vector<const char*> const& enabledExtensions);
@@ -82,7 +87,7 @@ public:
     void* loadDispatchSymbol(const char* symbol) override;
 
     /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    void* queryInterface(IID const& iid) noexcept override;
 };
 
 }

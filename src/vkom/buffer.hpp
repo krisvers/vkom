@@ -19,8 +19,6 @@ struct BufferViewInfo {
 
 class IBufferView;
 
-inline const IID IBUFFER_IID = IID("14c8cbe4-33c5-4240-b34c-6cde96102b43");
-
 class IBuffer : public IResource {
 public:
     virtual void getInfo(BufferInfo* info) const noexcept = 0;
@@ -28,8 +26,10 @@ public:
 
     virtual Result createView(BufferViewInfo const* info) noexcept = 0;
 
-    /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("14c8cbe4-33c5-4240-b34c-6cde96102b43");
+        return iid;
+    }
 };
 
 }

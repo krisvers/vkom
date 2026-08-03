@@ -35,8 +35,8 @@ VulkanQueue::~VulkanQueue() {
     }
 
     for (IChild* child : _children) {
-        if (child->supportsInterface(ICOLLECTED_IID)) {
-            ICollected* collected = reinterpret_cast<ICollected*>(child);
+        ICollected* collected = child->queryInterface<ICollected>();
+        if (collected != nullptr) {
             if (collected->release() != 0) {
                 /* TODO: report mismanaged references */
             }
@@ -161,8 +161,24 @@ void* VulkanQueue::loadDispatchSymbol(const char* symbol) {
 }
 
 /* IInterface */
-bool VulkanQueue::supportsInterface(IID const& iid) const noexcept {
-    return IQueue::supportsInterface(iid);
+void* VulkanQueue::queryInterface(IID const& iid) noexcept {
+    if (iid == INullable::iid()) {
+        return static_cast<INullable*>(this);
+    } else if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == ICollected::iid()) {
+        return static_cast<ICollected*>(this);
+    } else if (iid == IParent::iid()) {
+        return static_cast<IParent*>(this);
+    } else if (iid == IChild::iid()) {
+        return static_cast<IChild*>(this);
+    } else if (iid == IDispatchable::iid()) {
+        return static_cast<IDispatchable*>(this);
+    } else if (iid == IQueue::iid()) {
+        return static_cast<IQueue*>(this);
+    }
+
+    return nullptr;
 }
 
 /* internal */

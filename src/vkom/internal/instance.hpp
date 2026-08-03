@@ -22,6 +22,7 @@ struct VulkanInstanceFunctionPointers {
 };
 
 class VulkanAdapter;
+class VulkanDevice;
 
 class VulkanInstance final : public IInstance {
 private:
@@ -48,6 +49,7 @@ private:
     std::vector<IChild*> _children = {};
 
     friend class VulkanAdapter;
+    friend class VulkanDevice;
 
     /* internal */
     uint32_t vkApiVersion() const noexcept;
@@ -82,7 +84,7 @@ public:
     void* loadDispatchSymbol(const char* symbol) override;
 
     /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    void* queryInterface(IID const& iid) noexcept override;
 };
 
 }

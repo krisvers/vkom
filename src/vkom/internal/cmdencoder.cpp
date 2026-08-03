@@ -35,8 +35,8 @@ VulkanCommandEncoder::~VulkanCommandEncoder() {
     }
 
     for (IChild* child : _children) {
-        if (child->supportsInterface(ICOLLECTED_IID)) {
-            ICollected* collected = reinterpret_cast<ICollected*>(child);
+        ICollected* collected = child->queryInterface<ICollected>();
+        if (collected != nullptr) {
             if (collected->release() != 0) {
                 /* TODO: report mismanaged references */
             }
@@ -229,8 +229,24 @@ void* VulkanCommandEncoder::loadDispatchSymbol(const char* symbol) {
 }
 
 /* IInterface */
-bool VulkanCommandEncoder::supportsInterface(IID const& iid) const noexcept {
-    return ICommandEncoder::supportsInterface(iid);
+void* VulkanCommandEncoder::queryInterface(IID const& iid) noexcept {
+    if (iid == INullable::iid()) {
+        return static_cast<INullable*>(this);
+    } else if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == ICollected::iid()) {
+        return static_cast<ICollected*>(this);
+    } else if (iid == IParent::iid()) {
+        return static_cast<IParent*>(this);
+    } else if (iid == IChild::iid()) {
+        return static_cast<IChild*>(this);
+    } else if (iid == IDispatchable::iid()) {
+        return static_cast<IDispatchable*>(this);
+    } else if (iid == ICommandEncoder::iid()) {
+        return static_cast<ICommandEncoder*>(this);
+    }
+
+    return nullptr;
 }
 
 /* internal */

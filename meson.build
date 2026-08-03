@@ -1,6 +1,9 @@
 project('vkom', 'cpp', default_options: ['cpp_std=c++17'])
 
+vma_subproject = subproject('vulkan-memory-allocator')
+
 vk = dependency('vulkan', version: '>=1.2.0', required: true)
+vma = dependency('VulkanMemoryAllocator', version: '>=3.0.0', required: true)
 
 add_project_arguments('-DVKOM_COMPILING_DYNAMIC_LIBRARY', language: 'cpp')
 
@@ -28,6 +31,7 @@ vkom = shared_library('vkom',
         'src/vkom/internal/enums.hpp',
         'src/vkom/internal/funcptrs.hpp',
         'src/vkom/internal/vksurface.hpp',
+        'src/vkom/internal/vma.hpp', 'src/vkom/internal/vma.cpp',
         'src/vkom/internal/instance.hpp', 'src/vkom/internal/instance.cpp',
         'src/vkom/internal/adapter.hpp', 'src/vkom/internal/adapter.cpp',
         'src/vkom/internal/device.hpp', 'src/vkom/internal/device.cpp',
@@ -47,7 +51,7 @@ vkom = shared_library('vkom',
         'src/vkom/internal/apple/vksurface.cpp',
     ],
     include_directories: include_directories('src'),
-    dependencies: [ vk ],
+    dependencies: [ vk, vma ],
     override_options: ['cpp_std=c++17'],
     install: true,
 )

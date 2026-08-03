@@ -160,8 +160,8 @@ VulkanAdapter::VulkanAdapter(bool debug, VulkanInstance* instance, VkPhysicalDev
 
 VulkanAdapter::~VulkanAdapter() {
     for (IChild* child : _children) {
-        if (child->supportsInterface(ICOLLECTED_IID)) {
-            ICollected* collected = reinterpret_cast<ICollected*>(child);
+        ICollected* collected = child->queryInterface<ICollected>();
+        if (collected != nullptr) {
             if (collected->release() != 0) {
                 /* TODO: report mismanaged references */
             }
@@ -263,7 +263,7 @@ Result VulkanAdapter::createDevice(IDevice** device) {
     void* next = &features2;
 
     bool enabledExtensionBufferDeviceAddress = false;
-    
+
     std::vector<const char*> enabledExtensions = {};
     for (VkExtensionProperties const& extension : _availableExtensions) {
         if (std::strcmp(extension.extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0) {
@@ -364,8 +364,20 @@ void* VulkanAdapter::loadDispatchSymbol(const char* symbol) {
 }
 
 /* IInterface */
-bool VulkanAdapter::supportsInterface(IID const& iid) const noexcept {
-    return IAdapter::supportsInterface(iid);
+void* VulkanAdapter::queryInterface(IID const& iid) noexcept {
+    if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == IChild::iid()) {
+        return static_cast<IChild*>(this);
+    } else if (iid == IParent::iid()) {
+        return static_cast<IParent*>(this);
+    } else if (iid == IDispatchable::iid()) {
+        return static_cast<IDispatchable*>(this);
+    } else if (iid == IAdapter::iid()) {
+        return static_cast<IAdapter*>(this);
+    }
+
+    return nullptr;
 }
 
 /* internal */

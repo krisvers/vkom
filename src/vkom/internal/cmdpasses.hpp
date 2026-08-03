@@ -12,7 +12,7 @@ public:
     void end() noexcept override;
 
     /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    void* queryInterface(IID const& iid) noexcept override;
 };
 
 class VulkanRenderPass : IRenderPass {
@@ -21,7 +21,7 @@ public:
     void end() noexcept override;
 
     /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    void* queryInterface(IID const& iid) noexcept override;
 };
 
 }

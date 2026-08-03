@@ -91,8 +91,20 @@ void* VulkanCommandBatch::loadDispatchSymbol(const char* symbol) {
 }
 
 /* IInterface */
-bool VulkanCommandBatch::supportsInterface(IID const& iid) const noexcept {
-    return ICommandBatch::supportsInterface(iid);
+void* VulkanCommandBatch::queryInterface(IID const& iid) noexcept {
+    if (iid == INullable::iid()) {
+        return static_cast<INullable*>(this);
+    } else if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == IChild::iid()) {
+        return static_cast<IChild*>(this);
+    } else if (iid == IDispatchable::iid()) {
+        return static_cast<IDispatchable*>(this);
+    } else if (iid == ICommandBatch::iid()) {
+        return static_cast<ICommandBatch*>(this);
+    }
+
+    return nullptr;
 }
 
 }

@@ -49,8 +49,8 @@ VulkanInstance::VulkanInstance(bool debug, uint32_t vkApiVersion, bool inherited
 
 VulkanInstance::~VulkanInstance() {
     for (IChild* child : _children) {
-        if (child->supportsInterface(ICOLLECTED_IID)) {
-            ICollected* collected = reinterpret_cast<ICollected*>(child);
+        ICollected* collected = child->queryInterface<ICollected>();
+        if (collected != nullptr) {
             if (collected->release() != 0) {
                 /* TODO: report mismanaged references */
             }
@@ -147,8 +147,22 @@ void* VulkanInstance::loadDispatchSymbol(const char* symbol) {
 }
 
 /* IInterface */
-bool VulkanInstance::supportsInterface(IID const& iid) const noexcept {
-    return IInstance::supportsInterface(iid);
+void* VulkanInstance::queryInterface(IID const& iid) noexcept {
+    if (iid == INullable::iid()) {
+        return static_cast<INullable*>(this);
+    } else if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == ICollected::iid()) {
+        return static_cast<ICollected*>(this);
+    } else if (iid == IParent::iid()) {
+        return static_cast<IParent*>(this);
+    } else if (iid == IDispatchable::iid()) {
+        return static_cast<IDispatchable*>(this);
+    } else if (iid == IInstance::iid()) {
+        return static_cast<IInstance*>(this);
+    }
+
+    return nullptr;
 }
 
 /* internal */

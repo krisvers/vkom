@@ -51,8 +51,6 @@ struct AdapterLimits {
     uint64_t availableHostMemory;
 };
 
-inline const IID IADAPTER_IID = IID("4a7e1c14-4f8f-4455-858b-f4f171b411f9");
-
 class IAdapter : public IHandled, public IChild, public IParent, public IDispatchable {
 public:
     virtual void queryInfo(AdapterInfo* info) const noexcept = 0;
@@ -61,8 +59,10 @@ public:
 
     virtual Result createDevice(IDevice** device) = 0;
 
-    /* IInterface */
-    bool supportsInterface(IID const& iid) const noexcept override;
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("4a7e1c14-4f8f-4455-858b-f4f171b411f9");
+        return iid;
+    }
 };
 
 }

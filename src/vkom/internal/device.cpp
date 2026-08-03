@@ -1,6 +1,7 @@
 #include <vkom/internal/device.hpp>
 
 #include <vkom/internal/enums.hpp>
+#include <vkom/internal/heap.hpp>
 #include <vkom/internal/queue.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
@@ -22,19 +23,41 @@ VulkanDevice::VulkanDevice(bool debug, bool inheritedHandle, VulkanAdapter* adap
         _queueFamilies[i].properties = queueFamilyProperties[i];
         _queueFamilies[i].queues = {};
     }
+
+    VmaVulkanFunctions vulkanFunctions = {};
+    vulkanFunctions.vkGetInstanceProcAddr = _instance->_vkGetInstanceProcAddr;
+    vulkanFunctions.vkGetDeviceProcAddr = _vkGetDeviceProcAddr;
+
+    VmaAllocatorCreateInfo allocatorCreateInfo = {};
+    allocatorCreateInfo.flags = (_adapter->_features.bufferDeviceAddress) ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0;
+    allocatorCreateInfo.physicalDevice = _adapter->_vkPhysicalDevice;
+    allocatorCreateInfo.device = _vkDevice;
+    allocatorCreateInfo.pAllocationCallbacks = _vkAllocationCallbacks;
+    allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+    allocatorCreateInfo.instance = _instance->_vkInstance;
+    allocatorCreateInfo.vulkanApiVersion = _instance->_vkApiVersion;
+
+    if (vmaCreateAllocator(&allocatorCreateInfo, &_vmaAllocator) != VK_SUCCESS) {
+        throw std::runtime_error("vmaCreateAllocator failed");
+    }
+
+    _defaultHeap = new VulkanHeap(_debug, false, this, nullptr, _vkAllocationCallbacks);
+    _children.push_back(_defaultHeap);
 }
 
 VulkanDevice::~VulkanDevice() {
     waitIdle();
 
     for (IChild* child : _children) {
-        if (child->supportsInterface(ICOLLECTED_IID)) {
-            ICollected* collected = reinterpret_cast<ICollected*>(child);
+        ICollected* collected = child->queryInterface<ICollected>();
+        if (collected != nullptr) {
             if (collected->release() != 0) {
                 /* TODO: report mismanaged references */
             }
         }
     }
+
+    vmaDestroyAllocator(_vmaAllocator);
 
     if (!_inheritedHandle && _functionPointers.device10.vkDestroyDevice != nullptr) {
         _functionPointers.device10.vkDestroyDevice(_vkDevice, _vkAllocationCallbacks);
@@ -92,11 +115,12 @@ Result VulkanDevice::acquireQueue(uint32_t family, QueueFlags flags, IQueue** qu
         return Result::ErrorInitializationFailed;
     }
 
+    _children.push_back(*queue);
     return Result::Success;
 }
 
 IHeap* VulkanDevice::defaultHeap() noexcept {
-    return nullptr;
+    return static_cast<IHeap*>(_defaultHeap);
 }
 
 Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags textureUsages, MemoryLocationFlags memoryLocation, IHeap** heap) noexcept {
@@ -167,8 +191,24 @@ void* VulkanDevice::loadDispatchSymbol(const char* symbol) {
 }
 
 /* IInterface */
-bool VulkanDevice::supportsInterface(IID const& iid) const noexcept {
-    return IDevice::supportsInterface(iid);
+void* VulkanDevice::queryInterface(IID const& iid) noexcept {
+    if (iid == INullable::iid()) {
+        return static_cast<INullable*>(this);
+    } else if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == ICollected::iid()) {
+        return static_cast<ICollected*>(this);
+    } else if (iid == IParent::iid()) {
+        return static_cast<IParent*>(this);
+    } else if (iid == IChild::iid()) {
+        return static_cast<IChild*>(this);
+    } else if (iid == IDispatchable::iid()) {
+        return static_cast<IDispatchable*>(this);
+    } else if (iid == IDevice::iid()) {
+        return static_cast<IDevice*>(this);
+    }
+
+    return nullptr;
 }
 
 }

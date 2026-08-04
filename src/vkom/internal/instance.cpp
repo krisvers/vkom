@@ -48,19 +48,6 @@ VulkanInstance::VulkanInstance(bool debug, uint32_t vkApiVersion, bool inherited
 }
 
 VulkanInstance::~VulkanInstance() {
-    for (IChild* child : _children) {
-        ICollected* collected = child->queryInterface<ICollected>();
-        if (collected != nullptr) {
-            if (collected->release() != 0) {
-                /* TODO: report mismanaged references */
-            }
-        }
-    }
-
-    for (VulkanAdapter* adapter : _adapters) {
-        delete adapter;
-    }
-
     if (_vkDebugUtilsMessenger != VK_NULL_HANDLE && _functionPointers.debugUtilsEXT.vkDestroyDebugUtilsMessengerEXT != nullptr) {
         _functionPointers.debugUtilsEXT.vkDestroyDebugUtilsMessengerEXT(_vkInstance, _vkDebugUtilsMessenger, _vkAllocationCallbacks);
     }
@@ -100,45 +87,6 @@ uint64_t VulkanInstance::handle() const noexcept {
 
 ObjectType VulkanInstance::handleType() const noexcept {
     return ObjectType::Instance;
-}
-
-/* ICollected */
-uint32_t VulkanInstance::release() {
-    if (_referenceCount == 0) {
-        return 0;
-    }
-
-    _referenceCount -= 1;
-    if (_referenceCount == 0) {
-        delete this;
-        return 0;
-    }
-
-    return _referenceCount;
-}
-
-uint32_t VulkanInstance::retain() {
-    _referenceCount += 1;
-    return _referenceCount;
-}
-
-/* IParent */
-bool VulkanInstance::hasChild(IChild const* child) const noexcept {
-    for (IChild const* c : _children) {
-        if (c == child) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-IChild* VulkanInstance::enumerateChildren(uint32_t id) const noexcept {
-    if (id >= _children.size()) {
-        return nullptr;
-    }
-
-    return _children[id];
 }
 
 /* IDispatchable */

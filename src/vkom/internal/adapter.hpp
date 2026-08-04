@@ -12,12 +12,6 @@ namespace vkom {
 
 namespace internal {
 
-struct VulkanAdapterFunctionPointers {
-    PhysicalDeviceFunctionPointers10 physical10;
-    PhysicalDeviceFunctionPointers11 physical11;
-    PhysicalDeviceFunctionPointersSurfaceKHR surfaceKHR;
-};
-
 class VulkanInstance;
 class VulkanDevice;
 class VulkanHeap;
@@ -39,9 +33,6 @@ private:
 
     /* IParent */
     std::vector<IChild*> _children = {};
-
-    friend class VulkanDevice;
-    friend class VulkanHeap;
 
     bool isExtensionAvailable(const char* name) const noexcept;
     bool queueFamilySupportsPresent(uint32_t family) const noexcept;

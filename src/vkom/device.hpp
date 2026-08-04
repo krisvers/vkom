@@ -15,6 +15,7 @@ class IHeap;
 class IDevice : public INullable, public IHandled, public ICollected, public IParent, public IChild, public IDispatchable {
 public:
     virtual Result waitIdle() const noexcept = 0;
+    virtual bool queryExtension(const char* extension) const noexcept = 0;
 
     virtual Result acquireQueue(uint32_t family, QueueFlags flags, IQueue** queue) noexcept = 0;
 

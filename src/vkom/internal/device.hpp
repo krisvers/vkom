@@ -13,12 +13,6 @@ namespace vkom {
 
 namespace internal {
 
-struct VulkanDeviceFunctionPointers {
-    DeviceFunctionPointers10 device10;
-    DeviceFunctionPointers11 device11;
-    DeviceFunctionPointers12 device12;
-};
-
 class VulkanInstance;
 class VulkanAdapter;
 class VulkanQueue;
@@ -51,9 +45,6 @@ private:
 
     /* IParent */
     std::vector<IChild*> _children = {};
-
-    friend class VulkanQueue;
-    friend class VulkanHeap;
 
 public:
     VulkanDevice(bool debug, bool inheritedHandle, VulkanAdapter* adapter, VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanDeviceFunctionPointers const& functionPointers, std::vector<const char*> const& enabledExtensions);

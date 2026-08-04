@@ -8,11 +8,11 @@ namespace vkom {
 
 namespace internal {
 
-struct InstanceFunctionPointers10 {
+struct VulkanInstanceFunctionPointers10 {
     PFN_vkDestroyInstance vkDestroyInstance = nullptr;
     PFN_vkEnumeratePhysicalDevices vkEnumeratePhysicalDevices = nullptr;
 
-    InstanceFunctionPointers10() = default;
+    VulkanInstanceFunctionPointers10() = default;
 
     inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkDestroyInstance, "vkDestroyInstance");
@@ -21,8 +21,8 @@ struct InstanceFunctionPointers10 {
     }
 };
 
-struct InstanceFunctionPointers11 {
-    InstanceFunctionPointers11() = default;
+struct VulkanInstanceFunctionPointers11 {
+    VulkanInstanceFunctionPointers11() = default;
 
     inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
         bool successful = false;
@@ -30,8 +30,8 @@ struct InstanceFunctionPointers11 {
     }
 };
 
-struct InstanceFunctionPointers12 {
-    InstanceFunctionPointers12() = default;
+struct VulkanInstanceFunctionPointers12 {
+    VulkanInstanceFunctionPointers12() = default;
 
     inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
         bool successful = false;
@@ -39,12 +39,12 @@ struct InstanceFunctionPointers12 {
     }
 };
 
-struct InstanceFunctionPointersDebugUtilsEXT {
+struct VulkanInstanceFunctionPointersDebugUtilsEXT {
     PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT = nullptr;
     PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = nullptr;
     PFN_vkSubmitDebugUtilsMessageEXT vkSubmitDebugUtilsMessageEXT = nullptr;
 
-    InstanceFunctionPointersDebugUtilsEXT() = default;
+    VulkanInstanceFunctionPointersDebugUtilsEXT() = default;
 
     inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkCreateDebugUtilsMessengerEXT, "vkCreateDebugUtilsMessengerEXT");
@@ -54,7 +54,7 @@ struct InstanceFunctionPointersDebugUtilsEXT {
     }
 };
 
-struct PhysicalDeviceFunctionPointers10 {
+struct VulkanPhysicalDeviceFunctionPointers10 {
     PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties = nullptr;
     PFN_vkGetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures = nullptr;
     PFN_vkGetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties = nullptr;
@@ -65,7 +65,7 @@ struct PhysicalDeviceFunctionPointers10 {
     PFN_vkEnumerateDeviceLayerProperties vkEnumerateDeviceLayerProperties = nullptr;
     PFN_vkCreateDevice vkCreateDevice = nullptr;
 
-    PhysicalDeviceFunctionPointers10() = default;
+    VulkanPhysicalDeviceFunctionPointers10() = default;
 
     inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkGetPhysicalDeviceProperties, "vkGetPhysicalDeviceProperties");
@@ -81,7 +81,7 @@ struct PhysicalDeviceFunctionPointers10 {
     }
 };
 
-struct PhysicalDeviceFunctionPointers11 {
+struct VulkanPhysicalDeviceFunctionPointers11 {
     PFN_vkGetPhysicalDeviceExternalBufferProperties vkGetPhysicalDeviceExternalBufferProperties = nullptr;
     PFN_vkGetPhysicalDeviceExternalFenceProperties vkGetPhysicalDeviceExternalFenceProperties = nullptr;
     PFN_vkGetPhysicalDeviceExternalSemaphoreProperties vkGetPhysicalDeviceExternalSemaphoreProperties = nullptr;
@@ -93,7 +93,7 @@ struct PhysicalDeviceFunctionPointers11 {
     PFN_vkGetPhysicalDeviceQueueFamilyProperties2 vkGetPhysicalDeviceQueueFamilyProperties2 = nullptr;
     PFN_vkGetPhysicalDeviceSparseImageFormatProperties2 vkGetPhysicalDeviceSparseImageFormatProperties2 = nullptr;
 
-    PhysicalDeviceFunctionPointers11() = default;
+    VulkanPhysicalDeviceFunctionPointers11() = default;
 
     inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkGetPhysicalDeviceExternalBufferProperties, "vkGetPhysicalDeviceExternalBufferProperties") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkGetPhysicalDeviceExternalBufferProperties, "vkGetPhysicalDeviceExternalBufferPropertiesKHR");
@@ -110,13 +110,13 @@ struct PhysicalDeviceFunctionPointers11 {
     }
 };
 
-struct PhysicalDeviceFunctionPointersSurfaceKHR {
+struct VulkanPhysicalDeviceFunctionPointersSurfaceKHR {
     PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR = nullptr;
     PFN_vkGetPhysicalDeviceSurfaceFormatsKHR vkGetPhysicalDeviceSurfaceFormatsKHR = nullptr;
     PFN_vkGetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR = nullptr;
     PFN_vkGetPhysicalDeviceSurfaceSupportKHR vkGetPhysicalDeviceSurfaceSupportKHR = nullptr;
 
-    PhysicalDeviceFunctionPointersSurfaceKHR() = default;
+    VulkanPhysicalDeviceFunctionPointersSurfaceKHR() = default;
 
     inline bool load(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetInstanceProcAddr, vkInstance, vkGetPhysicalDeviceSurfaceCapabilitiesKHR, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
@@ -127,7 +127,7 @@ struct PhysicalDeviceFunctionPointersSurfaceKHR {
     }
 };
 
-struct DeviceFunctionPointers10 {
+struct VulkanDeviceFunctionPointers10 {
     PFN_vkDestroyDevice vkDestroyDevice = nullptr;
     PFN_vkGetDeviceQueue vkGetDeviceQueue = nullptr;
     PFN_vkDeviceWaitIdle vkDeviceWaitIdle = nullptr;
@@ -199,7 +199,7 @@ struct DeviceFunctionPointers10 {
     PFN_vkDestroyRenderPass vkDestroyRenderPass = nullptr;
     PFN_vkGetRenderAreaGranularity vkGetRenderAreaGranularity = nullptr;
 
-    DeviceFunctionPointers10() = default;
+    VulkanDeviceFunctionPointers10() = default;
 
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkDestroyDevice, "vkDestroyDevice");
@@ -276,8 +276,8 @@ struct DeviceFunctionPointers10 {
     }
 };
 
-struct DeviceFunctionPointers11 {
-    DeviceFunctionPointers11() = default;
+struct VulkanDeviceFunctionPointers11 {
+    VulkanDeviceFunctionPointers11() = default;
 
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
         bool successful = false;
@@ -285,8 +285,8 @@ struct DeviceFunctionPointers11 {
     }
 };
 
-struct DeviceFunctionPointers12 {
-    DeviceFunctionPointers12() = default;
+struct VulkanDeviceFunctionPointers12 {
+    VulkanDeviceFunctionPointers12() = default;
 
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
         bool successful = false;
@@ -294,12 +294,12 @@ struct DeviceFunctionPointers12 {
     }
 };
 
-struct QueueFunctionPointers10 {
+struct VulkanQueueFunctionPointers10 {
     PFN_vkQueueSubmit vkQueueSubmit = nullptr;
     PFN_vkQueueWaitIdle vkQueueWaitIdle = nullptr;
     PFN_vkQueueBindSparse vkQueueBindSparse = nullptr;
 
-    QueueFunctionPointers10() = default;
+    VulkanQueueFunctionPointers10() = default;
 
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkQueueSubmit, "vkQueueSubmit");
@@ -309,10 +309,10 @@ struct QueueFunctionPointers10 {
     }
 };
 
-struct QueueFunctionPointersSwapchainKHR {
+struct VulkanQueueFunctionPointersSwapchainKHR {
     PFN_vkQueuePresentKHR vkQueuePresentKHR = nullptr;
 
-    QueueFunctionPointersSwapchainKHR() = default;
+    VulkanQueueFunctionPointersSwapchainKHR() = default;
 
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkQueuePresentKHR, "vkQueuePresentKHR");
@@ -320,7 +320,7 @@ struct QueueFunctionPointersSwapchainKHR {
     }
 };
 
-struct CommandBufferFunctionPointers10 {
+struct VulkanCommandBufferFunctionPointers10 {
     PFN_vkBeginCommandBuffer vkBeginCommandBuffer = nullptr;
     PFN_vkEndCommandBuffer vkEndCommandBuffer = nullptr;
     PFN_vkResetCommandBuffer vkResetCommandBuffer = nullptr;
@@ -372,7 +372,7 @@ struct CommandBufferFunctionPointers10 {
     PFN_vkCmdNextSubpass vkCmdNextSubpass = nullptr;
     PFN_vkCmdEndRenderPass vkCmdEndRenderPass = nullptr;
 
-    CommandBufferFunctionPointers10() = default;
+    VulkanCommandBufferFunctionPointers10() = default;
 
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkBeginCommandBuffer, "vkBeginCommandBuffer");
@@ -426,10 +426,12 @@ struct CommandBufferFunctionPointers10 {
     }
 };
 
-struct CommandBufferFunctionPointersDebugUtilsEXT {
+struct VulkanCommandBufferFunctionPointersDebugUtilsEXT {
     PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT = nullptr;
     PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT = nullptr;
     PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXT = nullptr;
+
+    VulkanCommandBufferFunctionPointersDebugUtilsEXT() = default;
 
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
         bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCmdBeginDebugUtilsLabelEXT, "vkCmdBeginDebugUtilsLabelEXT");

@@ -12,11 +12,6 @@ namespace vkom {
 
 namespace internal {
 
-struct VulkanCommandEncoderFunctionPointers {
-    CommandBufferFunctionPointers10 commandBuffer10;
-    CommandBufferFunctionPointersDebugUtilsEXT debugUtilsEXT;
-};
-
 class VulkanInstance;
 class VulkanAdapter;
 class VulkanDevice;

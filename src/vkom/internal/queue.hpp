@@ -12,10 +12,6 @@ namespace vkom {
 
 namespace internal {
 
-struct VulkanQueueFunctionPointers {
-    QueueFunctionPointers10 queue10;
-};
-
 class VulkanInstance;
 class VulkanAdapter;
 class VulkanDevice;

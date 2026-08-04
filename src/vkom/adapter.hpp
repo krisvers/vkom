@@ -56,6 +56,7 @@ public:
     virtual void queryInfo(AdapterInfo* info) const noexcept = 0;
     virtual void queryFeatures(AdapterFeatures* features) const noexcept = 0;
     virtual void queryLimits(AdapterLimits* limits) const noexcept = 0;
+    virtual bool queryExtension(const char* extension) const noexcept = 0;
 
     virtual Result createDevice(IDevice** device) = 0;
 

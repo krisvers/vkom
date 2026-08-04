@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <sstream>
 #include <string>
 #include <stdexcept>
@@ -112,10 +113,12 @@ private:
     }
 
 public:
+    UUID() {
+        std::memset(_bytes, 0, 16);
+    }
+
     UUID(uint8_t bytes[16]) {
-        for (size_t i = 0; i < 16; i += 1) {
-            _bytes[i] = bytes[i];
-        }
+        std::memcpy(_bytes, bytes, 16);
     }
 
     UUID(std::string const& str) {
@@ -123,16 +126,11 @@ public:
     }
 
     UUID(UUID const& other) {
-        for (size_t i = 0; i < 16; i += 1) {
-            _bytes[i] = other._bytes[i];
-        }
+        std::memcpy(_bytes, other._bytes, 16);
     }
 
     UUID& operator=(UUID const& other) {
-        for (size_t i = 0; i < 16; i += 1) {
-            _bytes[i] = other._bytes[i];
-        }
-
+        std::memcpy(_bytes, other._bytes, 16);
         return *this;
     }
 
@@ -153,9 +151,9 @@ public:
         return ss.str();
     }
 
-    static UUID null() {
-        uint8_t bytes[16] = {};
-        return UUID(bytes);
+    static UUID const& null() {
+        static UUID uuid = UUID();
+        return uuid;
     }
 };
 

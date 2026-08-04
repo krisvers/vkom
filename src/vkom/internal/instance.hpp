@@ -7,6 +7,7 @@
 #include <vkom/instance.hpp>
 #include <vkom/dynlib.hpp>
 
+#include <vkom/internal/object.hpp>
 #include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vulkan.hpp>
 
@@ -14,17 +15,10 @@ namespace vkom {
 
 namespace internal {
 
-struct VulkanInstanceFunctionPointers {
-    InstanceFunctionPointers10 instance10;
-    InstanceFunctionPointers11 instance11;
-    InstanceFunctionPointers12 instance12;
-    InstanceFunctionPointersDebugUtilsEXT debugUtilsEXT;
-};
-
 class VulkanAdapter;
 class VulkanDevice;
 
-class VulkanInstance final : public IInstance {
+class VulkanInstance final : virtual public IInstance, virtual public ParentByVector, virtual public CollectedByHeap {
 private:
     bool _debug = false;
     uint32_t _vkApiVersion = 0;
@@ -42,15 +36,6 @@ private:
     InstanceLogCallbackPFN _logCallback = nullptr;
     void* _logUserData = nullptr;
 
-    /* ICollected */
-    uint32_t _referenceCount = 1;
-
-    /* IParent */
-    std::vector<IChild*> _children = {};
-
-    friend class VulkanAdapter;
-    friend class VulkanDevice;
-
     /* internal */
     uint32_t vkApiVersion() const noexcept;
     bool isExtensionEnabled(const char* name) const noexcept;
@@ -65,20 +50,9 @@ public:
     void setLogCallback(InstanceLogCallbackPFN callback, void* userData) noexcept override;
     IAdapter* enumerateAdapters(uint32_t id) const noexcept override;
 
-    /* INullable */
-    bool isNull() const noexcept override;
-
     /* IHandled */
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;
-
-    /* ICollected */
-    uint32_t release() override;
-    uint32_t retain() override;
-
-    /* IParent */
-    bool hasChild(IChild const* child) const noexcept override;
-    IChild* enumerateChildren(uint32_t id) const noexcept override;
 
     /* IDispatchable */
     void* loadDispatchSymbol(const char* symbol) override;

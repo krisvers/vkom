@@ -11,9 +11,14 @@ class IInstance;
 
 using InstanceLogCallbackPFN = void(*)(IInstance* instance, void* userData, DebugMessageSeverityFlags severity, DebugMessageTypeFlags types, const char* message);
 
-class IInstance : public INullable, public IHandled, public ICollected, public IParent, public IDispatchable {
+class IInstance : public IHandled, public ICollected, public IParent, public IDispatchable {
 public:
     virtual void setLogCallback(InstanceLogCallbackPFN callback, void* userData) noexcept = 0;
+    virtual void log(DebugMessageSeverityFlags severity, DebugMessageTypeFlags types, const char* message) noexcept = 0;
+
+    virtual bool queryExtension(const char* extension) const noexcept = 0;
+    virtual uint32_t queryApiVersion() const noexcept = 0;
+
     virtual IAdapter* enumerateAdapters(uint32_t id) const noexcept = 0;
 
     static inline IID const& iid() noexcept {

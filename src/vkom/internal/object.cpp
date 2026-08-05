@@ -1,14 +1,14 @@
-#include "object.hpp"
-#include "vkom/object.hpp"
 #include <vkom/internal/object.hpp>
 
 namespace vkom {
 
 namespace internal {
 
+CollectedByHeap::~CollectedByHeap() = default;
+
 uint32_t CollectedByHeap::release() {
     if (_referenceCount == 0) {
-        delete this;
+        /* very likely currently destructing */
         return 0;
     }
 
@@ -30,13 +30,31 @@ uint32_t CollectedByHeap::referenceCount() const noexcept {
     return _referenceCount;
 }
 
+DestructibleByHeap::~DestructibleByHeap() = default;
+
 void DestructibleByHeap::destroy() {
+    /* in order to prevent recursive destruction */
+    if (_deleted) {
+        return;
+    }
+
+    _deleted = true;
     delete this;
 }
 
+DiscardableByHeap::~DiscardableByHeap() = default;
+
 void DiscardableByHeap::discard() {
+    /* in order to prevent recursive destruction */
+    if (_deleted) {
+        return;
+    }
+
+    _deleted = true;
     delete this;
 }
+
+ParentByVector::~ParentByVector() = default;
 
 bool ParentByVector::hasChild(IChild const* child) const noexcept {
     if (child == nullptr) {
@@ -111,6 +129,8 @@ bool ParentByVector::disown(IChild* child) noexcept {
 
     for (auto it = _children.begin(); it != _children.end(); ++it) {
         if (*it == child) {
+            _children.erase(it);
+
             ICollected* collected = child->queryInterface<ICollected>();
             if (collected != nullptr) {
                 collected->release();
@@ -121,7 +141,11 @@ bool ParentByVector::disown(IChild* child) noexcept {
                 destructible->destroy();
             }
 
-            _children.erase(it);
+            IDiscardable* discardable = child->queryInterface<IDiscardable>();
+            if (discardable != nullptr) {
+                discardable->discard();
+            }
+
             return true;
         }
     }

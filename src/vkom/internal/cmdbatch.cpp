@@ -49,7 +49,7 @@ Result VulkanCommandBatch::record(ICommandEncoder* encoder) noexcept {
     }
 
     VkCommandBuffer vkCommandBuffer = nullptr;
-    if (encoder->handleType() != ObjectType::CommandBuffer) {
+    if (encoder->handleType() == ObjectType::CommandBuffer) {
         vkCommandBuffer = encoder->handle<VkCommandBuffer>();
     }
 

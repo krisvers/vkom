@@ -14,7 +14,7 @@ private:
 
 public:
     CollectedByHeap() = default;
-    ~CollectedByHeap() = default;
+    virtual ~CollectedByHeap() = 0;
 
     uint32_t release() override;
     uint32_t retain() override;
@@ -24,17 +24,23 @@ protected:
 };
 
 class DestructibleByHeap : virtual public IDestructible {
+private:
+    bool _deleted = false;
+
 public:
     DestructibleByHeap() = default;
-    ~DestructibleByHeap() = default;
+    virtual ~DestructibleByHeap() = 0;
 
     void destroy() override;
 };
 
 class DiscardableByHeap : virtual public IDiscardable {
+private:
+    bool _deleted = false;
+
 public:
     DiscardableByHeap() = default;
-    ~DiscardableByHeap() = default;
+    virtual ~DiscardableByHeap() = 0;
 
     void discard() override;
 };
@@ -45,7 +51,7 @@ private:
 
 public:
     ParentByVector() = default;
-    ~ParentByVector() = default;
+    virtual ~ParentByVector() = 0;
 
     bool hasChild(IChild const* child) const noexcept override;
     IChild* enumerateChildren(uint32_t id, IID const& filter) const noexcept override;

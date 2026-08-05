@@ -1,4 +1,5 @@
 #include "object.hpp"
+#include "vkom/object.hpp"
 #include <vkom/internal/object.hpp>
 
 namespace vkom {
@@ -27,6 +28,14 @@ uint32_t CollectedByHeap::retain() {
 
 uint32_t CollectedByHeap::referenceCount() const noexcept {
     return _referenceCount;
+}
+
+void DestructibleByHeap::destroy() {
+    delete this;
+}
+
+void DiscardableByHeap::discard() {
+    delete this;
 }
 
 bool ParentByVector::hasChild(IChild const* child) const noexcept {
@@ -83,7 +92,11 @@ bool ParentByVector::adopt(IChild* child) noexcept {
     }
 
     _children.push_back(child);
-    child->retain();
+    ICollected* collected = child->queryInterface<ICollected>();
+    if (collected != nullptr) {
+        collected->retain();
+    }
+
     return true;
 }
 
@@ -98,7 +111,16 @@ bool ParentByVector::disown(IChild* child) noexcept {
 
     for (auto it = _children.begin(); it != _children.end(); ++it) {
         if (*it == child) {
-            child->release();
+            ICollected* collected = child->queryInterface<ICollected>();
+            if (collected != nullptr) {
+                collected->release();
+            }
+
+            IDestructible* destructible = child->queryInterface<IDestructible>();
+            if (destructible != nullptr) {
+                destructible->destroy();
+            }
+
             _children.erase(it);
             return true;
         }
@@ -108,7 +130,7 @@ bool ParentByVector::disown(IChild* child) noexcept {
 }
 
 void ParentByVector::disownAll() noexcept {
-    while (disown(enumerateChildren(0))) {}
+    while (disown(enumerateChildren(0, IID::null()))) {}
 }
 
 }

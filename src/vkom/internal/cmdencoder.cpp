@@ -1,3 +1,5 @@
+#include "vkom/interface.hpp"
+#include "vkom/internal/object.hpp"
 #include <vkom/internal/cmdencoder.hpp>
 
 #include <vkom/internal/enums.hpp>
@@ -11,8 +13,8 @@ namespace vkom {
 
 namespace internal {
 
-VulkanCommandEncoder::VulkanCommandEncoder(bool debug, bool inheritedHandle, VulkanQueue* queue, VkCommandBuffer vkCommandBuffer, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanCommandEncoderFunctionPointers const& functionPointers) : _debug(debug), _inheritedHandle(inheritedHandle), _queue(queue), _device(static_cast<VulkanDevice*>(_queue->parent())), _adapter(static_cast<VulkanAdapter*>(_device->parent())), _instance(static_cast<VulkanInstance*>(_adapter->parent())), _vkCommandBuffer(vkCommandBuffer), _vkAllocationCallbacks(vkAllocationCallbacks), _functionPointers(functionPointers) {
-    if (functionPointers.commandBuffer10.vkResetCommandBuffer(_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT) != VK_SUCCESS) {
+VulkanCommandEncoder::VulkanCommandEncoder(bool inheritedHandle, IQueue* queue, VulkanCommandEncoderData const& encoderData) : _inheritedHandle(inheritedHandle), _queue(queue), _device(_queue->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _encoderData(encoderData) {
+    if (_encoderData.functionPointers.commandBuffer10.vkResetCommandBuffer(_encoderData.vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT) != VK_SUCCESS) {
         throw std::runtime_error("Failed to reset command buffer");
     }
 
@@ -24,43 +26,41 @@ VulkanCommandEncoder::VulkanCommandEncoder(bool debug, bool inheritedHandle, Vul
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.pInheritanceInfo = &inheritanceInfo;
 
-    if (functionPointers.commandBuffer10.vkBeginCommandBuffer(_vkCommandBuffer, &beginInfo) != VK_SUCCESS) {
+    if (_encoderData.functionPointers.commandBuffer10.vkBeginCommandBuffer(_encoderData.vkCommandBuffer, &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("Failed to begin command buffer");
     }
 }
 
 VulkanCommandEncoder::~VulkanCommandEncoder() {
+    _queue->waitIdle();
+    _queue->disown(IInterface::queryInterface<IChild>());
+
     if (_renderPass != nullptr) {
         _renderPass->end();
     }
 
-    for (IChild* child : _children) {
-        ICollected* collected = child->queryInterface<ICollected>();
-        if (collected != nullptr) {
-            if (collected->release() != 0) {
-                /* TODO: report mismanaged references */
-            }
-        }
-    }
+    ParentByVector::disownAll();
 
-    if (!_ended && _functionPointers.commandBuffer10.vkEndCommandBuffer(_vkCommandBuffer) != VK_SUCCESS) {
+    if (!_ended && _encoderData.functionPointers.commandBuffer10.vkEndCommandBuffer(_encoderData.vkCommandBuffer) != VK_SUCCESS) {
 
     }
 
-    _queue->releaseCommandBuffer(_vkCommandBuffer);
+    if (!_inheritedHandle) {
+        _encoderData.queueData.deviceData.functionPointers.device10.vkFreeCommandBuffers(_encoderData.queueData.deviceData.vkDevice, _encoderData.vkCommandPool, 1, &_encoderData.vkCommandBuffer);
+    }
 }
 
 /* ICommandEncoder */
-Result VulkanCommandEncoder::beginComputePass(ComputePassDescriptor const* descriptor, IComputePass** pass) noexcept {
-    return Result::ErrorInitializationFailed;
+IComputePass* VulkanCommandEncoder::beginComputePass(ComputePassDescriptor const* descriptor) noexcept {
+    return nullptr;
 }
 
-Result VulkanCommandEncoder::beginRenderPass(RenderPassDescriptor const* descriptor, IRenderPass** pass) noexcept {
-    return Result::ErrorInitializationFailed;
+IRenderPass* VulkanCommandEncoder::beginRenderPass(RenderPassDescriptor const* descriptor) noexcept {
+    return nullptr;
 }
 
 void VulkanCommandEncoder::insertDebugLabel(const char* label) noexcept {
-    if (_functionPointers.debugUtilsEXT.vkCmdInsertDebugUtilsLabelEXT == nullptr) {
+    if (_encoderData.functionPointers.debugUtilsEXT.vkCmdInsertDebugUtilsLabelEXT == nullptr) {
         return;
     }
 
@@ -70,11 +70,11 @@ void VulkanCommandEncoder::insertDebugLabel(const char* label) noexcept {
     labelInfo.color[3] = 1.0f;
 
     hashLabelToColor(label, labelInfo.color[0], labelInfo.color[1], labelInfo.color[2]);
-    _functionPointers.debugUtilsEXT.vkCmdInsertDebugUtilsLabelEXT(_vkCommandBuffer, &labelInfo);
+    _encoderData.functionPointers.debugUtilsEXT.vkCmdInsertDebugUtilsLabelEXT(_encoderData.vkCommandBuffer, &labelInfo);
 }
 
 void VulkanCommandEncoder::pushDebugGroup(const char* label) noexcept {
-    if (_functionPointers.debugUtilsEXT.vkCmdBeginDebugUtilsLabelEXT == nullptr) {
+    if (_encoderData.functionPointers.debugUtilsEXT.vkCmdBeginDebugUtilsLabelEXT == nullptr) {
         return;
     }
 
@@ -84,15 +84,15 @@ void VulkanCommandEncoder::pushDebugGroup(const char* label) noexcept {
     labelInfo.color[3] = 1.0f;
 
     hashLabelToColor(label, labelInfo.color[0], labelInfo.color[1], labelInfo.color[2]);
-    _functionPointers.debugUtilsEXT.vkCmdBeginDebugUtilsLabelEXT(_vkCommandBuffer, &labelInfo);
+    _encoderData.functionPointers.debugUtilsEXT.vkCmdBeginDebugUtilsLabelEXT(_encoderData.vkCommandBuffer, &labelInfo);
 }
 
 void VulkanCommandEncoder::popDebugGroup() noexcept {
-    if (_functionPointers.debugUtilsEXT.vkCmdEndDebugUtilsLabelEXT == nullptr) {
+    if (_encoderData.functionPointers.debugUtilsEXT.vkCmdEndDebugUtilsLabelEXT == nullptr) {
         return;
     }
 
-    _functionPointers.debugUtilsEXT.vkCmdEndDebugUtilsLabelEXT(_vkCommandBuffer);
+    _encoderData.functionPointers.debugUtilsEXT.vkCmdEndDebugUtilsLabelEXT(_encoderData.vkCommandBuffer);
 }
 
 void VulkanCommandEncoder::copyBufferToBuffer() noexcept {
@@ -141,7 +141,7 @@ Result VulkanCommandEncoder::finish() noexcept {
     }
 
     _ended = true;
-    return castEnum<Result>(_functionPointers.commandBuffer10.vkEndCommandBuffer(_vkCommandBuffer));
+    return castEnum<Result>(_encoderData.functionPointers.commandBuffer10.vkEndCommandBuffer(_encoderData.vkCommandBuffer));
 }
 
 Result VulkanCommandEncoder::batch(ICommandBatch** batch) noexcept {
@@ -165,57 +165,13 @@ Result VulkanCommandEncoder::batch(ICommandBatch** batch) noexcept {
     return Result::Success;
 }
 
-/* INullable */
-bool VulkanCommandEncoder::isNull() const noexcept {
-    return (_vkCommandBuffer != nullptr);
-}
-
 /* IHandled */
 uint64_t VulkanCommandEncoder::handle() const noexcept {
-    return reinterpret_cast<uint64_t>(_vkCommandBuffer);
+    return reinterpret_cast<uint64_t>(_encoderData.vkCommandBuffer);
 }
 
 ObjectType VulkanCommandEncoder::handleType() const noexcept {
     return ObjectType::CommandBuffer;
-}
-
-/* ICollected */
-uint32_t VulkanCommandEncoder::release() {
-    if (_referenceCount == 0) {
-        return 0;
-    }
-
-    _referenceCount -= 1;
-    if (_referenceCount == 0) {
-        delete this;
-        return 0;
-    }
-
-    return _referenceCount;
-}
-
-uint32_t VulkanCommandEncoder::retain() {
-    _referenceCount += 1;
-    return _referenceCount;
-}
-
-/* IParent */
-bool VulkanCommandEncoder::hasChild(IChild const* child) const noexcept {
-    for (IChild const* c : _children) {
-        if (c == child) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-IChild* VulkanCommandEncoder::enumerateChildren(uint32_t id) const noexcept {
-    if (id >= _children.size()) {
-        return nullptr;
-    }
-
-    return _children[id];
 }
 
 /* IChild */
@@ -230,9 +186,7 @@ void* VulkanCommandEncoder::loadDispatchSymbol(const char* symbol) {
 
 /* IInterface */
 void* VulkanCommandEncoder::queryInterface(IID const& iid) noexcept {
-    if (iid == INullable::iid()) {
-        return static_cast<INullable*>(this);
-    } else if (iid == IHandled::iid()) {
+    if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == ICollected::iid()) {
         return static_cast<ICollected*>(this);

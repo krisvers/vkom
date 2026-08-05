@@ -1,4 +1,6 @@
 #include "vkom/dynlib.hpp"
+#include "vkom/internal/object.hpp"
+#include "vkom/internal/vkdata.hpp"
 #include <vkom/internal/instance.hpp>
 
 #include <cstring>
@@ -10,22 +12,14 @@ namespace vkom {
 
 namespace internal {
 
-VulkanInstance::VulkanInstance(bool debug, uint32_t vkApiVersion, bool inheritedHandle, IDynlib* dynlib, VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanInstanceFunctionPointers const& functionPointers, std::vector<const char*> const& enabledExtensions, PFN_vkDebugUtilsMessengerCallbackEXT vkDebugUtilsMessengerUserCallback, void* vkDebugUtilsMessengerUserData) : _debug(debug), _vkApiVersion(vkApiVersion), _inheritedHandle(inheritedHandle), _vulkanDynlib(dynlib), _vkInstance(vkInstance), _vkGetInstanceProcAddr(vkGetInstanceProcAddr), _vkAllocationCallbacks(vkAllocationCallbacks), _functionPointers(functionPointers), _enabledExtensions(enabledExtensions) {
-    VulkanAdapterFunctionPointers adapterFunctionPointers = {};
-    if (!adapterFunctionPointers.physical10.load(vkInstance, vkGetInstanceProcAddr)) {
-        throw std::runtime_error("Failed to load physical device functions");
-    }
-
-    adapterFunctionPointers.physical11.load(vkInstance, vkGetInstanceProcAddr);
-    adapterFunctionPointers.surfaceKHR.load(vkInstance, vkGetInstanceProcAddr);
-
+VulkanInstance::VulkanInstance(uint32_t vkApiVersion, bool inheritedHandle, IDynlib* dynlib, VulkanInstanceData const& instanceData, std::vector<const char*> const& enabledExtensions, PFN_vkDebugUtilsMessengerCallbackEXT vkDebugUtilsMessengerUserCallback, void* vkDebugUtilsMessengerUserData) : _vkApiVersion(vkApiVersion), _inheritedHandle(inheritedHandle), _vulkanDynlib(dynlib), _instanceData(instanceData), _enabledExtensions(enabledExtensions) {
     uint32_t physicalDeviceCount;
-    if (_functionPointers.instance10.vkEnumeratePhysicalDevices(_vkInstance, &physicalDeviceCount, nullptr) != VK_SUCCESS) {
+    if (_instanceData.functionPointers.instance10.vkEnumeratePhysicalDevices(_instanceData.vkInstance, &physicalDeviceCount, nullptr) != VK_SUCCESS) {
         throw std::runtime_error("vkEnumeratePhysicalDevices failed");
     }
 
     std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
-    if (_functionPointers.instance10.vkEnumeratePhysicalDevices(_vkInstance, &physicalDeviceCount, &physicalDevices[0]) != VK_SUCCESS) {
+    if (_instanceData.functionPointers.instance10.vkEnumeratePhysicalDevices(_instanceData.vkInstance, &physicalDeviceCount, &physicalDevices[0]) != VK_SUCCESS) {
         throw std::runtime_error("vkEnumeratePhysicalDevices failed");
     }
 
@@ -36,24 +30,27 @@ VulkanInstance::VulkanInstance(bool debug, uint32_t vkApiVersion, bool inherited
     debugUtilsMessengerCreateInfo.pfnUserCallback = (vkDebugUtilsMessengerUserCallback != nullptr) ? vkDebugUtilsMessengerUserCallback : debugUtilsMessengerCallback;
     debugUtilsMessengerCreateInfo.pUserData = (vkDebugUtilsMessengerUserCallback != nullptr) ? vkDebugUtilsMessengerUserData : this;
 
-    if (debug && _functionPointers.debugUtilsEXT.vkCreateDebugUtilsMessengerEXT != nullptr) {
-        _functionPointers.debugUtilsEXT.vkCreateDebugUtilsMessengerEXT(_vkInstance, &debugUtilsMessengerCreateInfo, _vkAllocationCallbacks, &_vkDebugUtilsMessenger);
+    if (_instanceData.debug && _instanceData.functionPointers.debugUtilsEXT.vkCreateDebugUtilsMessengerEXT != nullptr) {
+        _instanceData.functionPointers.debugUtilsEXT.vkCreateDebugUtilsMessengerEXT(_instanceData.vkInstance, &debugUtilsMessengerCreateInfo, _instanceData.vkAllocationCallbacks, &_vkDebugUtilsMessenger);
     }
 
-    for (VkPhysicalDevice phys : physicalDevices) {
-        VulkanAdapter* adapter = new VulkanAdapter(debug, this, phys, adapterFunctionPointers);
-        _adapters.push_back(adapter);
-        _children.push_back(adapter);
+    for (VkPhysicalDevice vkPhysicalDevice : physicalDevices) {
+        VulkanAdapterData adapterData = VulkanAdapterData(_instanceData, vkPhysicalDevice);
+
+        VulkanAdapter* adapter = new VulkanAdapter(false, this, adapterData);
+        adopt(adapter);
     }
 }
 
 VulkanInstance::~VulkanInstance() {
-    if (_vkDebugUtilsMessenger != VK_NULL_HANDLE && _functionPointers.debugUtilsEXT.vkDestroyDebugUtilsMessengerEXT != nullptr) {
-        _functionPointers.debugUtilsEXT.vkDestroyDebugUtilsMessengerEXT(_vkInstance, _vkDebugUtilsMessenger, _vkAllocationCallbacks);
+    ParentByVector::disownAll();
+
+    if (_vkDebugUtilsMessenger != VK_NULL_HANDLE && _instanceData.functionPointers.debugUtilsEXT.vkDestroyDebugUtilsMessengerEXT != nullptr) {
+        _instanceData.functionPointers.debugUtilsEXT.vkDestroyDebugUtilsMessengerEXT(_instanceData.vkInstance, _vkDebugUtilsMessenger, _instanceData.vkAllocationCallbacks);
     }
 
-    if (!_inheritedHandle && _functionPointers.instance10.vkDestroyInstance != nullptr) {
-        _functionPointers.instance10.vkDestroyInstance(_vkInstance, _vkAllocationCallbacks);
+    if (!_inheritedHandle && _instanceData.functionPointers.instance10.vkDestroyInstance != nullptr) {
+        _instanceData.functionPointers.instance10.vkDestroyInstance(_instanceData.vkInstance, _instanceData.vkAllocationCallbacks);
     }
 
     if (_vulkanDynlib != nullptr) {
@@ -67,22 +64,33 @@ void VulkanInstance::setLogCallback(InstanceLogCallbackPFN callback, void* userD
     _logUserData = userData;
 }
 
-IAdapter* VulkanInstance::enumerateAdapters(uint32_t id) const noexcept {
-    if (id >= _adapters.size()) {
-        return nullptr;
+void VulkanInstance::log(DebugMessageSeverityFlags severity, DebugMessageTypeFlags types, const char* message) noexcept {
+    if (_logCallback != nullptr) {
+        _logCallback(this, _logUserData, severity, types, message);
     }
-
-    return _adapters[id];
 }
 
-/* INullable */
-bool VulkanInstance::isNull() const noexcept {
-    return _vkInstance == nullptr;
+bool VulkanInstance::queryExtension(const char* extension) const noexcept {
+    for (const char* s : _enabledExtensions) {
+        if (std::strcmp(s, extension) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+uint32_t VulkanInstance::queryApiVersion() const noexcept {
+    return _vkApiVersion;
+}
+
+IAdapter* VulkanInstance::enumerateAdapters(uint32_t id) const noexcept {
+    return IParent::enumerateChildren<IAdapter>(id);
 }
 
 /* IHandled */
 uint64_t VulkanInstance::handle() const noexcept {
-    return reinterpret_cast<uint64_t>(_vkInstance);
+    return reinterpret_cast<uint64_t>(_instanceData.vkInstance);
 }
 
 ObjectType VulkanInstance::handleType() const noexcept {
@@ -91,14 +99,12 @@ ObjectType VulkanInstance::handleType() const noexcept {
 
 /* IDispatchable */
 void* VulkanInstance::loadDispatchSymbol(const char* symbol) {
-    return reinterpret_cast<void*>(_vkGetInstanceProcAddr(_vkInstance, symbol));
+    return reinterpret_cast<void*>(_instanceData.vkGetInstanceProcAddr(_instanceData.vkInstance, symbol));
 }
 
 /* IInterface */
 void* VulkanInstance::queryInterface(IID const& iid) noexcept {
-    if (iid == INullable::iid()) {
-        return static_cast<INullable*>(this);
-    } else if (iid == IHandled::iid()) {
+    if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == ICollected::iid()) {
         return static_cast<ICollected*>(this);
@@ -114,20 +120,6 @@ void* VulkanInstance::queryInterface(IID const& iid) noexcept {
 }
 
 /* internal */
-uint32_t VulkanInstance::vkApiVersion() const noexcept {
-    return _vkApiVersion;
-}
-
-bool VulkanInstance::isExtensionEnabled(const char* name) const noexcept {
-    for (const char* s : _enabledExtensions) {
-        if (std::strcmp(s, name) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 VkBool32 VulkanInstance::debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT types, VkDebugUtilsMessengerCallbackDataEXT const* callbackData, void* userData) {
     VulkanInstance* instance = reinterpret_cast<VulkanInstance*>(userData);
     if (instance->_logCallback != nullptr) {
@@ -312,28 +304,16 @@ Result createInstance(bool debug, InstanceLoaderInfo const* loaderInfo, IInstanc
         }
     }
 
-    internal::VulkanInstanceFunctionPointers functionPointers = {};
-    if (!functionPointers.instance10.load(vkInstance, vkGetInstanceProcAddr)) {
-        /* loaded library is not a valid Vulkan dynlib */
-        if (!inheritedVkInstance && functionPointers.instance10.vkDestroyInstance != nullptr) {
-            functionPointers.instance10.vkDestroyInstance(vkInstance, vkAllocationCallbacks);
-        }
-
-        dynlib->destroy();
-        return Result::ErrorInitializationFailed;
-    }
-
-    functionPointers.instance11.load(vkInstance, vkGetInstanceProcAddr);
-    functionPointers.instance12.load(vkInstance, vkGetInstanceProcAddr);
-    functionPointers.debugUtilsEXT.load(vkInstance, vkGetInstanceProcAddr);
+    internal::VulkanInstanceData instanceData = internal::VulkanInstanceData(debug, vkGetInstanceProcAddr, vkAllocationCallbacks, vkInstance);
 
     try {
-        *instance = new internal::VulkanInstance(debug, vkApiVersion, inheritedVkInstance, dynlib, vkInstance, vkGetInstanceProcAddr, vkAllocationCallbacks, functionPointers, enabledExtensions, vkDebugUtilsMessengerCallback, vkDebugUtilsMessengerUserData);
+        *instance = new internal::VulkanInstance(vkApiVersion, inheritedVkInstance, dynlib, instanceData, enabledExtensions, vkDebugUtilsMessengerCallback, vkDebugUtilsMessengerUserData);
     } catch (std::runtime_error const& err) {
         dynlib->destroy();
         return Result::ErrorInitializationFailed;
     }
 
+    (*instance)->retain();
     return Result::Success;
 }
 

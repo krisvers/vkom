@@ -1,3 +1,6 @@
+#include "vkom/enums.hpp"
+#include "vkom/object.hpp"
+#include <cstdint>
 #include <vkom/internal/adapter.hpp>
 
 #include <algorithm>
@@ -7,21 +10,22 @@
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/vksurface.hpp>
+#include <vkom/internal/vma.hpp>
 
 namespace vkom {
 
 namespace internal {
 
-VulkanAdapter::VulkanAdapter(bool debug, VulkanInstance* instance, VkPhysicalDevice vkPhysicalDevice, VulkanAdapterFunctionPointers const& functionPointers) : _debug(debug), _instance(instance), _vkPhysicalDevice(vkPhysicalDevice), _functionPointers(functionPointers) {
+VulkanAdapter::VulkanAdapter(bool inheritedHandle, IInstance* instance, VulkanAdapterData const& adapterData) : _inheritedHandle(inheritedHandle), _instance(instance), _adapterData(adapterData) {
     _instance->retain();
 
     uint32_t availableExtensionCount;
-    if (_functionPointers.physical10.vkEnumerateDeviceExtensionProperties(_vkPhysicalDevice, nullptr, &availableExtensionCount, nullptr) != VK_SUCCESS) {
+    if (_adapterData.functionPointers.physical10.vkEnumerateDeviceExtensionProperties(_adapterData.vkPhysicalDevice, nullptr, &availableExtensionCount, nullptr) != VK_SUCCESS) {
         throw std::runtime_error("vkEnumerateDeviceExtensionProperties failed");
     }
 
     _availableExtensions.resize(availableExtensionCount);
-    if (_functionPointers.physical10.vkEnumerateDeviceExtensionProperties(_vkPhysicalDevice, nullptr, &availableExtensionCount, &_availableExtensions[0]) != VK_SUCCESS) {
+    if (_adapterData.functionPointers.physical10.vkEnumerateDeviceExtensionProperties(_adapterData.vkPhysicalDevice, nullptr, &availableExtensionCount, &_availableExtensions[0]) != VK_SUCCESS) {
         throw std::runtime_error("vkEnumerateDeviceExtensionProperties failed");
     }
 
@@ -31,14 +35,14 @@ VulkanAdapter::VulkanAdapter(bool debug, VulkanInstance* instance, VkPhysicalDev
     VkPhysicalDeviceDriverProperties driverProperties = {};
     driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
     driverProperties.pNext = properties2.pNext;
-    if (instance->vkApiVersion() >= VK_API_VERSION_1_2 || isExtensionAvailable(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME)) {
+    if (instance->queryApiVersion() >= VK_API_VERSION_1_2 || queryExtension(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME)) {
         properties2.pNext = &driverProperties;
     }
 
-    if (_functionPointers.physical11.vkGetPhysicalDeviceProperties2 != nullptr) {
-        _functionPointers.physical11.vkGetPhysicalDeviceProperties2(_vkPhysicalDevice, &properties2);
+    if (_adapterData.functionPointers.physical11.vkGetPhysicalDeviceProperties2 != nullptr) {
+        _adapterData.functionPointers.physical11.vkGetPhysicalDeviceProperties2(_adapterData.vkPhysicalDevice, &properties2);
     } else {
-        _functionPointers.physical10.vkGetPhysicalDeviceProperties(_vkPhysicalDevice, &properties2.properties);
+        _adapterData.functionPointers.physical10.vkGetPhysicalDeviceProperties(_adapterData.vkPhysicalDevice, &properties2.properties);
     }
 
     VkPhysicalDeviceFeatures2 features2 = {};
@@ -47,44 +51,44 @@ VulkanAdapter::VulkanAdapter(bool debug, VulkanInstance* instance, VkPhysicalDev
     VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {};
     dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
     dynamicRenderingFeatures.pNext = features2.pNext;
-    if (instance->vkApiVersion() >= VK_API_VERSION_1_3 || isExtensionAvailable(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)) {
+    if (instance->queryApiVersion() >= VK_API_VERSION_1_3 || queryExtension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)) {
         features2.pNext = &dynamicRenderingFeatures;
     }
 
     VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
     bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
     bufferDeviceAddressFeatures.pNext = features2.pNext;
-    if (instance->vkApiVersion() >= VK_API_VERSION_1_2 || isExtensionAvailable(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) || isExtensionAvailable(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)) {
+    if (instance->queryApiVersion() >= VK_API_VERSION_1_2 || queryExtension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) || queryExtension(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)) {
         features2.pNext = &bufferDeviceAddressFeatures;
     }
 
     VkPhysicalDeviceShaderFloat16Int8Features shaderFloat16Int8Features = {};
     shaderFloat16Int8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES;
     shaderFloat16Int8Features.pNext = features2.pNext;
-    if (instance->vkApiVersion() >= VK_API_VERSION_1_2 || isExtensionAvailable(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME)) {
+    if (instance->queryApiVersion() >= VK_API_VERSION_1_2 || queryExtension(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME)) {
         features2.pNext = &shaderFloat16Int8Features;
     }
 
     VkPhysicalDeviceShaderFloat8FeaturesEXT shaderFloat8Features = {};
     shaderFloat8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT8_FEATURES_EXT;
     shaderFloat8Features.pNext = features2.pNext;
-    if (isExtensionAvailable(VK_EXT_SHADER_FLOAT8_EXTENSION_NAME)) {
+    if (queryExtension(VK_EXT_SHADER_FLOAT8_EXTENSION_NAME)) {
         features2.pNext = &shaderFloat8Features;
     }
 
-    if (_functionPointers.physical11.vkGetPhysicalDeviceFeatures2 != nullptr) {
-        _functionPointers.physical11.vkGetPhysicalDeviceFeatures2(_vkPhysicalDevice, &features2);
+    if (_adapterData.functionPointers.physical11.vkGetPhysicalDeviceFeatures2 != nullptr) {
+        _adapterData.functionPointers.physical11.vkGetPhysicalDeviceFeatures2(_adapterData.vkPhysicalDevice, &features2);
     } else {
-        _functionPointers.physical10.vkGetPhysicalDeviceFeatures(_vkPhysicalDevice, &features2.features);
+        _adapterData.functionPointers.physical10.vkGetPhysicalDeviceFeatures(_adapterData.vkPhysicalDevice, &features2.features);
     }
 
     VkPhysicalDeviceMemoryProperties2 memoryProperties2 = {};
     memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
 
-    if (_functionPointers.physical11.vkGetPhysicalDeviceMemoryProperties2 != nullptr) {
-        _functionPointers.physical11.vkGetPhysicalDeviceMemoryProperties2(_vkPhysicalDevice, &memoryProperties2);
+    if (_adapterData.functionPointers.physical11.vkGetPhysicalDeviceMemoryProperties2 != nullptr) {
+        _adapterData.functionPointers.physical11.vkGetPhysicalDeviceMemoryProperties2(_adapterData.vkPhysicalDevice, &memoryProperties2);
     } else {
-        _functionPointers.physical10.vkGetPhysicalDeviceMemoryProperties(_vkPhysicalDevice, &memoryProperties2.memoryProperties);
+        _adapterData.functionPointers.physical10.vkGetPhysicalDeviceMemoryProperties(_adapterData.vkPhysicalDevice, &memoryProperties2.memoryProperties);
     }
 
     _info.vendorID = castEnum<VendorID>(properties2.properties.vendorID);
@@ -96,11 +100,11 @@ VulkanAdapter::VulkanAdapter(bool debug, VulkanInstance* instance, VkPhysicalDev
     std::memset(&_info.driverName[0], 0, 256);
 
     std::memcpy(&_info.deviceName[0], &properties2.properties.deviceName[0], std::min(VK_MAX_PHYSICAL_DEVICE_NAME_SIZE - 1, 255u));
-    if (instance->vkApiVersion() >= VK_API_VERSION_1_2 || isExtensionAvailable(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME)) {
+    if (instance->queryApiVersion() >= VK_API_VERSION_1_2 || queryExtension(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME)) {
         std::memcpy(&_info.driverName[0], &driverProperties.driverName, std::min(VK_MAX_DRIVER_NAME_SIZE - 1, 255u));
     }
 
-    _features.swapchain = isExtensionAvailable(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    _features.swapchain = queryExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     _features.dynamicRendering = dynamicRenderingFeatures.dynamicRendering;
     _features.bufferDeviceAddress = bufferDeviceAddressFeatures.bufferDeviceAddress;
     _features.shaderInt8 = shaderFloat16Int8Features.shaderInt8;
@@ -156,18 +160,12 @@ VulkanAdapter::VulkanAdapter(bool debug, VulkanInstance* instance, VkPhysicalDev
             _limits.availableHostMemory += static_cast<uint64_t>(memoryProperties2.memoryProperties.memoryHeaps[i].size);
         }
     }
+
+    _adapterData.functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_adapterData.vkPhysicalDevice, &_limits.queueFamilyCount, nullptr);
 }
 
 VulkanAdapter::~VulkanAdapter() {
-    for (IChild* child : _children) {
-        ICollected* collected = child->queryInterface<ICollected>();
-        if (collected != nullptr) {
-            if (collected->release() != 0) {
-                /* TODO: report mismanaged references */
-            }
-        }
-    }
-
+    ParentByVector::disownAll();
     _instance->release();
 }
 
@@ -182,6 +180,28 @@ void VulkanAdapter::queryFeatures(AdapterFeatures* features) const noexcept {
 
 void VulkanAdapter::queryLimits(AdapterLimits* limits) const noexcept {
     *limits = _limits;
+}
+
+bool VulkanAdapter::queryExtension(const char* extension) const noexcept {
+    for (VkExtensionProperties const& properties : _availableExtensions) {
+        if (std::strcmp(properties.extensionName, extension) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+QueueFlags VulkanAdapter::queryQueueFamilyFlags(uint32_t family) const noexcept {
+    uint32_t queueFamilyCount = _limits.queueFamilyCount;
+    if (family >= queueFamilyCount) {
+        return QueueFlags::None;
+    }
+
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
+    _adapterData.functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_adapterData.vkPhysicalDevice, &queueFamilyCount, &queueFamilyProperties[0]);
+
+    return (castEnum<QueueFlags>(queueFamilyProperties[family].queueFlags) | (physicalDeviceQueueFamilySupportsPresentation(_adapterData.instanceData.vkInstance, _adapterData.instanceData.vkGetInstanceProcAddr, _adapterData.vkPhysicalDevice, family) ? QueueFlags::Present : QueueFlags::None));
 }
 
 Result VulkanAdapter::createDevice(IDevice** device) {
@@ -225,10 +245,10 @@ Result VulkanAdapter::createDevice(IDevice** device) {
     }
 
     uint32_t queueFamilyCount;
-    _functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, nullptr);
+    _adapterData.functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_adapterData.vkPhysicalDevice, &queueFamilyCount, nullptr);
 
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    _functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_vkPhysicalDevice, &queueFamilyCount, &queueFamilies[0]);
+    _adapterData.functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_adapterData.vkPhysicalDevice, &queueFamilyCount, &queueFamilies[0]);
 
     uint32_t totalQueueCount = 0;
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos(queueFamilyCount);
@@ -279,7 +299,7 @@ Result VulkanAdapter::createDevice(IDevice** device) {
         }
     }
 
-    PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr = static_cast<IDispatchable*>(_instance)->loadDispatchSymbol<PFN_vkGetDeviceProcAddr>("vkGetDeviceProcAddr");
+    PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr = _instance->loadDispatchSymbol<PFN_vkGetDeviceProcAddr>("vkGetDeviceProcAddr");
     if (vkGetDeviceProcAddr == nullptr) {
         /* failed to load vkGetDeviceProcAddr */
         return Result::ErrorInitializationFailed;
@@ -297,27 +317,32 @@ Result VulkanAdapter::createDevice(IDevice** device) {
     createInfo.ppEnabledExtensionNames = enabledExtensions.empty() ? nullptr : &enabledExtensions[0];
 
     VkDevice vkDevice;
-    VkResult result = _functionPointers.physical10.vkCreateDevice(_vkPhysicalDevice, &createInfo, _vkAllocationCallbacks, &vkDevice);
+    VkResult result = _adapterData.functionPointers.physical10.vkCreateDevice(_adapterData.vkPhysicalDevice, &createInfo, _adapterData.instanceData.vkAllocationCallbacks, &vkDevice);
     if (result != VK_SUCCESS) {
         return castEnum<Result>(result);
     }
 
-    VulkanDeviceFunctionPointers functionPointers = {};
-    if (!functionPointers.device10.load(vkDevice, vkGetDeviceProcAddr)) {
-        /* failed to load device function pointers */
-        PFN_vkDestroyDevice vkDestroyDevice = reinterpret_cast<PFN_vkDestroyDevice>(vkGetDeviceProcAddr(vkDevice, "vkDestroyDevice"));
-        if (vkDestroyDevice != nullptr) {
-            vkDestroyDevice(vkDevice, _vkAllocationCallbacks);
-        }
+    VmaVulkanFunctions vulkanFunctions = {};
+    vulkanFunctions.vkGetInstanceProcAddr = _adapterData.instanceData.vkGetInstanceProcAddr;
+    vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
-        return Result::ErrorInitializationFailed;
+    VmaAllocatorCreateInfo allocatorCreateInfo = {};
+    allocatorCreateInfo.flags = (_features.bufferDeviceAddress) ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0;
+    allocatorCreateInfo.physicalDevice = _adapterData.vkPhysicalDevice;
+    allocatorCreateInfo.device = vkDevice;
+    allocatorCreateInfo.pAllocationCallbacks = _adapterData.instanceData.vkAllocationCallbacks;
+    allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+    allocatorCreateInfo.instance = _adapterData.instanceData.vkInstance;
+    allocatorCreateInfo.vulkanApiVersion = _instance->queryApiVersion();
+
+    VmaAllocator vmaAllocator;
+    if (vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator) != VK_SUCCESS) {
+        throw std::runtime_error("vmaCreateAllocator failed");
     }
 
-    functionPointers.device11.load(vkDevice, vkGetDeviceProcAddr);
-    functionPointers.device12.load(vkDevice, vkGetDeviceProcAddr);
-
+    VulkanDeviceData deviceData = VulkanDeviceData(_adapterData, vkGetDeviceProcAddr, vkDevice, vmaAllocator);
     try {
-        *device = new VulkanDevice(_debug, false, this, vkDevice, vkGetDeviceProcAddr, _vkAllocationCallbacks, functionPointers, enabledExtensions);
+        *device = new VulkanDevice(false, this, deviceData, enabledExtensions);
     } catch (std::runtime_error const& err) {
         return Result::ErrorInitializationFailed;
     }
@@ -327,35 +352,16 @@ Result VulkanAdapter::createDevice(IDevice** device) {
 
 /* IHandled */
 uint64_t VulkanAdapter::handle() const noexcept {
-    return reinterpret_cast<uint64_t>(_vkPhysicalDevice);
+    return reinterpret_cast<uint64_t>(_adapterData.vkPhysicalDevice);
 }
 
 ObjectType VulkanAdapter::handleType() const noexcept {
     return ObjectType::PhysicalDevice;
 }
 
-/* IParent */
-bool VulkanAdapter::hasChild(IChild const* child) const noexcept {
-    for (IChild const* c : _children) {
-        if (c == child) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-IChild* VulkanAdapter::enumerateChildren(uint32_t id) const noexcept {
-    if (id >= _children.size()) {
-        return nullptr;
-    }
-
-    return _children[id];
-}
-
 /* IChild */
 IParent* VulkanAdapter::parent() const noexcept {
-    return _instance;
+    return _instance->queryInterface<IParent>();
 }
 
 /* IDispatchable */
@@ -367,6 +373,8 @@ void* VulkanAdapter::loadDispatchSymbol(const char* symbol) {
 void* VulkanAdapter::queryInterface(IID const& iid) noexcept {
     if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
+    } else if (iid == IDestructible::iid()) {
+        return static_cast<IDestructible*>(this);
     } else if (iid == IChild::iid()) {
         return static_cast<IChild*>(this);
     } else if (iid == IParent::iid()) {
@@ -378,21 +386,6 @@ void* VulkanAdapter::queryInterface(IID const& iid) noexcept {
     }
 
     return nullptr;
-}
-
-/* internal */
-bool VulkanAdapter::isExtensionAvailable(const char* name) const noexcept {
-    for (VkExtensionProperties const& properties : _availableExtensions) {
-        if (std::strcmp(properties.extensionName, name) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool VulkanAdapter::queueFamilySupportsPresent(uint32_t family) const noexcept {
-    return physicalDeviceQueueFamilySupportsPresentation(_instance->_vkInstance, _instance->_vkGetInstanceProcAddr, _vkPhysicalDevice, family);
 }
 
 }

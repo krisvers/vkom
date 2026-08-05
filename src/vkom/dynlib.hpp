@@ -4,7 +4,7 @@
 
 namespace vkom {
 
-class IDynlib : public IInterface {
+class IDynlib : virtual public IInterface {
 public:
     virtual bool valid() const noexcept = 0;
     virtual void* loadSymbol(const char* symbol) = 0;

@@ -32,7 +32,7 @@ struct TextureInfo {
     bool queueConcurrency;
 };
 
-class ITexture : public IResource {
+class ITexture : virtual public IResource {
 public:
     virtual void getInfo(TextureInfo* info) const noexcept = 0;
 

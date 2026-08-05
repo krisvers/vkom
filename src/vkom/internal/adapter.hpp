@@ -5,25 +5,27 @@
 #include <vkom/enums.hpp>
 #include <vkom/adapter.hpp>
 
+#include <vkom/device.hpp>
+#include <vkom/instance.hpp>
+
+#include <vkom/internal/object.hpp>
 #include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 
 namespace internal {
 
-class VulkanInstance;
-class VulkanDevice;
-class VulkanHeap;
+/* NOTE: IAdapter does not publicly advertise IDestructible support but DestructibleByHeap is used
+ * here so that implementations of IInstance can easily disownAll using ParentByVector
+ */
 
-class VulkanAdapter final : public IAdapter {
+class VulkanAdapter final : virtual public IAdapter, virtual public ParentByVector, virtual public DestructibleByHeap {
 private:
-    bool _debug = false;
-    VulkanInstance* _instance = nullptr;
-    VkPhysicalDevice _vkPhysicalDevice = nullptr;
-    PFN_vkGetInstanceProcAddr _vkGetInstanceProcAddr = nullptr;
-    VkAllocationCallbacks const* _vkAllocationCallbacks = nullptr;
-    VulkanAdapterFunctionPointers _functionPointers = {};
+    bool _inheritedHandle = false;
+    IInstance* _instance = nullptr;
+    VulkanAdapterData _adapterData;
     std::vector<VkExtensionProperties> _availableExtensions = {};
 
     /* IAdapter */
@@ -31,30 +33,22 @@ private:
     AdapterFeatures _features = {};
     AdapterLimits _limits = {};
 
-    /* IParent */
-    std::vector<IChild*> _children = {};
-
-    bool isExtensionAvailable(const char* name) const noexcept;
-    bool queueFamilySupportsPresent(uint32_t family) const noexcept;
-
 public:
-    VulkanAdapter(bool debug, VulkanInstance* instance, VkPhysicalDevice vkPhysicalDevice, VulkanAdapterFunctionPointers const& functionPointers);
+    VulkanAdapter(bool inheritedHandle, IInstance* instance, VulkanAdapterData const& adapterData);
     ~VulkanAdapter();
 
     /* IAdapter */
     void queryInfo(AdapterInfo* info) const noexcept override;
     void queryFeatures(AdapterFeatures* features) const noexcept override;
     void queryLimits(AdapterLimits* limits) const noexcept override;
+    bool queryExtension(const char* extension) const noexcept override;
+    QueueFlags queryQueueFamilyFlags(uint32_t family) const noexcept override;
 
     Result createDevice(IDevice** device) override;
 
     /* IHandled */
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;
-
-    /* IParent */
-    bool hasChild(IChild const* child) const noexcept override;
-    IChild* enumerateChildren(uint32_t id) const noexcept override;
 
     /* IChild */
     IParent* parent() const noexcept override;

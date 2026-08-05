@@ -5,7 +5,7 @@
 
 namespace vkom {
 
-class IPipeline : public INullable, public IHandled, public ICollected, public IChild {
+class IPipeline : virtual public IHandled, virtual public ICollected, virtual public IChild {
 public:
     static inline IID const& iid() noexcept {
         static IID iid = IID("f9fe7204-1096-4456-acdb-09902f90231f");
@@ -13,7 +13,7 @@ public:
     }
 };
 
-class IComputePipeline : public IPipeline {
+class IComputePipeline : virtual public IPipeline {
 public:
     static inline IID const& iid() noexcept {
         static IID iid = IID("5fdac3eb-47e5-40e6-9940-65be15d578b4");

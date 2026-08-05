@@ -7,7 +7,7 @@
 
 namespace vkom {
 
-class IQueue : public INullable, public IHandled, public ICollected, public IParent, public IChild, public IDispatchable {
+class IQueue : virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IChild, virtual public IDispatchable {
 public:
     virtual uint32_t family() const noexcept = 0;
     virtual uint32_t index() const noexcept = 0;

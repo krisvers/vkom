@@ -5,48 +5,34 @@
 #include <vkom/enums.hpp>
 #include <vkom/queue.hpp>
 
-#include <vkom/internal/funcptrs.hpp>
+#include <vkom/device.hpp>
+#include <vkom/adapter.hpp>
+#include <vkom/instance.hpp>
+
+#include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 
 namespace internal {
 
-class VulkanInstance;
-class VulkanAdapter;
-class VulkanDevice;
-
-class VulkanQueue final : public IQueue {
+class VulkanQueue final : virtual public IQueue, virtual public ParentByVector, virtual public CollectedByHeap {
 private:
-    bool _debug = false;
     bool _inheritedHandle = false;
-    VulkanDevice* _device = nullptr;
-    VulkanAdapter* _adapter = nullptr;
-    VulkanInstance* _instance = nullptr;
-    uint32_t _family = 0;
-    uint32_t _index = 0;
+    IDevice* _device = nullptr;
+    IAdapter* _adapter = nullptr;
+    IInstance* _instance = nullptr;
+    VulkanQueueData _queueData;
     QueueFlags _flags = QueueFlags::None;
-    VkQueue _vkQueue = nullptr;
-    VkAllocationCallbacks const* _vkAllocationCallbacks = nullptr;
-    VulkanQueueFunctionPointers _functionPointers = {};
 
     /* TODO: possibly expand to multiple pools? */
     VkCommandPool _vkCommandPool = nullptr;
 
-    /* ICollected */
-    uint32_t _referenceCount = 1;
-
-    /* IParent */
-    std::vector<IChild*> _children = {};
-
     VkCommandBuffer acquireCommandBuffer(bool secondary);
-    void releaseCommandBuffer(VkCommandBuffer vkCommandBuffer);
-
-    friend class VulkanCommandEncoder;
-    friend class VulkanCommandBatch;
 
 public:
-    VulkanQueue(bool debug, bool inheritedHandle, VulkanDevice* device, uint32_t family, uint32_t index, QueueFlags flags, VkQueue vkQueue, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanQueueFunctionPointers const& functionPointers);
+    VulkanQueue(bool inheritedHandle, IDevice* device, VulkanQueueData const& queueData);
     ~VulkanQueue();
 
     /* IQueue */
@@ -59,20 +45,9 @@ public:
     Result acquireCommandEncoder(ICommandEncoder** encoder) noexcept override;
     Result acquireCommandBatch(ICommandBatch** batch) noexcept override;
 
-    /* INullable */
-    bool isNull() const noexcept override;
-
     /* IHandled */
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;
-
-    /* ICollected */
-    uint32_t release() override;
-    uint32_t retain() override;
-
-    /* IParent */
-    bool hasChild(IChild const* child) const noexcept override;
-    IChild* enumerateChildren(uint32_t id) const noexcept override;
 
     /* IChild */
     IParent* parent() const noexcept override;

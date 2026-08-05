@@ -1,3 +1,6 @@
+#include "vkom/instance.hpp"
+#include "vkom/interface.hpp"
+#include "vkom/internal/vkdata.hpp"
 #include <vkom/internal/queue.hpp>
 
 #include <vkom/internal/enums.hpp>
@@ -11,48 +14,31 @@ namespace vkom {
 
 namespace internal {
 
-VulkanQueue::VulkanQueue(bool debug, bool inheritedHandle, VulkanDevice* device, uint32_t family, uint32_t index, QueueFlags flags, VkQueue vkQueue, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanQueueFunctionPointers const& functionPointers) : _debug(debug), _inheritedHandle(inheritedHandle), _device(device), _adapter(static_cast<VulkanAdapter*>(_device->parent())), _instance(static_cast<VulkanInstance*>(_adapter->parent())), _family(family), _index(index), _flags(flags), _vkQueue(vkQueue), _vkAllocationCallbacks(vkAllocationCallbacks), _functionPointers(functionPointers) {
-    _device->_queueFamilies[_family].queues.push_back(this);
-
+VulkanQueue::VulkanQueue(bool inheritedHandle, IDevice* device, VulkanQueueData const& queueData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _queueData(queueData), _flags(_adapter->queryQueueFamilyFlags(_queueData.family)) {
     VkCommandPoolCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    createInfo.queueFamilyIndex = _family;
+    createInfo.queueFamilyIndex = _queueData.family;
 
-    if (_device->_functionPointers.device10.vkCreateCommandPool(_device->_vkDevice, &createInfo, _vkAllocationCallbacks, &_vkCommandPool) != VK_SUCCESS) {
+    if (_queueData.deviceData.functionPointers.device10.vkCreateCommandPool(_queueData.deviceData.vkDevice, &createInfo, _queueData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &_vkCommandPool) != VK_SUCCESS) {
         throw std::runtime_error("vkCreateCommandPool failed");
     }
 }
 
 VulkanQueue::~VulkanQueue() {
     waitIdle();
+    _device->disown(IInterface::queryInterface<IChild>());
 
-    for (size_t i = 0; i < _device->_queueFamilies[_family].queues.size(); i += 1) {
-        if (_device->_queueFamilies[_family].queues[i] == this) {
-            _device->_queueFamilies[_family].queues.erase(_device->_queueFamilies[_family].queues.begin() + i);
-            break;
-        }
-    }
-
-    for (IChild* child : _children) {
-        ICollected* collected = child->queryInterface<ICollected>();
-        if (collected != nullptr) {
-            if (collected->release() != 0) {
-                /* TODO: report mismanaged references */
-            }
-        }
-    }
-
-    _device->_functionPointers.device10.vkDestroyCommandPool(_device->_vkDevice, _vkCommandPool, _vkAllocationCallbacks);
+    _queueData.deviceData.functionPointers.device10.vkDestroyCommandPool(_queueData.deviceData.vkDevice, _vkCommandPool, _queueData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
 }
 
 /* IQueue */
 uint32_t VulkanQueue::family() const noexcept {
-    return _family;
+    return _queueData.family;
 }
 
 uint32_t VulkanQueue::index() const noexcept {
-    return _index;
+    return _queueData.index;
 }
 
 QueueFlags VulkanQueue::flags() const noexcept {
@@ -60,94 +46,40 @@ QueueFlags VulkanQueue::flags() const noexcept {
 }
 
 Result VulkanQueue::waitIdle() const noexcept {
-    return castEnum<Result>(_functionPointers.queue10.vkQueueWaitIdle(_vkQueue));
+    return castEnum<Result>(_queueData.functionPointers.queue10.vkQueueWaitIdle(_queueData.vkQueue));
 }
 
 Result VulkanQueue::acquireCommandEncoder(ICommandEncoder** encoder) noexcept {
-    VulkanCommandEncoderFunctionPointers functionPointers = {};
-    if (!functionPointers.commandBuffer10.load(_device->_vkDevice, _device->_vkGetDeviceProcAddr)) {
-        return Result::ErrorInitializationFailed;
-    }
-
-    functionPointers.debugUtilsEXT.load(_device->_vkDevice, _device->_vkGetDeviceProcAddr);
-
     VkCommandBuffer vkCommandBuffer = acquireCommandBuffer(true);
     if (vkCommandBuffer == nullptr) {
         return Result::ErrorInitializationFailed;
     }
 
-    *encoder = new VulkanCommandEncoder(_debug, _inheritedHandle, this, vkCommandBuffer, _vkAllocationCallbacks, functionPointers);
+    VulkanCommandEncoderData encoderData = VulkanCommandEncoderData(_queueData, _vkCommandPool, vkCommandBuffer, false);
+
+    *encoder = new VulkanCommandEncoder(false, this, encoderData);
     return Result::Success;
 }
 
 Result VulkanQueue::acquireCommandBatch(ICommandBatch** batch) noexcept {
-    VulkanCommandBatchFunctionPointers functionPointers = {};
-    if (!functionPointers.commandBuffer10.load(_device->_vkDevice, _device->_vkGetDeviceProcAddr)) {
-        return Result::ErrorInitializationFailed;
-    }
-
-    functionPointers.debugUtilsEXT.load(_device->_vkDevice, _device->_vkGetDeviceProcAddr);
-
     VkCommandBuffer vkCommandBuffer = acquireCommandBuffer(false);
     if (vkCommandBuffer == nullptr) {
         return Result::ErrorInitializationFailed;
     }
 
-    *batch = new VulkanCommandBatch(_debug, _inheritedHandle, this, vkCommandBuffer, _vkAllocationCallbacks, functionPointers);
-    return Result::Success;
-}
+    VulkanCommandBatchData batchData = VulkanCommandBatchData(_queueData, _vkCommandPool, vkCommandBuffer, false);
 
-/* INullable */
-bool VulkanQueue::isNull() const noexcept {
-    return (_vkQueue != nullptr);
+    *batch = new VulkanCommandBatch(false, this, batchData);
+    return Result::Success;
 }
 
 /* IHandled */
 uint64_t VulkanQueue::handle() const noexcept {
-    return reinterpret_cast<uint64_t>(_vkQueue);
+    return reinterpret_cast<uint64_t>(_queueData.vkQueue);
 }
 
 ObjectType VulkanQueue::handleType() const noexcept {
     return ObjectType::Queue;
-}
-
-/* ICollected */
-uint32_t VulkanQueue::release() {
-    if (_referenceCount == 0) {
-        return 0;
-    }
-
-    _referenceCount -= 1;
-    if (_referenceCount == 0) {
-        delete this;
-        return 0;
-    }
-
-    return _referenceCount;
-}
-
-uint32_t VulkanQueue::retain() {
-    _referenceCount += 1;
-    return _referenceCount;
-}
-
-/* IParent */
-bool VulkanQueue::hasChild(IChild const* child) const noexcept {
-    for (IChild const* c : _children) {
-        if (c == child) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-IChild* VulkanQueue::enumerateChildren(uint32_t id) const noexcept {
-    if (id >= _children.size()) {
-        return nullptr;
-    }
-
-    return _children[id];
 }
 
 /* IChild */
@@ -162,9 +94,7 @@ void* VulkanQueue::loadDispatchSymbol(const char* symbol) {
 
 /* IInterface */
 void* VulkanQueue::queryInterface(IID const& iid) noexcept {
-    if (iid == INullable::iid()) {
-        return static_cast<INullable*>(this);
-    } else if (iid == IHandled::iid()) {
+    if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == ICollected::iid()) {
         return static_cast<ICollected*>(this);
@@ -191,18 +121,11 @@ VkCommandBuffer VulkanQueue::acquireCommandBuffer(bool secondary) {
     allocateInfo.commandBufferCount = 1;
 
     VkCommandBuffer vkCommandBuffer;
-    if (_device->_functionPointers.device10.vkAllocateCommandBuffers(_device->_vkDevice, &allocateInfo, &vkCommandBuffer) != VK_SUCCESS) {
+    if (_queueData.deviceData.functionPointers.device10.vkAllocateCommandBuffers(_queueData.deviceData.vkDevice, &allocateInfo, &vkCommandBuffer) != VK_SUCCESS) {
         return nullptr;
     }
 
     return vkCommandBuffer;
-}
-
-void VulkanQueue::releaseCommandBuffer(VkCommandBuffer vkCommandBuffer) {
-    /* TODO: fine grained wait for command buffer to leave pending */
-    waitIdle();
-
-    _device->_functionPointers.device10.vkFreeCommandBuffers(_device->_vkDevice, _vkCommandPool, 1, &vkCommandBuffer);
 }
 
 }

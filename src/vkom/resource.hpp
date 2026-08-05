@@ -7,7 +7,7 @@ namespace vkom {
 
 class IHeap;
 
-class IResource : public INullable, public IHandled, public ICollected, public IParent, public IChild {
+class IResource : virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IChild {
 public:
     virtual uint64_t resourceSize() const noexcept = 0;
     virtual uint64_t allocationOffset() const noexcept = 0;

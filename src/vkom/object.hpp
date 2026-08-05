@@ -20,6 +20,11 @@ public:
     virtual uint64_t handle() const noexcept = 0;
     virtual ObjectType handleType() const noexcept = 0;
 
+    template<typename T>
+    T handle() const noexcept {
+        return reinterpret_cast<T>(handle());
+    }
+
     static inline IID const& iid() noexcept {
         static IID iid = IID("96c21c2f-6f30-4ab7-9dd9-e3851c99ff7c");
         return iid;
@@ -37,6 +42,26 @@ public:
     }
 };
 
+class IDestructible : virtual public IBase {
+public:
+    virtual void destroy() = 0;
+
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("ba83147c-0a5f-462f-943c-64bebd3c1014");
+        return iid;
+    }
+};
+
+class IDiscardable : virtual public IBase {
+public:
+    virtual void discard() = 0;
+
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("f03ca064-aaae-4968-ba8b-d2fe9e47f82c");
+        return iid;
+    }
+};
+
 class IChild;
 
 class IParent : virtual public IBase {
@@ -48,7 +73,7 @@ public:
 
     template<typename T>
     T* enumerateChildren(uint32_t id) const noexcept {
-        return enumerateChildren(id, T::iid())->queryInterface<T>();
+        return enumerateChildren(id, T::iid())->template queryInterface<T>();
     }
 
     static inline IID const& iid() noexcept {

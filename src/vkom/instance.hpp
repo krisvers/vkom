@@ -11,7 +11,7 @@ class IInstance;
 
 using InstanceLogCallbackPFN = void(*)(IInstance* instance, void* userData, DebugMessageSeverityFlags severity, DebugMessageTypeFlags types, const char* message);
 
-class IInstance : public IHandled, public ICollected, public IParent, public IDispatchable {
+class IInstance : virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IDispatchable {
 public:
     virtual void setLogCallback(InstanceLogCallbackPFN callback, void* userData) noexcept = 0;
     virtual void log(DebugMessageSeverityFlags severity, DebugMessageTypeFlags types, const char* message) noexcept = 0;

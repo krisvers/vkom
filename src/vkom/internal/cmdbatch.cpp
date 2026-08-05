@@ -1,3 +1,7 @@
+#include "vkom/enums.hpp"
+#include "vkom/interface.hpp"
+#include "vkom/object.hpp"
+#include "vulkan/vulkan_core.h"
 #include <vkom/internal/cmdbatch.hpp>
 
 #include <vkom/internal/enums.hpp>
@@ -11,8 +15,8 @@ namespace vkom {
 
 namespace internal {
 
-VulkanCommandBatch::VulkanCommandBatch(bool debug, bool inheritedHandle, VulkanQueue* queue, VkCommandBuffer vkCommandBuffer, VkAllocationCallbacks const* vkAllocationCallbacks, VulkanCommandBatchFunctionPointers const& functionPointers) : _debug(debug), _inheritedHandle(inheritedHandle), _queue(queue), _device(static_cast<VulkanDevice*>(_queue->parent())), _adapter(static_cast<VulkanAdapter*>(_device->parent())), _instance(static_cast<VulkanInstance*>(_adapter->parent())), _vkCommandBuffer(vkCommandBuffer), _vkAllocationCallbacks(vkAllocationCallbacks), _functionPointers(functionPointers) {
-    if (functionPointers.commandBuffer10.vkResetCommandBuffer(_vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT) != VK_SUCCESS) {
+VulkanCommandBatch::VulkanCommandBatch(bool inheritedHandle, IQueue* queue, VulkanCommandBatchData const& batchData) : _inheritedHandle(inheritedHandle), _queue(queue), _device(_queue->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _batchData(batchData) {
+    if (_batchData.functionPointers.commandBuffer10.vkResetCommandBuffer(_batchData.vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT) != VK_SUCCESS) {
         throw std::runtime_error("Failed to reset command buffer");
     }
 
@@ -20,17 +24,22 @@ VulkanCommandBatch::VulkanCommandBatch(bool debug, bool inheritedHandle, VulkanQ
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-    if (functionPointers.commandBuffer10.vkBeginCommandBuffer(_vkCommandBuffer, &beginInfo) != VK_SUCCESS) {
+    if (_batchData.functionPointers.commandBuffer10.vkBeginCommandBuffer(_batchData.vkCommandBuffer, &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("Failed to begin command buffer");
     }
 }
 
 VulkanCommandBatch::~VulkanCommandBatch() {
-    if (!_ended && _functionPointers.commandBuffer10.vkEndCommandBuffer(_vkCommandBuffer) != VK_SUCCESS) {
+    _queue->waitIdle();
+    _queue->disown(IInterface::queryInterface<IChild>());
+
+    if (!_ended && _batchData.functionPointers.commandBuffer10.vkEndCommandBuffer(_batchData.vkCommandBuffer) != VK_SUCCESS) {
 
     }
 
-    _queue->releaseCommandBuffer(_vkCommandBuffer);
+    if (!_inheritedHandle) {
+        _batchData.queueData.deviceData.functionPointers.device10.vkFreeCommandBuffers(_batchData.queueData.deviceData.vkDevice, _batchData.vkCommandPool, 1, &_batchData.vkCommandBuffer);
+    }
 }
 
 /* ICommandBatch */
@@ -39,14 +48,22 @@ Result VulkanCommandBatch::record(ICommandEncoder* encoder) noexcept {
         return Result::ErrorUnknown;
     }
 
-    VulkanCommandEncoder* vulkanEncoder = reinterpret_cast<VulkanCommandEncoder*>(encoder);
-    _functionPointers.commandBuffer10.vkCmdExecuteCommands(_vkCommandBuffer, 1, &vulkanEncoder->_vkCommandBuffer);
+    VkCommandBuffer vkCommandBuffer = nullptr;
+    if (encoder->handleType() != ObjectType::CommandBuffer) {
+        vkCommandBuffer = encoder->handle<VkCommandBuffer>();
+    }
+
+    if (vkCommandBuffer == nullptr) {
+        return Result::ErrorUnknown;
+    }
+
+    _batchData.functionPointers.commandBuffer10.vkCmdExecuteCommands(_batchData.vkCommandBuffer, 1, &vkCommandBuffer);
     return Result::Success;
 }
 
 Result VulkanCommandBatch::submit(CommandBatchSubmitInfo const* submitInfo) noexcept {
     if (!_ended) {
-        Result result = castEnum<Result>(_functionPointers.commandBuffer10.vkEndCommandBuffer(_vkCommandBuffer));
+        Result result = castEnum<Result>(_batchData.functionPointers.commandBuffer10.vkEndCommandBuffer(_batchData.vkCommandBuffer));
         if (result != Result::Success) {
             return result;
         }
@@ -57,23 +74,14 @@ Result VulkanCommandBatch::submit(CommandBatchSubmitInfo const* submitInfo) noex
     VkSubmitInfo vkSubmitInfo = {};
     vkSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     vkSubmitInfo.commandBufferCount = 1;
-    vkSubmitInfo.pCommandBuffers = &_vkCommandBuffer;
+    vkSubmitInfo.pCommandBuffers = &_batchData.vkCommandBuffer;
 
-    return castEnum<Result>(_queue->_functionPointers.queue10.vkQueueSubmit(_queue->_vkQueue, 1, &vkSubmitInfo, VK_NULL_HANDLE));
-}
-
-void VulkanCommandBatch::discard() noexcept {
-    delete this;
-}
-
-/* INullable */
-bool VulkanCommandBatch::isNull() const noexcept {
-    return (_vkCommandBuffer != nullptr);
+    return castEnum<Result>(_batchData.queueData.functionPointers.queue10.vkQueueSubmit(_batchData.queueData.vkQueue, 1, &vkSubmitInfo, VK_NULL_HANDLE));
 }
 
 /* IHandled */
 uint64_t VulkanCommandBatch::handle() const noexcept {
-    return reinterpret_cast<uint64_t>(_vkCommandBuffer);
+    return reinterpret_cast<uint64_t>(_batchData.vkCommandBuffer);
 }
 
 ObjectType VulkanCommandBatch::handleType() const noexcept {
@@ -92,10 +100,10 @@ void* VulkanCommandBatch::loadDispatchSymbol(const char* symbol) {
 
 /* IInterface */
 void* VulkanCommandBatch::queryInterface(IID const& iid) noexcept {
-    if (iid == INullable::iid()) {
-        return static_cast<INullable*>(this);
-    } else if (iid == IHandled::iid()) {
+    if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
+    } else if (iid == IDiscardable::iid()) {
+        return static_cast<IDiscardable*>(this);
     } else if (iid == IChild::iid()) {
         return static_cast<IChild*>(this);
     } else if (iid == IDispatchable::iid()) {

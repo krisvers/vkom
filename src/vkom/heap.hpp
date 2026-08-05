@@ -13,7 +13,7 @@ struct ResourceAliasingInfo {
     uint64_t localOffset;
 };
 
-class IHeap : public INullable, public IHandled, public ICollected, public IParent, public IChild {
+class IHeap : virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IChild {
 public:
     virtual Result createBuffer(BufferInfo const* info, IBuffer** buffer) noexcept = 0;
     virtual Result createAliasedBuffer(BufferInfo const* info, ResourceAliasingInfo const* aliasingInfo, IBuffer** buffer) noexcept = 0;

@@ -16,12 +16,13 @@ struct VulkanInstanceFunctionPointers {
 };
 
 struct VulkanInstanceData {
+    bool debug;
     PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
-    VkInstance vkInstance;
     VkAllocationCallbacks const* vkAllocationCallbacks;
-    VulkanInstanceFunctionPointers functionPointers;
+    VkInstance vkInstance;
+    VulkanInstanceFunctionPointers functionPointers = {};
 
-    VulkanInstanceData(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks) : vkInstance(vkInstance), vkGetInstanceProcAddr(vkGetInstanceProcAddr), vkAllocationCallbacks(vkAllocationCallbacks) {
+    VulkanInstanceData(bool debug, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, VkInstance vkInstance) : debug(debug), vkGetInstanceProcAddr(vkGetInstanceProcAddr), vkAllocationCallbacks(vkAllocationCallbacks), vkInstance(vkInstance) {
         functionPointers.instance10.load(vkInstance, vkGetInstanceProcAddr);
         functionPointers.instance11.load(vkInstance, vkGetInstanceProcAddr);
         functionPointers.instance12.load(vkInstance, vkGetInstanceProcAddr);
@@ -39,7 +40,7 @@ struct VulkanAdapterData {
     VulkanInstanceData const& instanceData;
 
     VkPhysicalDevice vkPhysicalDevice;
-    VulkanAdapterFunctionPointers functionPointers;
+    VulkanAdapterFunctionPointers functionPointers = {};
 
     VulkanAdapterData(VulkanInstanceData const& instanceData, VkPhysicalDevice vkPhysicalDevice) : instanceData(instanceData), vkPhysicalDevice(vkPhysicalDevice) {
         functionPointers.physical10.load(instanceData.vkInstance, instanceData.vkGetInstanceProcAddr);
@@ -59,8 +60,8 @@ struct VulkanDeviceData {
 
     PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;
     VkDevice vkDevice;
+    VulkanDeviceFunctionPointers functionPointers = {};
     VmaAllocator vmaAllocator;
-    VulkanDeviceFunctionPointers functionPointers;
 
     VulkanDeviceData(VulkanAdapterData const& adapterData, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr, VkDevice vkDevice, VmaAllocator vmaAllocator) : adapterData(adapterData), vkGetDeviceProcAddr(vkGetDeviceProcAddr), vkDevice(vkDevice), vmaAllocator(vmaAllocator) {
         functionPointers.device10.load(vkDevice, vkGetDeviceProcAddr);
@@ -84,7 +85,7 @@ struct VulkanBufferData {
     VmaAllocationInfo2 vmaAllocationInfo2;
     VkBuffer vkBuffer;
 
-    VulkanBufferData(VulkanDeviceData const& deviceData, VmaAllocation vmaAllocation, VmaAllocationInfo2 vmaAllocationInfo2, VkBuffer vkBuffer) : heapData(heapData), vmaAllocation(vmaAllocation), vmaAllocationInfo2(vmaAllocationInfo2), vkBuffer(vkBuffer) {}
+    VulkanBufferData(VulkanHeapData const& heapData, VmaAllocation vmaAllocation, VmaAllocationInfo2 vmaAllocationInfo2, VkBuffer vkBuffer) : heapData(heapData), vmaAllocation(vmaAllocation), vmaAllocationInfo2(vmaAllocationInfo2), vkBuffer(vkBuffer) {}
 };
 
 struct VulkanTextureData {
@@ -94,7 +95,7 @@ struct VulkanTextureData {
     VmaAllocationInfo2 vmaAllocationInfo2;
     VkImage vkImage;
 
-    VulkanTextureData(VulkanDeviceData const& deviceData, VmaAllocation vmaAllocation, VmaAllocationInfo2 vmaAllocationInfo2, VkImage vkImage) : heapData(heapData), vmaAllocation(vmaAllocation), vmaAllocationInfo2(vmaAllocationInfo2), vkImage(vkImage) {}
+    VulkanTextureData(VulkanHeapData const& heapData, VmaAllocation vmaAllocation, VmaAllocationInfo2 vmaAllocationInfo2, VkImage vkImage) : heapData(heapData), vmaAllocation(vmaAllocation), vmaAllocationInfo2(vmaAllocationInfo2), vkImage(vkImage) {}
 };
 
 struct VulkanPipelineData {
@@ -117,7 +118,7 @@ struct VulkanQueueData {
     VkQueue vkQueue;
     uint32_t family;
     uint32_t index;
-    VulkanQueueFunctionPointers functionPointers;
+    VulkanQueueFunctionPointers functionPointers = {};
 
     VulkanQueueData(VulkanDeviceData const& deviceData, VkQueue vkQueue, uint32_t family, uint32_t index) : deviceData(deviceData), vkQueue(vkQueue), family(family), index(index) {
         functionPointers.queue10.load(deviceData.vkDevice, deviceData.vkGetDeviceProcAddr);
@@ -129,22 +130,33 @@ struct VulkanCommandBufferFunctionPointers {
     VulkanCommandBufferFunctionPointersDebugUtilsEXT debugUtilsEXT;
 };
 
-struct VulkanCommandBufferData {
+struct VulkanCommandEncoderData {
     VulkanQueueData const& queueData;
 
     VkCommandPool vkCommandPool;
     VkCommandBuffer vkCommandBuffer;
     bool isSecondary;
-    VulkanCommandBufferFunctionPointers functionPointers;
+    VulkanCommandBufferFunctionPointers functionPointers = {};
 
-    VulkanCommandBufferData(VulkanQueueData const& queueData, VkCommandPool vkCommandPool, VkCommandBuffer vkCommandBuffer, bool isSecondary) : queueData(queueData), vkCommandPool(vkCommandPool), vkCommandBuffer(vkCommandBuffer), isSecondary(isSecondary) {
+    VulkanCommandEncoderData(VulkanQueueData const& queueData, VkCommandPool vkCommandPool, VkCommandBuffer vkCommandBuffer, bool isSecondary) : queueData(queueData), vkCommandPool(vkCommandPool), vkCommandBuffer(vkCommandBuffer), isSecondary(isSecondary) {
         functionPointers.commandBuffer10.load(queueData.deviceData.vkDevice, queueData.deviceData.vkGetDeviceProcAddr);
         functionPointers.debugUtilsEXT.load(queueData.deviceData.vkDevice, queueData.deviceData.vkGetDeviceProcAddr);
     }
 };
 
-using VulkanCommandEncoderData = VulkanCommandBufferData;
-using VulkanCommandBatchData = VulkanCommandBufferData;
+struct VulkanCommandBatchData {
+    VulkanQueueData const& queueData;
+
+    VkCommandPool vkCommandPool;
+    VkCommandBuffer vkCommandBuffer;
+    bool isSecondary;
+    VulkanCommandBufferFunctionPointers functionPointers = {};
+
+    VulkanCommandBatchData(VulkanQueueData const& queueData, VkCommandPool vkCommandPool, VkCommandBuffer vkCommandBuffer, bool isSecondary) : queueData(queueData), vkCommandPool(vkCommandPool), vkCommandBuffer(vkCommandBuffer), isSecondary(isSecondary) {
+        functionPointers.commandBuffer10.load(queueData.deviceData.vkDevice, queueData.deviceData.vkGetDeviceProcAddr);
+        functionPointers.debugUtilsEXT.load(queueData.deviceData.vkDevice, queueData.deviceData.vkGetDeviceProcAddr);
+    }
+};
 
 struct VulkanCommandPassData {
     VulkanCommandEncoderData const& encoderData;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vkom/enums.hpp>
+#include <vkom/object.hpp>
 
 namespace vkom {
 
@@ -12,7 +13,7 @@ struct RenderPassDescriptor {
     /* TODO: description */
 };
 
-class IPass : public IChild {
+class IPass : virtual public IChild {
 public:
     virtual void end() noexcept = 0;
 
@@ -24,7 +25,7 @@ public:
 
 class IComputePipeline;
 
-class IComputePass : public IPass {
+class IComputePass : virtual public IPass {
 public:
     virtual void bindPipeline(IComputePipeline* pipeline) noexcept = 0;
 

@@ -65,5 +65,6 @@ int main(int argc, char** argv) {
     queue->release();
     device->release();
     instance->release();
+
     return 0;
 }

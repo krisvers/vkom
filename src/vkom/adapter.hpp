@@ -49,14 +49,17 @@ struct AdapterLimits {
     uint64_t availablePrivateMemory;
     uint64_t availableSharedMemory;
     uint64_t availableHostMemory;
+
+    uint32_t queueFamilyCount;
 };
 
-class IAdapter : public IHandled, public IChild, public IParent, public IDispatchable {
+class IAdapter : virtual public IHandled, virtual public IChild, virtual public IParent, virtual public IDispatchable {
 public:
     virtual void queryInfo(AdapterInfo* info) const noexcept = 0;
     virtual void queryFeatures(AdapterFeatures* features) const noexcept = 0;
     virtual void queryLimits(AdapterLimits* limits) const noexcept = 0;
     virtual bool queryExtension(const char* extension) const noexcept = 0;
+    virtual QueueFlags queryQueueFamilyFlags(uint32_t family) const noexcept = 0;
 
     virtual Result createDevice(IDevice** device) = 0;
 

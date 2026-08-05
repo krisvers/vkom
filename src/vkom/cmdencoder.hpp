@@ -40,11 +40,11 @@ struct ResourceQueueFamilyTransfer {
 
 class ICommandBatch;
 
-class ICommandEncoder : public INullable, public IHandled, public ICollected, public IParent, public IChild, public IDispatchable {
+class ICommandEncoder : virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IChild, virtual public IDispatchable {
 public:
     /* passes */
-    virtual Result beginComputePass(ComputePassDescriptor const* descriptor, IComputePass** encoder) noexcept = 0;
-    virtual Result beginRenderPass(RenderPassDescriptor const* descriptor, IRenderPass** encoder) noexcept = 0;
+    virtual IComputePass* beginComputePass(ComputePassDescriptor const* descriptor) noexcept = 0;
+    virtual IRenderPass* beginRenderPass(RenderPassDescriptor const* descriptor) noexcept = 0;
 
     /* debug utilities */
     virtual void insertDebugLabel(const char* label) noexcept = 0;

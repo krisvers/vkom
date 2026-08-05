@@ -19,7 +19,7 @@ struct BufferViewInfo {
 
 class IBufferView;
 
-class IBuffer : public IResource {
+class IBuffer : virtual public IResource {
 public:
     virtual void getInfo(BufferInfo* info) const noexcept = 0;
     virtual uint64_t deviceAddress() const noexcept = 0;

@@ -12,7 +12,7 @@ inline const uint32_t QUEUE_FAMILY_ANY = std::numeric_limits<uint32_t>::max();
 class IQueue;
 class IHeap;
 
-class IDevice : public INullable, public IHandled, public ICollected, public IParent, public IChild, public IDispatchable {
+class IDevice : virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IChild, virtual public IDispatchable {
 public:
     virtual Result waitIdle() const noexcept = 0;
     virtual bool queryExtension(const char* extension) const noexcept = 0;

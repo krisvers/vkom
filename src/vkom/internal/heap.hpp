@@ -1,39 +1,31 @@
 #pragma once
 
-#include <vector>
-
 #include <vkom/enums.hpp>
 #include <vkom/heap.hpp>
 
+#include <vkom/device.hpp>
+#include <vkom/adapter.hpp>
+#include <vkom/instance.hpp>
+
+#include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>
 #include <vkom/internal/vma.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 
 namespace internal {
 
-class VulkanInstance;
-class VulkanAdapter;
-class VulkanDevice;
-
-class VulkanHeap final : public IHeap {
+class VulkanHeap final : virtual public IHeap, virtual public ParentByVector, virtual public CollectedByHeap {
 private:
-    bool _debug = false;
     bool _inheritedHandle = false;
-    VulkanDevice* _device = nullptr;
-    VulkanAdapter* _adapter = nullptr;
-    VulkanInstance* _instance = nullptr;
-    VmaPool _vmaPool = nullptr;
-    VkAllocationCallbacks const* _vkAllocationCallbacks = nullptr;
-
-    /* ICollected */
-    uint32_t _referenceCount = 1;
-
-    /* IParent */
-    std::vector<IChild*> _children = {};
+    IDevice* _device = nullptr;
+    IAdapter* _adapter = nullptr;
+    IInstance* _instance = nullptr;
+    VulkanHeapData _heapData;
 
 public:
-    VulkanHeap(bool debug, bool inheritedHandle, VulkanDevice* device, VmaPool vmaPool, VkAllocationCallbacks const* vkAllocationCallbacks);
+    VulkanHeap(bool inheritedHandle, IDevice* device, VulkanHeapData const& heapData);
     ~VulkanHeap();
 
     /* IHeap */
@@ -43,20 +35,9 @@ public:
     Result createTexture(TextureInfo const* info, ITexture** texture) noexcept override;
     Result createAliasedTexture(TextureInfo const* info, ResourceAliasingInfo const* aliasingInfo, ITexture** texture) noexcept override;
 
-    /* INullable */
-    bool isNull() const noexcept override;
-
     /* IHandled */
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;
-
-    /* ICollected */
-    uint32_t release() override;
-    uint32_t retain() override;
-
-    /* IParent */
-    bool hasChild(IChild const* child) const noexcept override;
-    IChild* enumerateChildren(uint32_t id) const noexcept override;
 
     /* IChild */
     IParent* parent() const noexcept override;

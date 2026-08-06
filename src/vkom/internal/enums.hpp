@@ -88,6 +88,17 @@ inline QueueFlags castEnum<QueueFlags, VkQueueFlags>(VkQueueFlags v) {
     return static_cast<QueueFlags>(v);
 }
 
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkPipelineStageFlags, PipelineStageFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkAccessFlags, ResourceAccessFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkBufferUsageFlags, BufferUsageFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkImageLayout, TextureLayout)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkImageUsageFlags, TextureUsageFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkFormat, Format)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkComponentSwizzle, TextureChannelSwizzle)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkImageAspectFlags, TextureAspectFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkImageViewType, TextureViewType)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkFilter, TexelFilter)
+
 }
 
 }

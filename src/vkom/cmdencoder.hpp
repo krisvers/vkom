@@ -9,6 +9,65 @@
 
 namespace vkom {
 
+struct BufferCopy {
+    uint64_t srcOffset;
+    uint64_t dstOffset;
+    uint64_t size;
+};
+
+struct TextureCopy {
+    TextureAspectFlags srcAspectFlags;
+    TextureLayout srcLayout;
+    TexturePosition srcPosition;
+    TextureSubresourceDimensions srcSubresourceDimensions;
+    TextureLayout dstLayout;
+    TextureAspectFlags dstAspectFlags;
+    TexturePosition dstPosition;
+    TextureSubresourceDimensions dstSubresourceDimensions;
+    TextureExtent extent;
+};
+
+struct BufferTextureCopy {
+    uint64_t bufferOffset;
+    uint32_t bufferPitch;
+    uint32_t bufferRows;
+    TextureLayout textureLayout;
+    TextureAspectFlags textureAspectFlags;
+    TexturePosition texturePosition;
+    TextureDimensions textureDimensions;
+};
+
+struct SmallBufferUpload {
+    uint64_t dstOffset;
+    uint64_t size;
+    uint32_t const* data;
+};
+
+struct BufferFill {
+    uint64_t dstOffset;
+    uint64_t size;
+    uint32_t word;
+};
+
+struct TextureBlit {
+    TextureLayout srcLayout;
+    TexturePosition srcPositions[2];
+    TextureLayout dstLayout;
+    TexturePosition dstPositions[2];
+    TextureAspectFlags aspectFlags;
+    TexelFilter filter;
+};
+
+struct TextureResolve {
+    TextureLayout srcLayout;
+    TextureAspectFlags srcAspectFlags;
+    TexturePosition srcPosition;
+    TextureLayout dstLayout;
+    TextureAspectFlags dstAspectFlags;
+    TexturePosition dstPosition;
+    TextureDimensions dimensions;
+};
+
 struct GeneralBarrier {
     PipelineStageFlags srcStage;
     PipelineStageFlags dstStage;
@@ -16,26 +75,26 @@ struct GeneralBarrier {
     ResourceAccessFlags dstAccess;
 };
 
+struct ResourceQueueFamilyTransfer {
+    uint32_t oldFamily;
+    uint32_t newFamily;
+};
+
 struct TextureTransition {
     GeneralBarrier general;
+    ResourceQueueFamilyTransfer transfer;
     TextureLayout oldLayout;
     TextureLayout newLayout;
-    TexturePosition base;
-    TextureDimensions range;
-    ITexture* texture;
+    TextureAspectFlags aspectFlags;
+    TextureSubresourcePosition subresourcePosition;
+    TextureSubresourceDimensions subresourceDimensions;
 };
 
 struct BufferTransition {
     GeneralBarrier general;
+    ResourceQueueFamilyTransfer transfer;
     uint64_t offset;
     uint64_t size;
-    IBuffer* buffer;
-};
-
-struct ResourceQueueFamilyTransfer {
-    uint32_t oldFamily;
-    uint32_t newFamily;
-    IResource* resource;
 };
 
 class ICommandBatch;
@@ -52,18 +111,21 @@ public:
     virtual void popDebugGroup() noexcept = 0;
 
     /* transfer commands */
-    virtual void copyBufferToBuffer() noexcept = 0;
-    virtual void copyBufferToImage() noexcept = 0;
-    virtual void copyImageToImage() noexcept = 0;
-    virtual void copyImageToBuffer() noexcept = 0;
-    virtual void smallBufferUpload() noexcept = 0;
-    virtual void fillBuffer() noexcept = 0;
+    virtual void copyBufferToBuffer(IBuffer* dstBuffer, IBuffer* srcBuffer, BufferCopy const* copy) noexcept = 0;
+    virtual void copyBufferToTexture(ITexture* dstTexture, IBuffer* srcBuffer, BufferTextureCopy const* copy) noexcept = 0;
+    virtual void copyTextureToTexture(ITexture* dstTexture, ITexture* srcTexture, TextureCopy const* copy) noexcept = 0;
+    virtual void copyTextureToBuffer(IBuffer* dstBuffer, ITexture* srcTexture, BufferTextureCopy const* copy) noexcept = 0;
+    virtual void smallBufferUpload(IBuffer* dstBuffer, SmallBufferUpload const* upload) noexcept = 0;
+    virtual void fillBuffer(IBuffer* dstBuffer, BufferFill const* fill) noexcept = 0;
+
+    /* blit/resolve commands */
+    virtual void blitTexture(ITexture* dstTexture, ITexture* srcTexture, TextureBlit const* blit) noexcept = 0;
+    virtual void resolveTexture(ITexture* dstTexture, ITexture* srcTexture, TextureResolve const* resolve) noexcept = 0;
 
     /* synchronization commands */
     virtual void globalMemoryBarrier(GeneralBarrier const* barrier) noexcept = 0;
-    virtual void transitionTexture(TextureTransition const* transition) noexcept = 0;
-    virtual void transitionBuffer(BufferTransition const* transition) noexcept = 0;
-    virtual void transferResourceQueueFamily(ResourceQueueFamilyTransfer const* transfer) noexcept = 0;
+    virtual void transitionTexture(ITexture* texture, TextureTransition const* transition) noexcept = 0;
+    virtual void transitionBuffer(IBuffer* buffer, BufferTransition const* transition) noexcept = 0;
 
     /* once finish is called, no more commands can be encoded and no more passes can begin */
     virtual Result finish() noexcept = 0;

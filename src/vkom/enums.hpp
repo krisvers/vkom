@@ -394,4 +394,41 @@ enum class Format : int32_t {
     Depth32SignedFloatStencil8UnsignedInt = 130,
 };
 
+enum class TextureChannelSwizzle : uint32_t {
+    Identity = 0,
+    Zero = 1,
+    One = 2,
+    R = 3,
+    G = 4,
+    B = 5,
+    A = 6,
+};
+
+enum class TextureAspectFlags : uint32_t {
+    None = 0x0000,
+    Color = 0x0001,
+    Depth = 0x0002,
+    Stencil = 0x0004,
+    Metadata = 0x0008,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(TextureAspectFlags)
+
+enum class TextureViewType : uint32_t {
+    D1 = 0,
+    D2 = 1,
+    D3 = 2,
+    D1Array = 3,
+    D2Array = 4,
+    Cube = 5,
+    CubeArray = 6,
+};
+
+enum class TexelFilter : uint32_t {
+    Nearest = 0,
+    Linear = 1,
+
+    Cubic = 1000015000,
+};
+
 }

@@ -53,17 +53,19 @@ public:
     void pushDebugGroup(const char* label) noexcept override;
     void popDebugGroup() noexcept override;
 
-    void copyBufferToBuffer() noexcept override;
-    void copyBufferToImage() noexcept override;
-    void copyImageToImage() noexcept override;
-    void copyImageToBuffer() noexcept override;
-    void smallBufferUpload() noexcept override;
-    void fillBuffer() noexcept override;
+    void copyBufferToBuffer(IBuffer* dstBuffer, IBuffer* srcBuffer, BufferCopy const* copy) noexcept override;
+    void copyBufferToTexture(ITexture* dstTexture, IBuffer* srcBuffer, BufferTextureCopy const* copy) noexcept override;
+    void copyTextureToTexture(ITexture* dstTexture, ITexture* srcTexture, TextureCopy const* copy) noexcept override;
+    void copyTextureToBuffer(IBuffer* dstBuffer, ITexture* srcTexture, BufferTextureCopy const* copy) noexcept override;
+    void smallBufferUpload(IBuffer* dstBuffer, SmallBufferUpload const* upload) noexcept override;
+    void fillBuffer(IBuffer* dstBuffer, BufferFill const* fill) noexcept override;
+
+    void blitTexture(ITexture* dstTexture, ITexture* srcTexture, TextureBlit const* blit) noexcept override;
+    void resolveTexture(ITexture* dstTexture, ITexture* srcTexture, TextureResolve const* resolve) noexcept override;
 
     void globalMemoryBarrier(GeneralBarrier const* barrier) noexcept override;
-    void transitionTexture(TextureTransition const* transition) noexcept override;
-    void transitionBuffer(BufferTransition const* transition) noexcept override;
-    void transferResourceQueueFamily(ResourceQueueFamilyTransfer const* transfer) noexcept override;
+    void transitionTexture(ITexture* texture, TextureTransition const* transition) noexcept override;
+    void transitionBuffer(IBuffer* buffer, BufferTransition const* transition) noexcept override;
 
     Result finish() noexcept override;
     Result batch(ICommandBatch** batch) noexcept override;

@@ -17,8 +17,6 @@ namespace vkom {
 namespace internal {
 
 VulkanAdapter::VulkanAdapter(bool inheritedHandle, IInstance* instance, VulkanAdapterData const& adapterData) : _inheritedHandle(inheritedHandle), _instance(instance), _adapterData(adapterData) {
-    _instance->retain();
-
     uint32_t availableExtensionCount;
     if (_adapterData.functionPointers.physical10.vkEnumerateDeviceExtensionProperties(_adapterData.vkPhysicalDevice, nullptr, &availableExtensionCount, nullptr) != VK_SUCCESS) {
         throw std::runtime_error("vkEnumerateDeviceExtensionProperties failed");
@@ -162,6 +160,8 @@ VulkanAdapter::VulkanAdapter(bool inheritedHandle, IInstance* instance, VulkanAd
     }
 
     _adapterData.functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_adapterData.vkPhysicalDevice, &_limits.queueFamilyCount, nullptr);
+
+    _instance->retain();
 }
 
 VulkanAdapter::~VulkanAdapter() {

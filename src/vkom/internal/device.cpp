@@ -33,6 +33,7 @@ VulkanDevice::VulkanDevice(bool inheritedHandle, IAdapter* adapter, VulkanDevice
 VulkanDevice::~VulkanDevice() {
     waitIdle();
     ParentByVector::disownAll();
+    _adapter->disown(IInterface::queryInterface<IChild>());
 
     if (!_inheritedHandle) {
         vmaDestroyAllocator(_deviceData.vmaAllocator);

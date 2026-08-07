@@ -13,6 +13,7 @@ struct ResourceAllocationInfo {
 
 class IResource : virtual public IHandled, virtual public ICollected, virtual public IChild {
 public:
+    virtual bool isAlias() const noexcept = 0;
     virtual void getAllocationInfo(ResourceAllocationInfo* info) const noexcept = 0;
 
     static inline IID const& iid() noexcept {

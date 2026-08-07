@@ -1,12 +1,6 @@
-#include "vkom/adapter.hpp"
-#include "vkom/enums.hpp"
-#include "vkom/instance.hpp"
-#include "vkom/internal/object.hpp"
-#include "vkom/internal/vkdata.hpp"
-#include "vkom/internal/vma.hpp"
-#include "vulkan/vulkan_core.h"
-#include <stdexcept>
 #include <vkom/internal/heap.hpp>
+
+#include <stdexcept>
 
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/resource.hpp>
@@ -20,15 +14,20 @@ namespace vkom {
 
 namespace internal {
 
-VulkanHeap::VulkanHeap(bool inheritedHandle, IDevice* device, VulkanHeapData const& heapData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _heapData(heapData) {}
+VulkanHeap::VulkanHeap(bool inheritedHandle, IDevice* device, VulkanHeapData const& heapData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _heapData(heapData) {
+    _device->retain();
+}
 
 VulkanHeap::~VulkanHeap() {
     _device->waitIdle();
     ParentByVector::disownAll();
+    _device->disown(IInterface::queryInterface<IChild>());
 
     if (!_inheritedHandle && _heapData.vmaPool != nullptr) {
         vmaDestroyPool(_heapData.deviceData.vmaAllocator, _heapData.vmaPool);
     }
+
+    _device->release();
 }
 
 /* IHeap */
@@ -74,7 +73,7 @@ Result VulkanHeap::createBuffer(BufferInfo const* info, IBuffer** buffer) noexce
     VulkanBufferData bufferData = VulkanBufferData(_heapData, vmaAllocation, vmaAllocationInfo2, vkBuffer);
 
     try {
-        *buffer = new VulkanBuffer(false, this, bufferData);
+        *buffer = new VulkanBuffer(false, false, this, *info, bufferData);
     } catch (std::runtime_error err) {
         vmaDestroyBuffer(_heapData.deviceData.vmaAllocator, vkBuffer, vmaAllocation);
         return Result::ErrorUnknown;
@@ -139,7 +138,7 @@ Result VulkanHeap::createAliasedBuffer(BufferInfo const* info, ResourceAliasingI
     VulkanBufferData bufferData = VulkanBufferData(_heapData, vmaAllocation, vmaAllocationInfo2, vkBuffer);
 
     try {
-        *buffer = new VulkanBuffer(false, this, bufferData);
+        *buffer = new VulkanBuffer(false, true, this, *info, bufferData);
     } catch (std::runtime_error err) {
         vmaDestroyBuffer(_heapData.deviceData.vmaAllocator, vkBuffer, vmaAllocation);
         return Result::ErrorUnknown;

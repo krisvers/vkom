@@ -23,13 +23,18 @@ VulkanQueue::VulkanQueue(bool inheritedHandle, IDevice* device, VulkanQueueData 
     if (_queueData.deviceData.functionPointers.device10.vkCreateCommandPool(_queueData.deviceData.vkDevice, &createInfo, _queueData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &_vkCommandPool) != VK_SUCCESS) {
         throw std::runtime_error("vkCreateCommandPool failed");
     }
+
+    _device->retain();
 }
 
 VulkanQueue::~VulkanQueue() {
     waitIdle();
+    ParentByVector::disownAll();
     _device->disown(IInterface::queryInterface<IChild>());
 
     _queueData.deviceData.functionPointers.device10.vkDestroyCommandPool(_queueData.deviceData.vkDevice, _vkCommandPool, _queueData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
+
+    _device->release();
 }
 
 /* IQueue */

@@ -29,17 +29,18 @@ VulkanCommandEncoder::VulkanCommandEncoder(bool inheritedHandle, IQueue* queue, 
     if (_encoderData.functionPointers.commandBuffer10.vkBeginCommandBuffer(_encoderData.vkCommandBuffer, &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("Failed to begin command buffer");
     }
+
+    _queue->retain();
 }
 
 VulkanCommandEncoder::~VulkanCommandEncoder() {
     _queue->waitIdle();
+    ParentByVector::disownAll();
     _queue->disown(IInterface::queryInterface<IChild>());
 
     if (_renderPass != nullptr) {
         _renderPass->end();
     }
-
-    ParentByVector::disownAll();
 
     if (!_ended && _encoderData.functionPointers.commandBuffer10.vkEndCommandBuffer(_encoderData.vkCommandBuffer) != VK_SUCCESS) {
 
@@ -48,6 +49,8 @@ VulkanCommandEncoder::~VulkanCommandEncoder() {
     if (!_inheritedHandle) {
         _encoderData.queueData.deviceData.functionPointers.device10.vkFreeCommandBuffers(_encoderData.queueData.deviceData.vkDevice, _encoderData.vkCommandPool, 1, &_encoderData.vkCommandBuffer);
     }
+
+    _queue->release();
 }
 
 /* ICommandEncoder */

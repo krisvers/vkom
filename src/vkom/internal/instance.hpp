@@ -52,6 +52,8 @@ public:
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;
 
+    void const* vkData() const noexcept override;
+
     /* IDispatchable */
     void* loadDispatchSymbol(const char* symbol) override;
 

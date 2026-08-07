@@ -82,6 +82,10 @@ ObjectType VulkanQueue::handleType() const noexcept {
     return ObjectType::Queue;
 }
 
+void const* VulkanQueue::vkData() const noexcept {
+    return &_queueData;
+}
+
 /* IChild */
 IParent* VulkanQueue::parent() const noexcept {
     return _device;

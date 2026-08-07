@@ -128,6 +128,10 @@ ObjectType VulkanDevice::handleType() const noexcept {
     return ObjectType::Device;
 }
 
+void const* VulkanDevice::vkData() const noexcept {
+    return &_deviceData;
+}
+
 /* IChild */
 IParent* VulkanDevice::parent() const noexcept {
     return _adapter->queryInterface<IParent>();

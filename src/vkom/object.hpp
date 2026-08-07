@@ -20,9 +20,16 @@ public:
     virtual uint64_t handle() const noexcept = 0;
     virtual ObjectType handleType() const noexcept = 0;
 
+    virtual void const* vkData() const noexcept = 0;
+
     template<typename T>
     T handle() const noexcept {
         return reinterpret_cast<T>(handle());
+    }
+
+    template<typename T>
+    T const* vkData() const noexcept {
+        return reinterpret_cast<T const*>(vkData());
     }
 
     static inline IID const& iid() noexcept {

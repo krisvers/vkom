@@ -97,6 +97,10 @@ ObjectType VulkanInstance::handleType() const noexcept {
     return ObjectType::Instance;
 }
 
+void const* VulkanInstance::vkData() const noexcept {
+    return &_instanceData;
+}
+
 /* IDispatchable */
 void* VulkanInstance::loadDispatchSymbol(const char* symbol) {
     return reinterpret_cast<void*>(_instanceData.vkGetInstanceProcAddr(_instanceData.vkInstance, symbol));

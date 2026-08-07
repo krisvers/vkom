@@ -359,6 +359,10 @@ ObjectType VulkanAdapter::handleType() const noexcept {
     return ObjectType::PhysicalDevice;
 }
 
+void const* VulkanAdapter::vkData() const noexcept {
+    return &_adapterData;
+}
+
 /* IChild */
 IParent* VulkanAdapter::parent() const noexcept {
     return _instance->queryInterface<IParent>();

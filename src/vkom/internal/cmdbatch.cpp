@@ -88,6 +88,10 @@ ObjectType VulkanCommandBatch::handleType() const noexcept {
     return ObjectType::CommandBuffer;
 }
 
+void const* VulkanCommandBatch::vkData() const noexcept {
+    return &_batchData;
+}
+
 /* IChild */
 IParent* VulkanCommandBatch::parent() const noexcept {
     return _queue;

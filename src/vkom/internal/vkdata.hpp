@@ -85,7 +85,7 @@ struct VulkanBufferData {
     VmaAllocationInfo2 vmaAllocationInfo2;
     VkBuffer vkBuffer;
 
-    VulkanBufferData(VulkanHeapData const& heapData, VmaAllocation vmaAllocation, VmaAllocationInfo2 vmaAllocationInfo2, VkBuffer vkBuffer) : heapData(heapData), vmaAllocation(vmaAllocation), vmaAllocationInfo2(vmaAllocationInfo2), vkBuffer(vkBuffer) {}
+    VulkanBufferData(VulkanHeapData const& heapData, VmaAllocation vmaAllocation, VmaAllocationInfo2 const& vmaAllocationInfo2, VkBuffer vkBuffer) : heapData(heapData), vmaAllocation(vmaAllocation), vmaAllocationInfo2(vmaAllocationInfo2), vkBuffer(vkBuffer) {}
 };
 
 struct VulkanTextureData {

@@ -530,6 +530,10 @@ ObjectType VulkanCommandEncoder::handleType() const noexcept {
     return ObjectType::CommandBuffer;
 }
 
+void const* VulkanCommandEncoder::vkData() const noexcept {
+    return &_encoderData;
+}
+
 /* IChild */
 IParent* VulkanCommandEncoder::parent() const noexcept {
     return _queue;

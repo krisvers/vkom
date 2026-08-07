@@ -54,6 +54,8 @@ public:
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;
 
+    void const* vkData() const noexcept override;
+
     /* IChild */
     IParent* parent() const noexcept override;
 

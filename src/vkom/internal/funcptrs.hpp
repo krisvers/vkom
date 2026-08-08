@@ -288,8 +288,24 @@ struct VulkanDeviceFunctionPointers11 {
 struct VulkanDeviceFunctionPointers12 {
     VulkanDeviceFunctionPointers12() = default;
 
+    PFN_vkResetQueryPool vkResetQueryPool = nullptr;
+    PFN_vkGetSemaphoreCounterValue vkGetSemaphoreCounterValue = nullptr;
+    PFN_vkWaitSemaphores vkWaitSemaphores = nullptr;
+    PFN_vkSignalSemaphore vkSignalSemaphore = nullptr;
+    PFN_vkGetBufferDeviceAddress vkGetBufferDeviceAddress = nullptr;
+    PFN_vkGetBufferOpaqueCaptureAddress vkGetBufferOpaqueCaptureAddress = nullptr;
+    PFN_vkGetDeviceMemoryOpaqueCaptureAddress vkGetDeviceMemoryOpaqueCaptureAddress = nullptr;
+    PFN_vkCreateRenderPass2 vkCreateRenderPass2 = nullptr;
+
     inline bool load(VkDevice vkDevice, PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr) {
-        bool successful = false;
+        bool successful = VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkResetQueryPool, "vkResetQueryPool") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkResetQueryPool, "vkResetQueryPoolEXT");
+        successful = successful && (VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetSemaphoreCounterValue, "vkGetSemaphoreCounterValue") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetSemaphoreCounterValue, "vkGetSemaphoreCounterValueKHR"));
+        successful = successful && (VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkWaitSemaphores, "vkWaitSemaphores") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkWaitSemaphores, "vkWaitSemaphoresKHR"));
+        successful = successful && (VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkSignalSemaphore, "vkSignalSemaphore") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkSignalSemaphore, "vkSignalSemaphoreKHR"));
+        successful = successful && (VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetBufferDeviceAddress, "vkGetBufferDeviceAddress") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetBufferDeviceAddress, "vkGetBufferDeviceAddressKHR") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetBufferDeviceAddress, "vkGetBufferDeviceAddressEXT"));
+        successful = successful && (VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetBufferOpaqueCaptureAddress, "vkGetBufferOpaqueCaptureAddress") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetBufferOpaqueCaptureAddress, "vkGetBufferOpaqueCaptureAddressEXT"));
+        successful = successful && (VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetDeviceMemoryOpaqueCaptureAddress, "vkGetDeviceMemoryOpaqueCaptureAddress") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkGetDeviceMemoryOpaqueCaptureAddress, "vkGetDeviceMemoryOpaqueCaptureAddressKHR"));
+        successful = successful && (VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateRenderPass2, "vkCreateRenderPass2") || VKOM_INTERNAL_FUNCPTRS_LOAD(vkGetDeviceProcAddr, vkDevice, vkCreateRenderPass2, "vkCreateRenderPass2KHR"));
         return successful;
     }
 };

@@ -6,6 +6,7 @@
 namespace vkom {
 
 struct ResourceAllocationInfo {
+    uint64_t alignment;
     uint64_t resourceSize;
     uint64_t allocationLocalOffset;
     uint64_t allocationLocalSize;

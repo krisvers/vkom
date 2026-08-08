@@ -134,16 +134,19 @@ bool ParentByVector::disown(IChild* child) noexcept {
             ICollected* collected = child->queryInterface<ICollected>();
             if (collected != nullptr) {
                 collected->release();
+                return true;
             }
 
             IDestructible* destructible = child->queryInterface<IDestructible>();
             if (destructible != nullptr) {
                 destructible->destroy();
+                return true;
             }
 
             IDiscardable* discardable = child->queryInterface<IDiscardable>();
             if (discardable != nullptr) {
                 discardable->discard();
+                return true;
             }
 
             return true;

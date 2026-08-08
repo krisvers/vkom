@@ -34,10 +34,20 @@ VulkanInstance::VulkanInstance(uint32_t vkApiVersion, bool inheritedHandle, IDyn
         _instanceData.functionPointers.debugUtilsEXT.vkCreateDebugUtilsMessengerEXT(_instanceData.vkInstance, &debugUtilsMessengerCreateInfo, _instanceData.vkAllocationCallbacks, &_vkDebugUtilsMessenger);
     }
 
+    std::vector<VulkanAdapter*> adapters;
+
     for (VkPhysicalDevice vkPhysicalDevice : physicalDevices) {
         VulkanAdapterData adapterData = VulkanAdapterData(_instanceData, vkPhysicalDevice);
 
         VulkanAdapter* adapter = new VulkanAdapter(false, this, adapterData);
+        adapters.push_back(adapter);
+    }
+
+    std::sort(adapters.begin(), adapters.end(), [](VulkanAdapter* a, VulkanAdapter* b) {
+        return b->queryExtension("VK_KHR_portability_subset");
+    });
+
+    for (VulkanAdapter* adapter : adapters) {
         adopt(adapter);
     }
 }

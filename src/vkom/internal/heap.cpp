@@ -1,3 +1,5 @@
+#include "vkom/internal/vkdata.hpp"
+#include "vkom/internal/vma.hpp"
 #include <vkom/internal/heap.hpp>
 
 #include <stdexcept>
@@ -97,6 +99,17 @@ Result VulkanHeap::createAliasedBuffer(BufferInfo const* info, ResourceAliasingI
         }
 
         vmaAllocationToAlias = textureData->vmaAllocation;
+    } else if (bufferToAlias != nullptr) {
+        VulkanBufferData const* bufferData = bufferToAlias->vkData<VulkanBufferData>();
+        if (bufferData == nullptr) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+
+        vmaAllocationToAlias = bufferData->vmaAllocation;
+    } else {
+        /* TODO: error */
+        return Result::ErrorUnknown;
     }
 
     AdapterLimits limits;
@@ -126,21 +139,20 @@ Result VulkanHeap::createAliasedBuffer(BufferInfo const* info, ResourceAliasingI
     allocationCreateInfo.pool = _heapData.vmaPool;
 
     VkBuffer vkBuffer;
-    VmaAllocation vmaAllocation;
-    Result result = castEnum<Result>(vmaCreateAliasingBuffer2(_heapData.deviceData.vmaAllocator, &createInfo, &allocationCreateInfo, &vkBuffer, &vmaAllocation, nullptr));
+    Result result = castEnum<Result>(vmaCreateAliasingBuffer2(_heapData.deviceData.vmaAllocator, vmaAllocationToAlias, aliasingInfo->localOffset, &createInfo, &vkBuffer));
     if (result != Result::Success) {
         return result;
     }
 
     VmaAllocationInfo2 vmaAllocationInfo2;
-    vmaGetAllocationInfo2(_heapData.deviceData.vmaAllocator, vmaAllocation, &vmaAllocationInfo2);
+    vmaGetAllocationInfo2(_heapData.deviceData.vmaAllocator, vmaAllocationToAlias, &vmaAllocationInfo2);
 
-    VulkanBufferData bufferData = VulkanBufferData(_heapData, vmaAllocation, vmaAllocationInfo2, vkBuffer);
+    VulkanBufferData bufferData = VulkanBufferData(_heapData, vmaAllocationToAlias, vmaAllocationInfo2, vkBuffer);
 
     try {
         *buffer = new VulkanBuffer(false, true, this, *info, bufferData);
     } catch (std::runtime_error err) {
-        vmaDestroyBuffer(_heapData.deviceData.vmaAllocator, vkBuffer, vmaAllocation);
+        vmaDestroyBuffer(_heapData.deviceData.vmaAllocator, vkBuffer, vmaAllocationToAlias);
         return Result::ErrorUnknown;
     }
 
@@ -148,9 +160,10 @@ Result VulkanHeap::createAliasedBuffer(BufferInfo const* info, ResourceAliasingI
     return Result::Success;
 }
 
-Result VulkanHeap::createTexture(TextureInfo const* info, ITexture** texture) noexcept {AdapterLimits limits;
+Result VulkanHeap::createTexture(TextureInfo const* info, ITexture** texture) noexcept {
     /* TODO: info validation */
 
+    AdapterLimits limits;
     _adapter->queryLimits(&limits);
 
     std::vector<uint32_t> indices(limits.queueFamilyCount);
@@ -206,7 +219,7 @@ Result VulkanHeap::createTexture(TextureInfo const* info, ITexture** texture) no
     VulkanTextureData textureData = VulkanTextureData(_heapData, vmaAllocation, vmaAllocationInfo2, vkImage);
 
     try {
-        *texture = new VulkanTexture(false, this, textureData);
+        *texture = new VulkanTexture(false, false, this, *info, textureData);
     } catch (std::runtime_error err) {
         vmaDestroyImage(_heapData.deviceData.vmaAllocator, vkImage, vmaAllocation);
         return Result::ErrorUnknown;
@@ -217,7 +230,89 @@ Result VulkanHeap::createTexture(TextureInfo const* info, ITexture** texture) no
 }
 
 Result VulkanHeap::createAliasedTexture(TextureInfo const* info, ResourceAliasingInfo const* aliasingInfo, ITexture** texture) noexcept {
-    return Result::ErrorUnknown;
+    /* TODO: info validation */
+
+    VmaAllocation vmaAllocationToAlias;
+    IBuffer* bufferToAlias = aliasingInfo->resource->queryInterface<IBuffer>();
+    ITexture* textureToAlias = aliasingInfo->resource->queryInterface<ITexture>();
+    if (textureToAlias != nullptr) {
+        VulkanTextureData const* textureData = textureToAlias->vkData<VulkanTextureData>();
+        if (textureData == nullptr) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+
+        vmaAllocationToAlias = textureData->vmaAllocation;
+    } else if (bufferToAlias != nullptr) {
+        VulkanBufferData const* bufferData = bufferToAlias->vkData<VulkanBufferData>();
+        if (bufferData == nullptr) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+
+        vmaAllocationToAlias = bufferData->vmaAllocation;
+    } else {
+        /* TODO: error */
+        return Result::ErrorUnknown;
+    }
+
+    AdapterLimits limits;
+    _adapter->queryLimits(&limits);
+
+    std::vector<uint32_t> indices(limits.queueFamilyCount);
+
+    VkImageCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    if (info->dimensions.extent.height == 0) {
+        createInfo.imageType = VK_IMAGE_TYPE_1D;
+    } else if (info->dimensions.extent.depth == 0) {
+        createInfo.imageType = VK_IMAGE_TYPE_2D;
+    } else {
+        createInfo.imageType = VK_IMAGE_TYPE_3D;
+    }
+
+    createInfo.format = castEnum<VkFormat>(info->format);
+    createInfo.extent.width = std::max(1u, info->dimensions.extent.width);
+    createInfo.extent.height = std::max(1u, info->dimensions.extent.height);
+    createInfo.extent.depth = std::max(1u, info->dimensions.extent.depth);
+    createInfo.mipLevels = info->dimensions.subresource.mips;
+    createInfo.arrayLayers = info->dimensions.subresource.layers;
+    createInfo.samples = static_cast<VkSampleCountFlagBits>(info->samplesPerTexel);
+    createInfo.tiling = (info->linearTiling ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL);
+    createInfo.usage = castEnum<VkImageUsageFlags>(info->usage);
+    createInfo.sharingMode = (info->queueConcurrency ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE);
+    if (!info->queueConcurrency) {
+        /* TODO: possibly more guaranteeable listing of all supported queue families? */
+        for (uint32_t i = 0; i < limits.queueFamilyCount; i += 1) {
+            indices[i] = i;
+        }
+
+        createInfo.queueFamilyIndexCount = limits.queueFamilyCount;
+        createInfo.pQueueFamilyIndices = &indices[0];
+    }
+
+    createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    VkImage vkImage;
+    Result result = castEnum<Result>(vmaCreateAliasingImage2(_heapData.deviceData.vmaAllocator, vmaAllocationToAlias, aliasingInfo->localOffset, &createInfo, &vkImage));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VmaAllocationInfo2 vmaAllocationInfo2;
+    vmaGetAllocationInfo2(_heapData.deviceData.vmaAllocator, vmaAllocationToAlias, &vmaAllocationInfo2);
+
+    VulkanTextureData textureData = VulkanTextureData(_heapData, vmaAllocationToAlias, vmaAllocationInfo2, vkImage);
+
+    try {
+        *texture = new VulkanTexture(false, true, this, *info, textureData);
+    } catch (std::runtime_error err) {
+        vmaDestroyImage(_heapData.deviceData.vmaAllocator, vkImage, vmaAllocationToAlias);
+        return Result::ErrorUnknown;
+    }
+
+    adopt(*texture);
+    return Result::Success;
 }
 
 /* IHandled */
@@ -226,7 +321,7 @@ uint64_t VulkanHeap::handle() const noexcept {
 }
 
 ObjectType VulkanHeap::handleType() const noexcept {
-    return ObjectType::Unknown;
+    return ObjectType::VmaPool;
 }
 
 void const* VulkanHeap::vkData() const noexcept {

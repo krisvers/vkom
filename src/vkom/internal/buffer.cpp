@@ -59,6 +59,10 @@ bool VulkanBuffer::isAlias() const noexcept {
 }
 
 void VulkanBuffer::getAllocationInfo(ResourceAllocationInfo* info) const noexcept {
+    VkMemoryRequirements memoryRequirements;
+    _bufferData.heapData.deviceData.functionPointers.device10.vkGetBufferMemoryRequirements(_bufferData.heapData.deviceData.vkDevice, _bufferData.vkBuffer, &memoryRequirements);
+
+    info->alignment = memoryRequirements.alignment;
     info->resourceSize = _info.size;
     info->allocationLocalOffset = _bufferData.vmaAllocationInfo2.allocationInfo.offset;
     info->allocationLocalSize = _bufferData.vmaAllocationInfo2.allocationInfo.size;

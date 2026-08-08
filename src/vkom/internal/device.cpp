@@ -1,4 +1,8 @@
+#include "vkom/enums.hpp"
 #include "vkom/internal/vkdata.hpp"
+#include "vkom/internal/vma.hpp"
+#include "vulkan/vulkan_core.h"
+#include <limits>
 #include <vkom/internal/device.hpp>
 
 #include <vkom/internal/enums.hpp>
@@ -115,9 +119,124 @@ IHeap* VulkanDevice::defaultHeap() noexcept {
 }
 
 Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags textureUsages, MemoryLocationFlags memoryLocation, IHeap** heap) noexcept {
+    uint32_t bufferTypeBits;
+    if (bufferUsages != BufferUsageFlags::None) {
+        uint32_t queueFamily = 0;
 
-    /* adopt(*heap); */
-    return Result::ErrorUnknown;
+        VkBufferCreateInfo dummyCreateInfo = {};
+        dummyCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        dummyCreateInfo.size = 256;
+        dummyCreateInfo.usage = castEnum<VkBufferUsageFlags>(bufferUsages);
+        dummyCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        dummyCreateInfo.queueFamilyIndexCount = 1;
+        dummyCreateInfo.pQueueFamilyIndices = &queueFamily;
+
+        VkBuffer vkDummyBuffer;
+        if (_deviceData.functionPointers.device10.vkCreateBuffer(_deviceData.vkDevice, &dummyCreateInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkDummyBuffer) != VK_SUCCESS) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+
+        VkMemoryRequirements memoryRequirements;
+        _deviceData.functionPointers.device10.vkGetBufferMemoryRequirements(_deviceData.vkDevice, vkDummyBuffer, &memoryRequirements);
+
+        bufferTypeBits = memoryRequirements.memoryTypeBits;
+        _deviceData.functionPointers.device10.vkDestroyBuffer(_deviceData.vkDevice, vkDummyBuffer, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+    }
+
+    uint32_t textureTypeBits;
+    if (textureUsages != TextureUsageFlags::None) {
+        uint32_t queueFamily = 0;
+
+        VkImageCreateInfo dummyCreateInfo = {};
+        dummyCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        dummyCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+        dummyCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        dummyCreateInfo.extent.width = 256;
+        dummyCreateInfo.extent.height = 256;
+        dummyCreateInfo.extent.depth = 1;
+        dummyCreateInfo.mipLevels = 1;
+        dummyCreateInfo.arrayLayers = 1;
+        dummyCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        dummyCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        dummyCreateInfo.usage = castEnum<VkImageUsageFlags>(textureUsages);
+        dummyCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        dummyCreateInfo.queueFamilyIndexCount = 1;
+        dummyCreateInfo.pQueueFamilyIndices = &queueFamily;
+        dummyCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        VkImage vkDummyImage;
+        if (_deviceData.functionPointers.device10.vkCreateImage(_deviceData.vkDevice, &dummyCreateInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkDummyImage) != VK_SUCCESS) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+
+        VkMemoryRequirements memoryRequirements;
+        _deviceData.functionPointers.device10.vkGetImageMemoryRequirements(_deviceData.vkDevice, vkDummyImage, &memoryRequirements);
+
+        textureTypeBits = memoryRequirements.memoryTypeBits;
+        _deviceData.functionPointers.device10.vkDestroyImage(_deviceData.vkDevice, vkDummyImage, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+    }
+
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    _deviceData.adapterData.functionPointers.physical10.vkGetPhysicalDeviceMemoryProperties(_deviceData.adapterData.vkPhysicalDevice, &memoryProperties);
+
+    VkMemoryPropertyFlags preferredMemoryPropertyFlags = 0;
+    if ((memoryLocation & MemoryLocationFlags::GPU) != MemoryLocationFlags::None) {
+        preferredMemoryPropertyFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    } else if ((memoryLocation & MemoryLocationFlags::CPU) != MemoryLocationFlags::None) {
+        preferredMemoryPropertyFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    }
+
+    if ((memoryLocation & MemoryLocationFlags::CPU) != MemoryLocationFlags::None) {
+        preferredMemoryPropertyFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    }
+
+    uint32_t typeIndex = std::numeric_limits<uint32_t>::max();
+    for (size_t i = 0; i < memoryProperties.memoryTypeCount; i += 1) {
+        if (((1 << i) & bufferTypeBits) == 0) {
+            continue;
+        }
+
+        if (((1 << i) & textureTypeBits) == 0) {
+            continue;
+        }
+
+        size_t currentCompatibility = std::bitset<32>(memoryProperties.memoryTypes[i].propertyFlags & preferredMemoryPropertyFlags).count();
+        size_t previousCompatibility = 0;
+        if (typeIndex != std::numeric_limits<uint32_t>::max()) {
+            previousCompatibility = std::bitset<32>(memoryProperties.memoryTypes[typeIndex].propertyFlags & preferredMemoryPropertyFlags).count();
+        }
+
+        if (currentCompatibility > previousCompatibility) {
+            typeIndex = i;
+        }
+    }
+
+    if (typeIndex == std::numeric_limits<uint32_t>::max()) {
+        /* TODO: error */
+        return Result::ErrorUnknown;
+    }
+
+    VmaPoolCreateInfo createInfo = {};
+    createInfo.memoryTypeIndex = typeIndex;
+
+    VmaPool vmaPool;
+    if (vmaCreatePool(_deviceData.vmaAllocator, &createInfo, &vmaPool) != VK_SUCCESS) {
+        /* TODO: error */
+        return Result::ErrorUnknown;
+    }
+
+    VulkanHeapData heapData = VulkanHeapData(_deviceData, vmaPool);
+
+    try {
+        *heap = new VulkanHeap(false, this, heapData);
+    } catch (std::runtime_error err) {
+        vmaDestroyPool(_deviceData.vmaAllocator, vmaPool);
+        return Result::ErrorUnknown;
+    }
+
+    return Result::Success;
 }
 
 /* IHandled */

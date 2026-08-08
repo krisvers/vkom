@@ -102,6 +102,9 @@ enum class ObjectType : int32_t {
     DisplayKHR = 1000002000,
     DisplayModeKHR = 1000002001,
     DebugUtilsMessengerEXT = 1000128000,
+
+    /* custom */
+    VmaPool = 2000000000,
 };
 
 enum class DebugMessageSeverityFlags : int32_t {

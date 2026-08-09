@@ -62,7 +62,7 @@ Result VulkanQueue::acquireCommandEncoder(ICommandEncoder** encoder) noexcept {
 
     VulkanCommandEncoderData encoderData = VulkanCommandEncoderData(_queueData, _vkCommandPool, vkCommandBuffer, false);
 
-    *encoder = new VulkanCommandEncoder(false, this, encoderData);
+    *encoder = new VulkanCommandEncoder(false, IInterface::queryInterface<IQueue>(), encoderData);
     return Result::Success;
 }
 
@@ -74,7 +74,7 @@ Result VulkanQueue::acquireCommandBatch(ICommandBatch** batch) noexcept {
 
     VulkanCommandBatchData batchData = VulkanCommandBatchData(_queueData, _vkCommandPool, vkCommandBuffer, false);
 
-    *batch = new VulkanCommandBatch(false, this, batchData);
+    *batch = new VulkanCommandBatch(false, IInterface::queryInterface<IQueue>(), batchData);
     return Result::Success;
 }
 
@@ -103,7 +103,9 @@ void* VulkanQueue::loadDispatchSymbol(const char* symbol) {
 
 /* IInterface */
 void* VulkanQueue::queryInterface(IID const& iid) noexcept {
-    if (iid == IHandled::iid()) {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == ICollected::iid()) {
         return static_cast<ICollected*>(this);

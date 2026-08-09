@@ -104,7 +104,9 @@ void* VulkanCommandBatch::loadDispatchSymbol(const char* symbol) {
 
 /* IInterface */
 void* VulkanCommandBatch::queryInterface(IID const& iid) noexcept {
-    if (iid == IHandled::iid()) {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == IDiscardable::iid()) {
         return static_cast<IDiscardable*>(this);

@@ -75,7 +75,7 @@ Result VulkanHeap::createBuffer(BufferInfo const* info, IBuffer** buffer) noexce
     VulkanBufferData bufferData = VulkanBufferData(_heapData, vmaAllocation, vmaAllocationInfo2, vkBuffer);
 
     try {
-        *buffer = new VulkanBuffer(false, false, this, *info, bufferData);
+        *buffer = new VulkanBuffer(false, false, IInterface::queryInterface<IHeap>(), *info, bufferData);
     } catch (std::runtime_error err) {
         vmaDestroyBuffer(_heapData.deviceData.vmaAllocator, vkBuffer, vmaAllocation);
         return Result::ErrorUnknown;
@@ -150,7 +150,7 @@ Result VulkanHeap::createAliasedBuffer(BufferInfo const* info, ResourceAliasingI
     VulkanBufferData bufferData = VulkanBufferData(_heapData, vmaAllocationToAlias, vmaAllocationInfo2, vkBuffer);
 
     try {
-        *buffer = new VulkanBuffer(false, true, this, *info, bufferData);
+        *buffer = new VulkanBuffer(false, true, IInterface::queryInterface<IHeap>(), *info, bufferData);
     } catch (std::runtime_error err) {
         vmaDestroyBuffer(_heapData.deviceData.vmaAllocator, vkBuffer, vmaAllocationToAlias);
         return Result::ErrorUnknown;
@@ -219,7 +219,7 @@ Result VulkanHeap::createTexture(TextureInfo const* info, ITexture** texture) no
     VulkanTextureData textureData = VulkanTextureData(_heapData, vmaAllocation, vmaAllocationInfo2, vkImage);
 
     try {
-        *texture = new VulkanTexture(false, false, this, *info, textureData);
+        *texture = new VulkanTexture(false, false, IInterface::queryInterface<IHeap>(), *info, textureData);
     } catch (std::runtime_error err) {
         vmaDestroyImage(_heapData.deviceData.vmaAllocator, vkImage, vmaAllocation);
         return Result::ErrorUnknown;
@@ -305,7 +305,7 @@ Result VulkanHeap::createAliasedTexture(TextureInfo const* info, ResourceAliasin
     VulkanTextureData textureData = VulkanTextureData(_heapData, vmaAllocationToAlias, vmaAllocationInfo2, vkImage);
 
     try {
-        *texture = new VulkanTexture(false, true, this, *info, textureData);
+        *texture = new VulkanTexture(false, true, IInterface::queryInterface<IHeap>(), *info, textureData);
     } catch (std::runtime_error err) {
         vmaDestroyImage(_heapData.deviceData.vmaAllocator, vkImage, vmaAllocationToAlias);
         return Result::ErrorUnknown;
@@ -335,7 +335,9 @@ IParent* VulkanHeap::parent() const noexcept {
 
 /* IInterface */
 void* VulkanHeap::queryInterface(IID const& iid) noexcept {
-    if (iid == IHandled::iid()) {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == ICollected::iid()) {
         return static_cast<ICollected*>(this);

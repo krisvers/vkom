@@ -342,7 +342,7 @@ Result VulkanAdapter::createDevice(IDevice** device) {
 
     VulkanDeviceData deviceData = VulkanDeviceData(_adapterData, vkGetDeviceProcAddr, vkDevice, vmaAllocator);
     try {
-        *device = new VulkanDevice(false, this, deviceData, enabledExtensions);
+        *device = new VulkanDevice(false, IInterface::queryInterface<IAdapter>(), deviceData, enabledExtensions);
     } catch (std::runtime_error const& err) {
         return Result::ErrorInitializationFailed;
     }
@@ -375,7 +375,9 @@ void* VulkanAdapter::loadDispatchSymbol(const char* symbol) {
 
 /* IInterface */
 void* VulkanAdapter::queryInterface(IID const& iid) noexcept {
-    if (iid == IHandled::iid()) {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == IDestructible::iid()) {
         return static_cast<IDestructible*>(this);

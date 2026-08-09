@@ -1,3 +1,4 @@
+#include "vkom/enums.hpp"
 #include <vkom/internal/vksurface.hpp>
 
 #include <vkom/platform.hpp>
@@ -20,6 +21,29 @@ bool physicalDeviceQueueFamilySupportsPresentation(VkInstance vkInstance, PFN_vk
     }
 
     return vkGetPhysicalDeviceWin32PresentationSupportKHR(vkPhysicalDevice, family);
+}
+
+
+VkResult createSurface(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr, VkAllocationCallbacks const* vkAllocationCallbacks, SurfaceWSIInfo const& info, VkSurfaceKHR& vkSurface) {
+    VkResult result = VK_ERROR_UNKNOWN;
+    if (info.type == vkom::SurfaceWSIType::Win32) {
+        HINSTANCE hinstance = reinterpret_cast<HINSTANCE>(info.displayHandle);
+        if (hinstance == nullptr) {
+            hinstance = GetModuleHandleA(nullptr);
+        }
+
+        VkWin32SurfaceCreateInfoKHR createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        createInfo.hinstance = hinstance;
+        createInfo.hwnd = reinterpret_cast<HWND>(info.window);
+
+        PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(vkGetInstanceProcAddr(vkInstance, "vkCreateWin32SurfaceKHR"));
+        if (vkCreateWin32SurfaceKHR != nullptr) {
+            result = vkCreateWin32SurfaceKHR(vkInstance, &createInfo, vkAllocationCallbacks, &vkSurface);
+        }
+    }
+
+    return result;
 }
 
 }

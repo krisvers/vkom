@@ -4,6 +4,7 @@
 #include <vkom/enums.hpp>
 #include <vkom/object.hpp>
 #include <vkom/adapter.hpp>
+#include <vkom/surface.hpp>
 
 namespace vkom {
 
@@ -20,6 +21,8 @@ public:
     virtual uint32_t queryApiVersion() const noexcept = 0;
 
     virtual IAdapter* enumerateAdapters(uint32_t id) const noexcept = 0;
+
+    virtual Result createSurface(SurfaceWSIInfo const* info, ISurface** surface) noexcept = 0;
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("b77e41e7-8ad1-435d-979c-4b537954048f");

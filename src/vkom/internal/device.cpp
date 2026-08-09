@@ -30,7 +30,7 @@ VulkanDevice::VulkanDevice(bool inheritedHandle, IAdapter* adapter, VulkanDevice
     }
 
     VulkanHeapData heapData = VulkanHeapData(_deviceData, nullptr);
-    _defaultHeap = new VulkanHeap(false, this, heapData);
+    _defaultHeap = new VulkanHeap(false, IInterface::queryInterface<IDevice>(), heapData);
     adopt(_defaultHeap);
 }
 
@@ -105,7 +105,7 @@ Result VulkanDevice::acquireQueue(uint32_t family, QueueFlags flags, IQueue** qu
     VulkanQueueData queueData = VulkanQueueData(_deviceData, vkQueue, family, index);
 
     try {
-        *queue = new VulkanQueue(false, this, queueData);
+        *queue = new VulkanQueue(false, IInterface::queryInterface<IDevice>(), queueData);
     } catch (std::runtime_error const& err) {
         return Result::ErrorInitializationFailed;
     }
@@ -230,12 +230,13 @@ Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags
     VulkanHeapData heapData = VulkanHeapData(_deviceData, vmaPool);
 
     try {
-        *heap = new VulkanHeap(false, this, heapData);
+        *heap = new VulkanHeap(false, IInterface::queryInterface<IDevice>(), heapData);
     } catch (std::runtime_error err) {
         vmaDestroyPool(_deviceData.vmaAllocator, vmaPool);
         return Result::ErrorUnknown;
     }
 
+    adopt(*heap);
     return Result::Success;
 }
 
@@ -264,7 +265,9 @@ void* VulkanDevice::loadDispatchSymbol(const char* symbol) {
 
 /* IInterface */
 void* VulkanDevice::queryInterface(IID const& iid) noexcept {
-    if (iid == IHandled::iid()) {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == ICollected::iid()) {
         return static_cast<ICollected*>(this);

@@ -1,3 +1,7 @@
+#include "vulkan/vulkan_core.h"
+#include <SDL3/SDL.h>
+
+#include <limits>
 #include <vkom/enums.hpp>
 #include <vkom/platform.hpp>
 #include <vkom/instance.hpp>
@@ -11,7 +15,12 @@
 #include <vkom/cmdbatch.hpp>
 
 #include <cstdio>
+#include <stdexcept>
 #include <vector>
+
+/* internals */
+#include <vkom/internal/object.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 struct AutoReleasePool {
     std::vector<vkom::IInterface*> objects = {};
@@ -44,8 +53,84 @@ struct AutoReleasePool {
     }
 };
 
+class CollectedWrapper : virtual public vkom::internal::CollectedByHeap {
+public:
+    void* queryInterface(vkom::IID const& iid) noexcept override {
+        if (iid == IBase::iid()) {
+            return static_cast<IBase*>(this);
+        } else if (iid == ICollected::iid()) {
+            return static_cast<ICollected*>(this);
+        }
+
+        return nullptr;
+    }
+};
+
+class SDLCollected final : virtual public CollectedWrapper {
+public:
+    SDLCollected(SDL_InitFlags flags) {
+        if (!SDL_Init(flags)) {
+            throw std::runtime_error("SDL_Init failed");
+        }
+    }
+
+    ~SDLCollected() {
+        SDL_Quit();
+    }
+};
+
+class SDLCollectedWindow final : virtual public CollectedWrapper {
+private:
+    SDL_Window* _window = nullptr;
+
+public:
+    SDLCollectedWindow(const char* title, uint32_t width, uint32_t height, SDL_WindowFlags flags) {
+        _window = SDL_CreateWindow(title, static_cast<int>(width), static_cast<int>(height), flags);
+        if (_window == nullptr) {
+            throw std::runtime_error("SDL_CreateWindow failed");
+        }
+    }
+
+    ~SDLCollectedWindow() {
+        SDL_DestroyWindow(_window);
+    }
+
+    SDL_Window* window() const noexcept {
+        return _window;
+    }
+
+    void getSurfaceWSIInfo(vkom::SurfaceWSIInfo* info) {
+        *info = {};
+        const char* videoDriver = SDL_GetCurrentVideoDriver();
+
+        #ifdef VKOM_PLATFORM_FAMILY_NT
+        info->type = vkom::SurfaceSurfaceWSIType::Win32;
+        info->windowHandle = reinterpret_cast<uint64_t>(SDL_GetPointerProperty(SDL_GetWindowProperties(_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        #elif defined(VKOM_PLATFORM_FAMILY_APPLE)
+        info->type = vkom::SurfaceWSIType::Cocoa;
+        info->windowHandle = reinterpret_cast<uint64_t>(SDL_GetPointerProperty(SDL_GetWindowProperties(_window), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr));
+        #elif defined(VKOM_PLATFORM_FAMILY_UNIX)
+        if (std::strcmp(videoDriver, "x11") == 0) {
+            info->type = vkom::SurfaceSurfaceWSIType::Xlib;
+            info->windowHandle = reinterpret_cast<uint64_t>(SDL_GetPointerProperty(SDL_GetWindowProperties(_window), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, nullptr));
+            info->displayHandle = reinterpret_cast<uint64_t>(SDL_GetPointerProperty(SDL_GetWindowProperties(_window), SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr));
+        } else if (std::strcmp(videoDriver, "wayland") == 0) {
+            info->type = vkom::SurfaceSurfaceWSIType::Wayland;
+            info->windowHandle = reinterpret_cast<uint64_t>(SDL_GetPointerProperty(SDL_GetWindowProperties(_window), SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr));
+            info->displayHandle = reinterpret_cast<uint64_t>(SDL_GetPointerProperty(SDL_GetWindowProperties(_window), SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr));
+        }
+        #endif
+    }
+};
+
 int main(int argc, char** argv) {
     AutoReleasePool pool = {};
+
+    SDLCollected* sdl = new SDLCollected(SDL_INIT_VIDEO);
+    pool.push(sdl);
+
+    SDLCollectedWindow* window = new SDLCollectedWindow("vkom test", 1200, 900, SDL_WINDOW_RESIZABLE);
+    pool.push(window);
 
     vkom::InstanceLoaderInfo loaderInfo = {};
 
@@ -59,6 +144,16 @@ int main(int argc, char** argv) {
     instance->setLogCallback([](vkom::IInstance* instance, void* userData, vkom::DebugMessageSeverityFlags severity, vkom::DebugMessageTypeFlags type, const char* message) {
         std::printf("[vkom]: %s\n", message);
     }, nullptr);
+
+    vkom::SurfaceWSIInfo surfaceWSIInfo;
+    window->getSurfaceWSIInfo(&surfaceWSIInfo);
+
+    vkom::ISurface* surface;
+    if (instance->createSurface(&surfaceWSIInfo, &surface) != vkom::Result::Success) {
+        return 1;
+    }
+
+    pool.push(surface);
 
     vkom::IAdapter* adapter = instance->enumerateAdapters(0);
 
@@ -118,10 +213,70 @@ int main(int argc, char** argv) {
 
     pool.push(batch);
 
-    while (true) {
-        if (batch->submit(nullptr) != vkom::Result::Success) {
-            return 1;
+    VkQueue vkQueue = queue->handle<VkQueue>();
+    vkom::internal::VulkanQueueData const* queueData = queue->vkData<vkom::internal::VulkanQueueData>();
+
+    uint32_t queueFamily = queue->family();
+
+    VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
+    swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchainCreateInfo.surface = surface->handle<VkSurfaceKHR>();
+    swapchainCreateInfo.minImageCount = 2;
+    swapchainCreateInfo.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    swapchainCreateInfo.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+    swapchainCreateInfo.imageExtent.width = 1200;
+    swapchainCreateInfo.imageExtent.height = 900;
+    swapchainCreateInfo.imageArrayLayers = 1;
+    swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    swapchainCreateInfo.queueFamilyIndexCount = 1;
+    swapchainCreateInfo.pQueueFamilyIndices = &queueFamily;
+    swapchainCreateInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+    VkSwapchainKHR vkSwapchain;
+    PFN_vkCreateSwapchainKHR vkCreateSwapchainKHR = device->loadDispatchSymbol<PFN_vkCreateSwapchainKHR>("vkCreateSwapchainKHR");
+    vkCreateSwapchainKHR(queueData->deviceData.vkDevice, &swapchainCreateInfo, nullptr, &vkSwapchain);
+
+    bool quit = false;
+    while (!quit) {
+        SDL_Event sdlEvent;
+        while (SDL_PollEvent(&sdlEvent)) {
+            switch (sdlEvent.type) {
+                case SDL_EVENT_QUIT:
+                    quit = true;
+                    break;
+                default:
+                    break;
+            }
         }
+
+        if (encoder->batch(&batch) != vkom::Result::Success) {
+            return 2;
+        }
+
+        if (batch->submit(nullptr) != vkom::Result::Success) {
+            return 3;
+        }
+
+        uint32_t index = 0;
+
+        PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR = device->loadDispatchSymbol<PFN_vkAcquireNextImageKHR>("vkAcquireNextImageKHR");
+        vkAcquireNextImageKHR(queueData->deviceData.vkDevice, vkSwapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, VK_NULL_HANDLE, &index);
+
+        VkPresentInfoKHR presentInfo = {};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &vkSwapchain;
+        presentInfo.pImageIndices = &index;
+
+        PFN_vkQueuePresentKHR vkQueuePresentKHR = queue->loadDispatchSymbol<PFN_vkQueuePresentKHR>("vkQueuePresentKHR");
+        if (vkQueuePresentKHR != nullptr) {
+            vkQueuePresentKHR(vkQueue, &presentInfo);
+        }
+
+        batch->discard();
     }
 
     return 0;

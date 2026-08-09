@@ -30,6 +30,14 @@ struct VulkanInstanceData {
     }
 };
 
+struct VulkanSurfaceData {
+    VulkanInstanceData const& instanceData;
+
+    VkSurfaceKHR vkSurface;
+
+    VulkanSurfaceData(VulkanInstanceData const& instanceData, VkSurfaceKHR vkSurface) : instanceData(instanceData), vkSurface(vkSurface) {}
+};
+
 struct VulkanAdapterFunctionPointers {
     VulkanPhysicalDeviceFunctionPointers10 physical10;
     VulkanPhysicalDeviceFunctionPointers11 physical11;

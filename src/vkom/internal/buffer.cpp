@@ -88,7 +88,9 @@ IParent* VulkanBuffer::parent() const noexcept {
 
 /* IInterface */
 void* VulkanBuffer::queryInterface(IID const& iid) noexcept {
-    if (iid == IHandled::iid()) {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == ICollected::iid()) {
         return static_cast<ICollected*>(this);

@@ -126,6 +126,15 @@ enum class DebugMessageTypeFlags : int32_t {
 
 VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(DebugMessageTypeFlags)
 
+enum class SurfaceWSIType : uint32_t {
+    Win32 = 1,
+    Xlib = 2,
+    Xcb = 3,
+    Wayland = 4,
+    Metal = 5,
+    Cocoa = 6,
+};
+
 enum class VendorID : uint32_t {
     Unknown = 0x0000,
     AMD = 0x1002,

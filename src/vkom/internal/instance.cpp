@@ -1,12 +1,12 @@
-#include "vkom/dynlib.hpp"
-#include "vkom/internal/object.hpp"
-#include "vkom/internal/vkdata.hpp"
 #include <vkom/internal/instance.hpp>
 
 #include <cstring>
+#include <stdexcept>
 
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/adapter.hpp>
+#include <vkom/internal/surface.hpp>
+#include <vkom/internal/vksurface.hpp>
 
 namespace vkom {
 
@@ -39,7 +39,7 @@ VulkanInstance::VulkanInstance(uint32_t vkApiVersion, bool inheritedHandle, IDyn
     for (VkPhysicalDevice vkPhysicalDevice : physicalDevices) {
         VulkanAdapterData adapterData = VulkanAdapterData(_instanceData, vkPhysicalDevice);
 
-        VulkanAdapter* adapter = new VulkanAdapter(false, this, adapterData);
+        VulkanAdapter* adapter = new VulkanAdapter(false, IInterface::queryInterface<IInstance>(), adapterData);
         adapters.push_back(adapter);
     }
 
@@ -98,6 +98,29 @@ IAdapter* VulkanInstance::enumerateAdapters(uint32_t id) const noexcept {
     return IParent::enumerateChildren<IAdapter>(id);
 }
 
+Result VulkanInstance::createSurface(SurfaceWSIInfo const* info, ISurface** surface) noexcept {
+    VkSurfaceKHR vkSurface;
+    Result result = castEnum<Result>(internal::createSurface(_instanceData.vkInstance, _instanceData.vkGetInstanceProcAddr, _instanceData.vkAllocationCallbacks, *info, vkSurface));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VulkanSurfaceData surfaceData = VulkanSurfaceData(_instanceData, vkSurface);
+    try {
+        *surface = new VulkanSurface(false, IInterface::queryInterface<IInstance>(), *info, surfaceData);
+    } catch (std::runtime_error) {
+        PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR = IDispatchable::loadDispatchSymbol<PFN_vkDestroySurfaceKHR>("vkDestroySurfaceKHR");
+        if (vkDestroySurfaceKHR != nullptr) {
+            vkDestroySurfaceKHR(_instanceData.vkInstance, vkSurface, _instanceData.vkAllocationCallbacks);
+        }
+
+        return Result::ErrorUnknown;
+    }
+
+    adopt(*surface);
+    return Result::Success;
+}
+
 /* IHandled */
 uint64_t VulkanInstance::handle() const noexcept {
     return reinterpret_cast<uint64_t>(_instanceData.vkInstance);
@@ -118,7 +141,9 @@ void* VulkanInstance::loadDispatchSymbol(const char* symbol) {
 
 /* IInterface */
 void* VulkanInstance::queryInterface(IID const& iid) noexcept {
-    if (iid == IHandled::iid()) {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
         return static_cast<IHandled*>(this);
     } else if (iid == ICollected::iid()) {
         return static_cast<ICollected*>(this);

@@ -48,6 +48,8 @@ public:
 
     IAdapter* enumerateAdapters(uint32_t id) const noexcept override;
 
+    Result createSurface(SurfaceWSIInfo const* info, ISurface** surface) noexcept override;
+
     /* IHandled */
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;

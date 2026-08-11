@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits>
+
 #include <vkom/enums.hpp>
 #include <vkom/object.hpp>
 
@@ -15,7 +17,8 @@ public:
 
 class ITimelineSemaphore : virtual public ISemaphore {
 public:
-    virtual Result wait(uint64_t value) noexcept = 0;
+    virtual Result wait(uint64_t value, uint64_t timeout = std::numeric_limits<uint64_t>::max()) noexcept = 0;
+    virtual Result signal(uint64_t value) noexcept = 0;
     virtual uint64_t counter() const noexcept = 0;
 
     static inline IID const& iid() noexcept {

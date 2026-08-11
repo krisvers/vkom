@@ -35,7 +35,7 @@ VkResult createSurface(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetIns
         VkWin32SurfaceCreateInfoKHR createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
         createInfo.hinstance = hinstance;
-        createInfo.hwnd = reinterpret_cast<HWND>(info.window);
+        createInfo.hwnd = reinterpret_cast<HWND>(info.windowHandle);
 
         PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(vkGetInstanceProcAddr(vkInstance, "vkCreateWin32SurfaceKHR"));
         if (vkCreateWin32SurfaceKHR != nullptr) {

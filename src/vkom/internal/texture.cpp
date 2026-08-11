@@ -1,4 +1,3 @@
-#include "vulkan/vulkan_core.h"
 #include <vkom/internal/texture.hpp>
 
 #include <stdexcept>

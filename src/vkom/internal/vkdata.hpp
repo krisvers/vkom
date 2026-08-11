@@ -78,6 +78,24 @@ struct VulkanDeviceData {
     }
 };
 
+struct VulkanFenceData {
+    VulkanDeviceData const& deviceData;
+
+    VkResult vkResult;
+    VkFence vkFence;
+
+    VulkanFenceData(VulkanDeviceData const& deviceData, VkResult vkResult, VkFence vkFence) : deviceData(deviceData), vkResult(vkResult), vkFence(vkFence) {}
+};
+
+struct VulkanSemaphoreData {
+    VulkanDeviceData const& deviceData;
+
+    VkSemaphoreType vkSemaphoreType;
+    VkSemaphore vkSemaphore;
+
+    VulkanSemaphoreData(VulkanDeviceData const& deviceData, VkSemaphoreType vkSemaphoreType, VkSemaphore vkSemaphore) : deviceData(deviceData), vkSemaphoreType(vkSemaphoreType), vkSemaphore(vkSemaphore) {}
+};
+
 struct VulkanHeapData {
     VulkanDeviceData const& deviceData;
 

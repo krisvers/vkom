@@ -42,7 +42,7 @@ VkResult createSurface(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetIns
         VkXlibSurfaceCreateInfoKHR createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
         createInfo.dpy = reinterpret_cast<Display*>(info.displayHandle);
-        createInfo.window = reinterpret_cast<Window>(info.window);
+        createInfo.window = reinterpret_cast<Window>(info.windowHandle);
 
         PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHR = reinterpret_cast<PFN_vkCreateXlibSurfaceKHR>(vkGetInstanceProcAddr(vkInstance, "vkCreateXlibSurfaceKHR"));
         if (vkCreateXlibSurfaceKHR != nullptr) {

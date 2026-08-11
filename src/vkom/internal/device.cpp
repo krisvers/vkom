@@ -1,9 +1,7 @@
-#include "vkom/enums.hpp"
-#include "vkom/internal/vkdata.hpp"
-#include "vkom/internal/vma.hpp"
-#include "vulkan/vulkan_core.h"
-#include <limits>
 #include <vkom/internal/device.hpp>
+
+#include <limits>
+#include <bitset>
 
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/heap.hpp>
@@ -238,6 +236,14 @@ Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags
 
     adopt(*heap);
     return Result::Success;
+}
+
+Result VulkanDevice::acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept {
+
+}
+
+Result VulkanDevice::acquireFence(bool signalled, IFence** fence) noexcept {
+
 }
 
 /* IHandled */

@@ -1,6 +1,3 @@
-#include "vkom/enums.hpp"
-#include "vkom/surface.hpp"
-#include "vulkan/vulkan_core.h"
 #include <vkom/internal/vksurface.hpp>
 
 #include <vkom/platform.hpp>
@@ -38,25 +35,8 @@ VkResult createSurface(VkInstance vkInstance, PFN_vkGetInstanceProcAddr vkGetIns
             result = vkCreateMetalSurfaceEXT(vkInstance, &createInfo, vkAllocationCallbacks, &vkSurface);
         }
     } else if (info.type == vkom::SurfaceWSIType::Cocoa) {
-        #ifdef VKOM_PLATFORM_OS_MACOS
-        VkMacOSSurfaceCreateInfoMVK createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-        createInfo.pView = reinterpret_cast<void const*>(info.windowHandle);
-
-        PFN_vkCreateMacOSSurfaceMVK vkCreateMacOSSurfaceMVK = reinterpret_cast<PFN_vkCreateMacOSSurfaceMVK>(vkGetInstanceProcAddr(vkInstance, "vkCreateMacOSSurfaceMVK"));
-        if (vkCreateMacOSSurfaceMVK != nullptr) {
-            result = vkCreateMacOSSurfaceMVK(vkInstance, &createInfo, vkAllocationCallbacks, &vkSurface);
-        }
-        #elif defined(VKOM_PLATFORM_OS_IOS)
-        VkIOSSurfaceCreateInfoMVK createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
-        createInfo.pView = reinterpret_cast<void const*>(info.windowHandle);
-
-        PFN_vkCreateIOSSurfaceMVK vkCreateIOSSurfaceMVK = reinterpret_cast<PFN_vkCreateIOSSurfaceMVK>(vkGetInstanceProcAddr(vkInstance, "vkCreateIOSSurfaceMVK"));
-        if (vkCreateIOSSurfaceMVK != nullptr) {
-            result = vkCreateIOSSurfaceMVK(vkInstance, &createInfo, vkAllocationCallbacks, &vkSurface);
-        }
-        #endif
+        /* TODO: create Metal layer associated with NSWindow */
+        return result;
     }
 
     return result;

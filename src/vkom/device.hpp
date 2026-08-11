@@ -11,6 +11,8 @@ inline const uint32_t QUEUE_FAMILY_ANY = std::numeric_limits<uint32_t>::max();
 
 class IQueue;
 class IHeap;
+class ISemaphore;
+class IFence;
 
 class IDevice : virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IChild, virtual public IDispatchable {
 public:
@@ -21,6 +23,9 @@ public:
 
     virtual IHeap* defaultHeap() noexcept = 0;
     virtual Result createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags textureUsages, MemoryLocationFlags memoryLocation, IHeap** heap) noexcept = 0;
+
+    virtual Result acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept = 0;
+    virtual Result acquireFence(bool signalled, IFence** fence) noexcept = 0;
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("8af16862-cec4-4dbc-9fe7-c00a6eb9e41c");

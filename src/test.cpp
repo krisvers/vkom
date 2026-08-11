@@ -1,7 +1,5 @@
-#include "vulkan/vulkan_core.h"
 #include <SDL3/SDL.h>
 
-#include <limits>
 #include <vkom/enums.hpp>
 #include <vkom/platform.hpp>
 #include <vkom/instance.hpp>
@@ -18,9 +16,11 @@
 #include <stdexcept>
 #include <vector>
 
-/* internals */
 #include <vkom/internal/object.hpp>
-#include <vkom/internal/vkdata.hpp>
+
+#ifdef VKOM_PLATFORM_FAMILY_APPLE
+#include <SDL3/SDL_metal.h>
+#endif
 
 struct AutoReleasePool {
     std::vector<vkom::IInterface*> objects = {};
@@ -83,15 +83,30 @@ class SDLCollectedWindow final : virtual public CollectedWrapper {
 private:
     SDL_Window* _window = nullptr;
 
+    #ifdef VKOM_PLATFORM_FAMILY_APPLE
+    SDL_MetalView _view = nullptr;
+    #endif
+
 public:
     SDLCollectedWindow(const char* title, uint32_t width, uint32_t height, SDL_WindowFlags flags) {
         _window = SDL_CreateWindow(title, static_cast<int>(width), static_cast<int>(height), flags);
         if (_window == nullptr) {
             throw std::runtime_error("SDL_CreateWindow failed");
         }
+
+        #ifdef VKOM_PLATFORM_FAMILY_APPLE
+        _view = SDL_Metal_CreateView(_window);
+        if (_view == nullptr) {
+            throw std::runtime_error("SDL_Metal_CreateView failed");
+        }
+        #endif
     }
 
     ~SDLCollectedWindow() {
+        #ifdef VKOM_PLATFORM_FAMILY_APPLE
+        SDL_Metal_DestroyView(_view);
+        #endif
+
         SDL_DestroyWindow(_window);
     }
 
@@ -107,8 +122,8 @@ public:
         info->type = vkom::SurfaceSurfaceWSIType::Win32;
         info->windowHandle = reinterpret_cast<uint64_t>(SDL_GetPointerProperty(SDL_GetWindowProperties(_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
         #elif defined(VKOM_PLATFORM_FAMILY_APPLE)
-        info->type = vkom::SurfaceWSIType::Cocoa;
-        info->windowHandle = reinterpret_cast<uint64_t>(SDL_GetPointerProperty(SDL_GetWindowProperties(_window), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr));
+        info->type = vkom::SurfaceWSIType::Metal;
+        info->windowHandle = reinterpret_cast<uint64_t>(SDL_Metal_GetLayer(_view));
         #elif defined(VKOM_PLATFORM_FAMILY_UNIX)
         if (std::strcmp(videoDriver, "x11") == 0) {
             info->type = vkom::SurfaceSurfaceWSIType::Xlib;
@@ -213,32 +228,6 @@ int main(int argc, char** argv) {
 
     pool.push(batch);
 
-    VkQueue vkQueue = queue->handle<VkQueue>();
-    vkom::internal::VulkanQueueData const* queueData = queue->vkData<vkom::internal::VulkanQueueData>();
-
-    uint32_t queueFamily = queue->family();
-
-    VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
-    swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchainCreateInfo.surface = surface->handle<VkSurfaceKHR>();
-    swapchainCreateInfo.minImageCount = 2;
-    swapchainCreateInfo.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    swapchainCreateInfo.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-    swapchainCreateInfo.imageExtent.width = 1200;
-    swapchainCreateInfo.imageExtent.height = 900;
-    swapchainCreateInfo.imageArrayLayers = 1;
-    swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    swapchainCreateInfo.queueFamilyIndexCount = 1;
-    swapchainCreateInfo.pQueueFamilyIndices = &queueFamily;
-    swapchainCreateInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-
-    VkSwapchainKHR vkSwapchain;
-    PFN_vkCreateSwapchainKHR vkCreateSwapchainKHR = device->loadDispatchSymbol<PFN_vkCreateSwapchainKHR>("vkCreateSwapchainKHR");
-    vkCreateSwapchainKHR(queueData->deviceData.vkDevice, &swapchainCreateInfo, nullptr, &vkSwapchain);
-
     bool quit = false;
     while (!quit) {
         SDL_Event sdlEvent;
@@ -258,22 +247,6 @@ int main(int argc, char** argv) {
 
         if (batch->submit(nullptr) != vkom::Result::Success) {
             return 3;
-        }
-
-        uint32_t index = 0;
-
-        PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR = device->loadDispatchSymbol<PFN_vkAcquireNextImageKHR>("vkAcquireNextImageKHR");
-        vkAcquireNextImageKHR(queueData->deviceData.vkDevice, vkSwapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, VK_NULL_HANDLE, &index);
-
-        VkPresentInfoKHR presentInfo = {};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = &vkSwapchain;
-        presentInfo.pImageIndices = &index;
-
-        PFN_vkQueuePresentKHR vkQueuePresentKHR = queue->loadDispatchSymbol<PFN_vkQueuePresentKHR>("vkQueuePresentKHR");
-        if (vkQueuePresentKHR != nullptr) {
-            vkQueuePresentKHR(vkQueue, &presentInfo);
         }
 
         batch->discard();

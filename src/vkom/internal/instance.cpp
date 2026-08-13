@@ -1,6 +1,7 @@
 #include <vkom/internal/instance.hpp>
 
 #include <cstring>
+#include <algorithm>
 #include <stdexcept>
 
 #include <vkom/internal/enums.hpp>

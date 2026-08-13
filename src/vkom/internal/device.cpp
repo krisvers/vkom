@@ -6,6 +6,8 @@
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/heap.hpp>
 #include <vkom/internal/queue.hpp>
+#include <vkom/internal/fence.hpp>
+#include <vkom/internal/semaphore.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
 
@@ -117,7 +119,7 @@ IHeap* VulkanDevice::defaultHeap() noexcept {
 }
 
 Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags textureUsages, MemoryLocationFlags memoryLocation, IHeap** heap) noexcept {
-    uint32_t bufferTypeBits;
+    uint32_t bufferTypeBits = 0xffffffff;
     if (bufferUsages != BufferUsageFlags::None) {
         uint32_t queueFamily = 0;
 
@@ -142,7 +144,7 @@ Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags
         _deviceData.functionPointers.device10.vkDestroyBuffer(_deviceData.vkDevice, vkDummyBuffer, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
     }
 
-    uint32_t textureTypeBits;
+    uint32_t textureTypeBits = 0xffffffff;
     if (textureUsages != TextureUsageFlags::None) {
         uint32_t queueFamily = 0;
 
@@ -239,11 +241,67 @@ Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags
 }
 
 Result VulkanDevice::acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept {
+    AdapterFeatures adapterFeatures = {};
+    _adapter->queryFeatures(&adapterFeatures);
 
+    if (timeline && !adapterFeatures.timelineSemaphores) {
+        return Result::ErrorUnsupportedFeature;
+    }
+
+    VkSemaphoreTypeCreateInfo typeInfo = {};
+    typeInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+    typeInfo.semaphoreType = (timeline ? VK_SEMAPHORE_TYPE_TIMELINE : VK_SEMAPHORE_TYPE_BINARY);
+    typeInfo.initialValue = 0;
+
+    VkSemaphoreCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    if (timeline) {
+        createInfo.pNext = &typeInfo;
+
+        if (!queryExtension(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME)) {
+            return Result::ErrorUnsupportedFeature;
+        }
+    }
+
+    VkSemaphore vkSemaphore;
+    VkResult result = _deviceData.functionPointers.device10.vkCreateSemaphore(_deviceData.vkDevice, &createInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkSemaphore);
+    if (result != VK_SUCCESS) {
+        return castEnum<Result>(result);
+    }
+
+    VulkanSemaphoreData semaphoreData = VulkanSemaphoreData(_deviceData, typeInfo.semaphoreType, vkSemaphore);
+    
+    try {
+        *semaphore = new VulkanSemaphore(false, this, semaphoreData);
+    } catch (std::runtime_error err) {
+        _deviceData.functionPointers.device10.vkDestroySemaphore(_deviceData.vkDevice, vkSemaphore, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    return Result::Success;
 }
 
-Result VulkanDevice::acquireFence(bool signalled, IFence** fence) noexcept {
+Result VulkanDevice::acquireFence(bool signaled, IFence** fence) noexcept {
+    VkFenceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    createInfo.flags = (signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0);
 
+    VkFence vkFence;
+    VkResult result = _deviceData.functionPointers.device10.vkCreateFence(_deviceData.vkDevice, &createInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkFence);
+    if (result != VK_SUCCESS) {
+        return castEnum<Result>(result);
+    }
+
+    VulkanFenceData fenceData = VulkanFenceData(_deviceData, signaled, vkFence);
+    
+    try {
+        *fence = new VulkanFence(false, this, fenceData);
+    } catch (std::runtime_error err) {
+        _deviceData.functionPointers.device10.vkDestroyFence(_deviceData.vkDevice, vkFence, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    return Result::Success;
 }
 
 /* IHandled */

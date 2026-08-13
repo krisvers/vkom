@@ -53,6 +53,13 @@ VulkanAdapter::VulkanAdapter(bool inheritedHandle, IInstance* instance, VulkanAd
         features2.pNext = &dynamicRenderingFeatures;
     }
 
+    VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphoreFeatures = {};
+    timelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
+    timelineSemaphoreFeatures.pNext = features2.pNext;
+    if (instance->queryApiVersion() >= VK_API_VERSION_1_2 || queryExtension(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME)) {
+        features2.pNext = &timelineSemaphoreFeatures;
+    }
+
     VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
     bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
     bufferDeviceAddressFeatures.pNext = features2.pNext;
@@ -104,6 +111,7 @@ VulkanAdapter::VulkanAdapter(bool inheritedHandle, IInstance* instance, VulkanAd
 
     _features.swapchain = queryExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     _features.dynamicRendering = dynamicRenderingFeatures.dynamicRendering;
+    _features.timelineSemaphores = timelineSemaphoreFeatures.timelineSemaphore;
     _features.bufferDeviceAddress = bufferDeviceAddressFeatures.bufferDeviceAddress;
     _features.shaderInt8 = shaderFloat16Int8Features.shaderInt8;
     _features.shaderInt16 = features2.features.shaderInt16;
@@ -219,6 +227,14 @@ Result VulkanAdapter::createDevice(IDevice** device) {
         features2.pNext = &dynamicRenderingFeatures;
     }
 
+    VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphoreFeatures = {};
+    timelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
+    timelineSemaphoreFeatures.pNext = features2.pNext;
+    timelineSemaphoreFeatures.timelineSemaphore = _features.timelineSemaphores;
+    if (_features.timelineSemaphores) {
+        features2.pNext = &timelineSemaphoreFeatures;
+    }
+
     VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
     bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
     bufferDeviceAddressFeatures.pNext = features2.pNext;
@@ -295,6 +311,8 @@ Result VulkanAdapter::createDevice(IDevice** device) {
             enabledExtensions.push_back(extension.extensionName);
             enabledExtensionBufferDeviceAddress = true;
         } else if (std::strcmp(extension.extensionName, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0) {
+            enabledExtensions.push_back(extension.extensionName);
+        } else if (std::strcmp(extension.extensionName, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME) == 0) {
             enabledExtensions.push_back(extension.extensionName);
         }
     }

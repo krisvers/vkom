@@ -12,7 +12,7 @@ namespace vkom {
 
 namespace internal {
 
-VulkanSemaphore::VulkanSemaphore(bool inheritedHandle, IDevice* device, VulkanSemaphoreData const& semaphoreData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->queryInterface<IAdapter>()), _instance(_adapter->queryInterface<IInstance>()), _semaphoreData(semaphoreData) {
+VulkanSemaphore::VulkanSemaphore(bool inheritedHandle, IDevice* device, VulkanSemaphoreData const& semaphoreData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _semaphoreData(semaphoreData) {
     _device->retain();
 }
 
@@ -40,6 +40,19 @@ Result VulkanSemaphore::wait(uint64_t value, uint64_t timeout) noexcept {
     waitInfo.pValues = &value;
 
     return castEnum<Result>(_semaphoreData.deviceData.functionPointers.device12.vkWaitSemaphores(_semaphoreData.deviceData.vkDevice, &waitInfo, timeout));
+}
+
+Result VulkanSemaphore::signal(uint64_t value) noexcept {
+    if (_semaphoreData.vkSemaphoreType != VK_SEMAPHORE_TYPE_TIMELINE || _semaphoreData.deviceData.functionPointers.device12.vkSignalSemaphore == nullptr) {
+        return Result::ErrorUnsupportedFeature;
+    }
+
+    VkSemaphoreSignalInfo signalInfo = {};
+    signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO;
+    signalInfo.semaphore = _semaphoreData.vkSemaphore;
+    signalInfo.value = value;
+
+    return castEnum<Result>(_semaphoreData.deviceData.functionPointers.device12.vkSignalSemaphore(_semaphoreData.deviceData.vkDevice, &signalInfo));
 }
 
 uint64_t VulkanSemaphore::counter() const noexcept {

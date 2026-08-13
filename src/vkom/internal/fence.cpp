@@ -12,7 +12,7 @@ namespace vkom {
 
 namespace internal {
 
-VulkanFence::VulkanFence(bool inheritedHandle, IDevice* device, VulkanFenceData const& fenceData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->queryInterface<IAdapter>()), _instance(_adapter->queryInterface<IInstance>()), _fenceData(fenceData) {
+VulkanFence::VulkanFence(bool inheritedHandle, IDevice* device, VulkanFenceData const& fenceData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _fenceData(fenceData) {
     _device->retain();
 }
 

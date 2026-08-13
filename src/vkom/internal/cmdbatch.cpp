@@ -71,12 +71,64 @@ Result VulkanCommandBatch::submit(CommandBatchSubmitInfo const* submitInfo) noex
         _ended = true;
     }
 
+    std::vector<VkPipelineStageFlags> vkWaitStageFlags(submitInfo->waitCount);
+    std::vector<VkSemaphore> vkWaitSemaphores(submitInfo->waitCount);
+    std::vector<uint64_t> vkWaitSemaphoreValues(submitInfo->waitCount);
+    
+    bool timeline = false;
+    for (uint32_t i = 0; i < submitInfo->waitCount; i += 1) {
+        vkWaitStageFlags[i] = castEnum<VkPipelineStageFlags>(submitInfo->waits[i].stageFlags);
+        vkWaitSemaphores[i] = submitInfo->waits[i].point.semaphore->handle<VkSemaphore>();
+        vkWaitSemaphoreValues[i] = submitInfo->waits[i].point.value;
+
+        if (submitInfo->waits[i].point.semaphore->queryInterface<ITimelineSemaphore>() != nullptr) {
+            timeline = true;
+        }
+    }
+
+    std::vector<VkSemaphore> vkSignalSemaphores(submitInfo->signalCount);
+    std::vector<uint64_t> vkSignalSemaphoreValues(submitInfo->signalCount);
+
+    for (uint32_t i = 0; i < submitInfo->signalCount; i += 1) {
+        vkSignalSemaphores[i] = submitInfo->signals[i].point.semaphore->handle<VkSemaphore>();
+        vkSignalSemaphoreValues[i] = submitInfo->signals[i].point.value;
+
+        if (submitInfo->signals[i].point.semaphore->queryInterface<ITimelineSemaphore>() != nullptr) {
+            timeline = true;
+        }
+    }
+
+    AdapterFeatures adapterFeatures = {};
+    _adapter->queryFeatures(&adapterFeatures);
+
+    if (timeline && !adapterFeatures.timelineSemaphores) {
+        return Result::ErrorUnsupportedFeature;
+    }
+
+    VkTimelineSemaphoreSubmitInfo vkTimelineSubmitInfo = {};
+    vkTimelineSubmitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+    vkTimelineSubmitInfo.waitSemaphoreValueCount = submitInfo->waitCount;
+    vkTimelineSubmitInfo.pWaitSemaphoreValues = (submitInfo->waitCount == 0 ? nullptr : &vkWaitSemaphoreValues[0]);
+    vkTimelineSubmitInfo.signalSemaphoreValueCount = submitInfo->signalCount;
+    vkTimelineSubmitInfo.pSignalSemaphoreValues = (submitInfo->signalCount == 0 ? nullptr : &vkSignalSemaphoreValues[0]);
+
     VkSubmitInfo vkSubmitInfo = {};
     vkSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    vkSubmitInfo.pNext = (timeline ? &vkTimelineSubmitInfo : nullptr);
+    vkSubmitInfo.waitSemaphoreCount = submitInfo->waitCount;
+    vkSubmitInfo.pWaitDstStageMask = (submitInfo->waitCount == 0 ? nullptr : &vkWaitStageFlags[0]);
+    vkSubmitInfo.pWaitSemaphores = (submitInfo->waitCount == 0 ? nullptr : &vkWaitSemaphores[0]);
     vkSubmitInfo.commandBufferCount = 1;
     vkSubmitInfo.pCommandBuffers = &_batchData.vkCommandBuffer;
+    vkSubmitInfo.signalSemaphoreCount = submitInfo->signalCount;
+    vkSubmitInfo.pSignalSemaphores = (submitInfo->signalCount == 0 ? nullptr : &vkSignalSemaphores[0]);
 
-    return castEnum<Result>(_batchData.queueData.functionPointers.queue10.vkQueueSubmit(_batchData.queueData.vkQueue, 1, &vkSubmitInfo, VK_NULL_HANDLE));
+    VkFence vkFence = VK_NULL_HANDLE;
+    if (submitInfo->signalFence != nullptr) {
+        vkFence = submitInfo->signalFence->handle<VkFence>();
+    }
+
+    return castEnum<Result>(_batchData.queueData.functionPointers.queue10.vkQueueSubmit(_batchData.queueData.vkQueue, 1, &vkSubmitInfo, vkFence));
 }
 
 /* IHandled */

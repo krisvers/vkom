@@ -81,10 +81,10 @@ struct VulkanDeviceData {
 struct VulkanFenceData {
     VulkanDeviceData const& deviceData;
 
-    VkResult vkResult;
+    bool signaled;
     VkFence vkFence;
 
-    VulkanFenceData(VulkanDeviceData const& deviceData, VkResult vkResult, VkFence vkFence) : deviceData(deviceData), vkResult(vkResult), vkFence(vkFence) {}
+    VulkanFenceData(VulkanDeviceData const& deviceData, bool signaled, VkFence vkFence) : deviceData(deviceData), signaled(signaled), vkFence(vkFence) {}
 };
 
 struct VulkanSemaphoreData {

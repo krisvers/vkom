@@ -51,7 +51,7 @@ public:
     Result createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags textureUsages, MemoryLocationFlags memoryLocation, IHeap** heap) noexcept override;
 
     Result acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept override;
-    Result acquireFence(bool signalled, IFence** fence) noexcept override;
+    Result acquireFence(bool signaled, IFence** fence) noexcept override;
 
     /* IHandled */
     uint64_t handle() const noexcept override;

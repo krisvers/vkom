@@ -119,7 +119,7 @@ public:
         const char* videoDriver = SDL_GetCurrentVideoDriver();
 
         #ifdef VKOM_PLATFORM_FAMILY_NT
-        info->type = vkom::SurfaceSurfaceWSIType::Win32;
+        info->type = vkom::SurfaceWSIType::Win32;
         info->windowHandle = reinterpret_cast<uint64_t>(SDL_GetPointerProperty(SDL_GetWindowProperties(_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
         #elif defined(VKOM_PLATFORM_FAMILY_APPLE)
         info->type = vkom::SurfaceWSIType::Metal;
@@ -179,6 +179,28 @@ int main(int argc, char** argv) {
 
     pool.push(device);
 
+    vkom::ITimelineSemaphore* submissionFinishedTimelineSemaphore;
+    {
+        vkom::ISemaphore* submissionFinishedSemaphore;
+        if (device->acquireSemaphore(true, &submissionFinishedSemaphore) != vkom::Result::Success) {
+            return 1;
+        }
+
+        pool.push(submissionFinishedSemaphore);
+
+        submissionFinishedTimelineSemaphore = submissionFinishedSemaphore->queryInterface<vkom::ITimelineSemaphore>();
+        if (submissionFinishedTimelineSemaphore == nullptr) {
+            return 1;
+        }
+    }
+
+    vkom::IFence* batchFinishedFence;
+    if (device->acquireFence(true, &batchFinishedFence) != vkom::Result::Success) {
+        return 1;
+    }
+
+    pool.push(batchFinishedFence);
+
     vkom::IHeap* heap;
     if (device->createHeap(vkom::BufferUsageFlags::TransferSource | vkom::BufferUsageFlags::TransferDestination | vkom::BufferUsageFlags::StorageBuffer | vkom::BufferUsageFlags::ShaderDeviceAddress, vkom::TextureUsageFlags::None, vkom::MemoryLocationFlags::GPU, &heap) != vkom::Result::Success) {
         return 1;
@@ -228,6 +250,9 @@ int main(int argc, char** argv) {
 
     pool.push(batch);
 
+    uint64_t pastFinishedValue = 0;
+    uint64_t futureFinishedValue = 1;
+
     bool quit = false;
     while (!quit) {
         SDL_Event sdlEvent;
@@ -241,15 +266,31 @@ int main(int argc, char** argv) {
             }
         }
 
-        if (encoder->batch(&batch) != vkom::Result::Success) {
-            return 2;
-        }
+        futureFinishedValue = pastFinishedValue + 1;
 
-        if (batch->submit(nullptr) != vkom::Result::Success) {
-            return 3;
-        }
+        vkom::CommandBatchSubmitWaitInfo submitWaits[1] = {};
+        submitWaits[0].point.semaphore = submissionFinishedTimelineSemaphore;
+        submitWaits[0].point.value = pastFinishedValue;
+        submitWaits[0].stageFlags = vkom::PipelineStageFlags::Transfer;
 
-        batch->discard();
+        vkom::CommandBatchSubmitSignalInfo submitSignals[1] = {};
+        submitSignals[0].point.semaphore = submissionFinishedTimelineSemaphore;
+        submitSignals[0].point.value = futureFinishedValue;
+
+        vkom::CommandBatchSubmitInfo submitInfo = {};
+        submitInfo.waitCount = 1;
+        submitInfo.waits = &submitWaits[0];
+        submitInfo.signalCount = 1;
+        submitInfo.signals = &submitSignals[0];
+        submitInfo.signalFence = batchFinishedFence;
+
+        /* wait for batch to be finished */
+        batchFinishedFence->wait();
+        batchFinishedFence->reset();
+
+        batch->submit(&submitInfo);
+
+        pastFinishedValue = futureFinishedValue;
     }
 
     return 0;

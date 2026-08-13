@@ -71,6 +71,7 @@ sdl3 = dependency('sdl3', version: '>=3.0.0', required: true)
 executable('vkom_test',
     sources: [
         'src/test.cpp',
+        'src/vkom/internal/object.hpp', 'src/vkom/internal/object.cpp',
     ],
     include_directories: include_directories('src'),
     dependencies: [ sdl3, vma ],

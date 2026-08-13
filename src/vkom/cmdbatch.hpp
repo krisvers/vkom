@@ -3,10 +3,26 @@
 #include <vkom/enums.hpp>
 #include <vkom/object.hpp>
 
+#include <vkom/fence.hpp>
+#include <vkom/semaphore.hpp>
+
 namespace vkom {
 
+struct CommandBatchSubmitWaitInfo {
+    SemaphorePoint point;
+    PipelineStageFlags stageFlags;
+};
+
+struct CommandBatchSubmitSignalInfo {
+    SemaphorePoint point;
+};
+
 struct CommandBatchSubmitInfo {
-    /* TODO: parameters */
+    uint32_t waitCount;
+    CommandBatchSubmitWaitInfo const* waits;
+    uint32_t signalCount;
+    CommandBatchSubmitSignalInfo const* signals;
+    IFence* signalFence;
 };
 
 class ICommandEncoder;

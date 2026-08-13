@@ -27,7 +27,7 @@ public:
     }
 };
 
-struct SemaphoreSignalInfo {
+struct SemaphorePoint {
     ISemaphore* semaphore;
     uint64_t value;
 };

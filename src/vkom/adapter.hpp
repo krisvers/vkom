@@ -18,6 +18,7 @@ struct AdapterInfo {
 struct AdapterFeatures {
     bool swapchain;
     bool dynamicRendering;
+    bool timelineSemaphores;
     bool bufferDeviceAddress;
 
     bool shaderInt8;

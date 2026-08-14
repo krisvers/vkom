@@ -49,6 +49,7 @@ private:
     std::vector<DummyWSISynchronizationPrimitives> _dummyWSISync = {};
 
     bool acquireDummyWSISync(DummyWSISynchronizationPrimitives& primitives);
+    void releaseDummyWSISync(std::vector<DummyWSISynchronizationPrimitives>::iterator it);
     void releaseDummyWSISync(DummyWSISynchronizationPrimitives const& primitives);
 
 public:

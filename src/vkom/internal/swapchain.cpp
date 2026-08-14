@@ -28,6 +28,11 @@ VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* devi
 }
 
 VulkanManualSwapchain::~VulkanManualSwapchain() {
+    for (size_t i = 0; i < _dummyWSISync.size(); i += 1) {
+        releaseDummyWSISync(_dummyWSISync.begin() + i);
+        i -= 1;
+    }
+
     _device->waitIdle();
     ParentByVector::disownAll();
     _device->disown(IInterface::queryInterface<IChild>());
@@ -118,6 +123,10 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
         return Result::ErrorUnknown;
     }
 
+    for (size_t i = 0; i < _dummyWSISync.size(); i += 1) {
+        releaseDummyWSISync(_dummyWSISync.begin() + i);
+    }
+
     VkSwapchainKHR vkNewSwapchain;
     Result result = castEnum<Result>(vkCreateSwapchainKHR(_swapchainData.deviceData.vkDevice, &vkCreateInfo, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkNewSwapchain));
     if (result != Result::Success) {
@@ -135,6 +144,13 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
 }
 
 Result VulkanManualSwapchain::acquireNextIndex(SemaphorePoint const* signalSemaphore, IFence* signalFence, uint32_t* index, uint64_t timeout) noexcept {
+    for (size_t i = 0; i < _dummyWSISync.size(); i += 1) {
+        if (_swapchainData.deviceData.functionPointers.device10.vkGetFenceStatus(_swapchainData.deviceData.vkDevice, _dummyWSISync[i].vkTriggeredFence) == VK_SUCCESS) {
+            releaseDummyWSISync(_dummyWSISync.begin() + i);
+            i -= 1;
+        }
+    }
+
     bool timeline = false;
     uint64_t vkSemaphoreValue = 0;
     VkSemaphore vkProvidedSemaphore = VK_NULL_HANDLE;
@@ -288,10 +304,17 @@ bool VulkanManualSwapchain::acquireDummyWSISync(DummyWSISynchronizationPrimitive
         return false;
     }
 
+    _dummyWSISync.push_back(primitives);
     return true;
 }
 
+void VulkanManualSwapchain::releaseDummyWSISync(std::vector<DummyWSISynchronizationPrimitives>::iterator it) {
+    releaseDummyWSISync(*it);
+    _dummyWSISync.erase(it);
+}
+
 void VulkanManualSwapchain::releaseDummyWSISync(DummyWSISynchronizationPrimitives const& primitives) {
+    _swapchainData.deviceData.functionPointers.device10.vkWaitForFences(_swapchainData.deviceData.vkDevice, 1, &primitives.vkTriggeredFence, true, std::numeric_limits<uint64_t>::max());
     _swapchainData.deviceData.functionPointers.device10.vkDestroyFence(_swapchainData.deviceData.vkDevice, primitives.vkTriggeredFence, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
     _swapchainData.deviceData.functionPointers.device10.vkDestroySemaphore(_swapchainData.deviceData.vkDevice, primitives.vkBinarySemaphore, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
 }

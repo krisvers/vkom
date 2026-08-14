@@ -2,6 +2,8 @@
 
 #include <vkom/enums.hpp>
 #include <vkom/object.hpp>
+
+#include <vkom/surface.hpp>
 #include <vkom/device.hpp>
 
 namespace vkom {
@@ -61,6 +63,12 @@ public:
     virtual void queryLimits(AdapterLimits* limits) const noexcept = 0;
     virtual bool queryExtension(const char* extension) const noexcept = 0;
     virtual QueueFlags queryQueueFamilyFlags(uint32_t family) const noexcept = 0;
+
+    virtual void querySurfaceCapabilities(ISurface* surface, SurfaceCapabilities* capabilities) const noexcept = 0;
+    virtual PresentModeFlags querySurfacePresentModes(ISurface* surface) const noexcept = 0;
+    virtual uint64_t querySurfaceFormatBits(ISurface* surface, Format format, ColorSpaceFlags colorSpaceFlags) const noexcept = 0;
+    virtual bool enumerateSurfaceFormats(ISurface* surface, uint32_t index, SurfaceFormat* surfaceFormat) const noexcept = 0;
+    virtual bool enumerateSurfaceFormatsByBits(ISurface* surface, uint64_t bits, SurfaceFormat* surfaceFormat) const noexcept = 0;
 
     virtual Result createDevice(IDevice** device) = 0;
 

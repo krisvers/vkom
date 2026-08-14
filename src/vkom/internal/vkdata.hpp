@@ -78,6 +78,15 @@ struct VulkanDeviceData {
     }
 };
 
+struct VulkanSwapchainData {
+    VulkanDeviceData const& deviceData;
+
+    VkSwapchainKHR vkSwapchain;
+    uint32_t backbufferCount;
+
+    VulkanSwapchainData(VulkanDeviceData const& deviceData, VkSwapchainKHR vkSwapchain, uint32_t backbufferCount) : deviceData(deviceData), vkSwapchain(vkSwapchain), backbufferCount(backbufferCount) {}
+};
+
 struct VulkanFenceData {
     VulkanDeviceData const& deviceData;
 

@@ -3,8 +3,10 @@
 #include <vkom/enums.hpp>
 #include <vkom/platform.hpp>
 #include <vkom/instance.hpp>
+#include <vkom/surface.hpp>
 #include <vkom/adapter.hpp>
 #include <vkom/device.hpp>
+#include <vkom/swapchain.hpp>
 #include <vkom/heap.hpp>
 #include <vkom/buffer.hpp>
 #include <vkom/texture.hpp>
@@ -15,6 +17,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <vector>
+#include <algorithm>
 
 #include <vkom/internal/object.hpp>
 
@@ -179,6 +182,27 @@ int main(int argc, char** argv) {
 
     pool.push(device);
 
+    vkom::SurfaceCapabilities surfaceCapabilities;
+    adapter->querySurfaceCapabilities(surface, &surfaceCapabilities);
+
+    vkom::SwapchainInfo swapchainInfo = {};
+    swapchainInfo.backbufferCount = std::max(surfaceCapabilities.minBackbufferCount, std::min(2u, surfaceCapabilities.maxBackbufferCount));
+    swapchainInfo.backbufferInfo.usage = vkom::TextureUsageFlags::TransferDestination;
+    swapchainInfo.backbufferInfo.dimensions.extent = surfaceCapabilities.currentExtent;
+    swapchainInfo.backbufferInfo.dimensions.subresource.layers = 1;
+    swapchainInfo.backbufferInfo.dimensions.subresource.mips = 1;
+    swapchainInfo.preTransform = vkom::SurfaceTransformFlags::Identity;
+    swapchainInfo.compositeAlpha = vkom::CompositeAlphaFlags::Opaque;
+    swapchainInfo.surfaceFormatBits = adapter->querySurfaceFormatBits(surface, vkom::Format::BGRA8UnsignedNormSRGB, vkom::ColorSpaceFlags::All);
+    swapchainInfo.presentModeFlags = vkom::PresentModeFlags::All;
+
+    vkom::ISwapchain* swapchain;
+    if (device->createSwapchain(surface, &swapchainInfo, &swapchain) != vkom::Result::Success) {
+        return 5;
+    }
+
+    pool.push(swapchain);
+
     vkom::ITimelineSemaphore* submissionFinishedTimelineSemaphore;
     {
         vkom::ISemaphore* submissionFinishedSemaphore;
@@ -266,11 +290,23 @@ int main(int argc, char** argv) {
             }
         }
 
-        futureFinishedValue = pastFinishedValue + 1;
+        futureFinishedValue = pastFinishedValue + 2;
+
+        uint32_t index;
+
+        vkom::SemaphorePoint signal = {};
+        signal.semaphore = submissionFinishedTimelineSemaphore;
+        signal.value = pastFinishedValue + 1;
+
+        /* TODO: actually use backbuffer and present */
+        vkom::Result result = swapchain->acquireNextIndex(&signal, nullptr, &index);
+        if (result != vkom::Result::Success) {
+            std::printf("%u\n", result);
+        }
 
         vkom::CommandBatchSubmitWaitInfo submitWaits[1] = {};
         submitWaits[0].point.semaphore = submissionFinishedTimelineSemaphore;
-        submitWaits[0].point.value = pastFinishedValue;
+        submitWaits[0].point.value = pastFinishedValue + 1;
         submitWaits[0].stageFlags = vkom::PipelineStageFlags::Transfer;
 
         vkom::CommandBatchSubmitSignalInfo submitSignals[1] = {};

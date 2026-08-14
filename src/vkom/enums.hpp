@@ -189,7 +189,71 @@ enum class AdapterType : uint32_t {
     CPU = 4,
 };
 
-enum class QueueFlags : int32_t {
+enum class SurfaceTransformFlags : uint32_t {
+    Identity = 0x0001,
+    Rotate90 = 0x0002,
+    Rotate180 = 0x0004,
+    Rotate270 = 0x0008,
+    HorizontalMirror = 0x0010,
+    HorizontalMirrorRotate90 = 0x0020,
+    HorizontalMirrorRotate180 = 0x0040,
+    HorizontalMirrorRotate270 = 0x0080,
+    Inherit = 0x0100,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(SurfaceTransformFlags)
+
+enum class CompositeAlphaFlags : uint32_t {
+    Opaque = 0x0001,
+    PreMultiplied = 0x0002,
+    PostMultiplied = 0x0004,
+    Inherit = 0x0008,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(CompositeAlphaFlags)
+
+enum class PresentModeFlags : uint32_t {
+    None = 0x0000,
+    Immediate = 0x0001,
+    Mailbox = 0x0002,
+    Fifo = 0x0004,
+    FifoRelaxed = 0x0008,
+
+    SharedDemandRefresh = 0x0010,
+    SharedContinuousRefresh = 0x0020,
+
+    FifoLatestReady = 0x0040,
+
+    All = 0xffffffff,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(PresentModeFlags)
+
+enum class ColorSpaceFlags : uint64_t {
+    None = 0x000000000,
+    SRGBNonlinear = 0x00000001,
+    DisplayP3Nonlinear = 0x00000002,
+    ExtendedSRGBLinear = 0x00000004,
+    DisplayP3Linear = 0x00000008,
+    DCIP3Nonlinear = 0x00000010,
+    BT709Linear = 0x00000020,
+    BT709Nonlinear = 0x00000040,
+    BT2020Linear = 0x00000080,
+    HDR10ST2084 = 0x00000100,
+    DolbyVision = 0x00000200,
+    HDR10HLG = 0x00000400,
+    AdobeRGBLinear = 0x00000800,
+    AdobeRGBNonlinear = 0x00001000,
+    PassThrough = 0x00002000,
+    ExtendedSRGBNonliner = 0x00004000,
+    DisplayNative = 0x00008000,
+
+    All = 0xffffffffffffffff,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(ColorSpaceFlags)
+
+enum class QueueFlags : uint32_t {
     None = 0x00000000,
     Graphics = 0x00000001,
     Transfer = 0x00000002,
@@ -281,20 +345,6 @@ enum class BufferUsageFlags : int32_t {
 
 VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(BufferUsageFlags)
 
-enum class TextureLayout : int32_t {
-    Undefined = 0,
-    General = 1,
-    RenderTarget = 2,
-    DepthStencilTarget = 3,
-    DepthStencilReadOnly = 4,
-    ShaderReadOnly = 5,
-    TransferSource = 6,
-    TransferDestination = 7,
-    Preinitialized = 8,
-
-    PresentSource = 1000001002,
-};
-
 enum class TextureUsageFlags : int32_t {
     None = 0x00000000,
     TransferSource = 0x00000001,
@@ -319,6 +369,20 @@ enum class TextureUsageFlags : int32_t {
 };
 
 VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(TextureUsageFlags)
+
+enum class TextureLayout : int32_t {
+    Undefined = 0,
+    General = 1,
+    RenderTarget = 2,
+    DepthStencilTarget = 3,
+    DepthStencilReadOnly = 4,
+    ShaderReadOnly = 5,
+    TransferSource = 6,
+    TransferDestination = 7,
+    Preinitialized = 8,
+
+    PresentSource = 1000001002,
+};
 
 enum class Format : int32_t {
     Undefined = 0,

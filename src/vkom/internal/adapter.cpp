@@ -212,6 +212,151 @@ QueueFlags VulkanAdapter::queryQueueFamilyFlags(uint32_t family) const noexcept 
     return (castEnum<QueueFlags>(queueFamilyProperties[family].queueFlags) | (physicalDeviceQueueFamilySupportsPresentation(_adapterData.instanceData.vkInstance, _adapterData.instanceData.vkGetInstanceProcAddr, _adapterData.vkPhysicalDevice, family) ? QueueFlags::Present : QueueFlags::None));
 }
 
+void VulkanAdapter::querySurfaceCapabilities(ISurface* surface, SurfaceCapabilities* capabilities) const noexcept {
+    *capabilities = {};
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfaceCapabilitiesKHR == nullptr) {
+        return;
+    }
+
+    if (surface->handleType() != ObjectType::SurfaceKHR) {
+        return;
+    }
+
+    VkSurfaceKHR vkSurface = surface->handle<VkSurfaceKHR>();
+
+    VkSurfaceCapabilitiesKHR vkCapabilities;
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_adapterData.vkPhysicalDevice, vkSurface, &vkCapabilities) != VK_SUCCESS) {
+        return;
+    }
+
+    capabilities->minBackbufferCount = vkCapabilities.minImageCount;
+    capabilities->maxBackbufferCount = vkCapabilities.maxImageCount;
+    capabilities->currentExtent.width = vkCapabilities.currentExtent.width;
+    capabilities->currentExtent.height = vkCapabilities.currentExtent.height;
+    capabilities->currentExtent.depth = 0;
+    capabilities->minBackbufferDimensions.extent.width = vkCapabilities.minImageExtent.width;
+    capabilities->minBackbufferDimensions.extent.height = vkCapabilities.minImageExtent.height;
+    capabilities->minBackbufferDimensions.extent.depth = 0;
+    capabilities->minBackbufferDimensions.subresource.layers = 1;
+    capabilities->minBackbufferDimensions.subresource.mips = 1;
+    capabilities->maxBackbufferDimensions.extent.width = vkCapabilities.maxImageExtent.width;
+    capabilities->maxBackbufferDimensions.extent.height = vkCapabilities.maxImageExtent.height;
+    capabilities->maxBackbufferDimensions.extent.depth = 0;
+    capabilities->maxBackbufferDimensions.subresource.layers = vkCapabilities.maxImageArrayLayers;
+    capabilities->maxBackbufferDimensions.subresource.mips = 1;
+    capabilities->supportedTransforms = castEnum<SurfaceTransformFlags>(vkCapabilities.supportedTransforms);
+    capabilities->currentTransform = castEnum<SurfaceTransformFlags>(vkCapabilities.currentTransform);
+    capabilities->supportedCompositeAlpha = castEnum<CompositeAlphaFlags>(vkCapabilities.supportedCompositeAlpha);
+    capabilities->supportedBackbufferUsages = castEnum<TextureUsageFlags>(vkCapabilities.minImageCount);
+}
+
+PresentModeFlags VulkanAdapter::querySurfacePresentModes(ISurface* surface) const noexcept {
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfacePresentModesKHR == nullptr) {
+        return PresentModeFlags::None;
+    }
+
+    if (surface->handleType() != ObjectType::SurfaceKHR) {
+        return PresentModeFlags::None;
+    }
+
+    VkSurfaceKHR vkSurface = surface->handle<VkSurfaceKHR>();
+
+    uint32_t vkPresentModeCount;
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfacePresentModesKHR(_adapterData.vkPhysicalDevice, vkSurface, &vkPresentModeCount, nullptr) != VK_SUCCESS) {
+        return PresentModeFlags::None;
+    }
+
+    std::vector<VkPresentModeKHR> vkPresentModes(vkPresentModeCount);
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfacePresentModesKHR(_adapterData.vkPhysicalDevice, vkSurface, &vkPresentModeCount, &vkPresentModes[0]) != VK_SUCCESS) {
+        return PresentModeFlags::None;
+    }
+
+    PresentModeFlags modes = PresentModeFlags::None;
+    for (VkPresentModeKHR vkMode : vkPresentModes) {
+        modes |= castEnum<PresentModeFlags>(vkMode);
+    }
+
+    return modes;
+}
+
+uint64_t VulkanAdapter::querySurfaceFormatBits(ISurface* surface, Format format, ColorSpaceFlags colorSpaceFlags) const noexcept {
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfaceFormatsKHR == nullptr) {
+        return 0x0000000000000000;
+    }
+
+    if (surface->handleType() != ObjectType::SurfaceKHR) {
+        return 0x0000000000000000;
+    }
+
+    VkSurfaceKHR vkSurface = surface->handle<VkSurfaceKHR>();
+
+    uint32_t vkSurfaceFormatCount;
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfaceFormatsKHR(_adapterData.vkPhysicalDevice, vkSurface, &vkSurfaceFormatCount, nullptr) != VK_SUCCESS) {
+        return 0x0000000000000000;
+    }
+
+    std::vector<VkSurfaceFormatKHR> vkSurfaceFormats(vkSurfaceFormatCount);
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfaceFormatsKHR(_adapterData.vkPhysicalDevice, vkSurface, &vkSurfaceFormatCount, &vkSurfaceFormats[0]) != VK_SUCCESS) {
+        return 0x0000000000000000;
+    }
+
+    uint64_t bits = 0;
+    for (size_t i = 0; i < vkSurfaceFormatCount; i += 1) {
+        if (i >= 64) {
+            /* NOTE: further surface formats are ignored */
+            break;
+        }
+
+        if (vkSurfaceFormats[i].format == castEnum<VkFormat>(format) && (colorSpaceFlags & castEnum<ColorSpaceFlags>(vkSurfaceFormats[i].colorSpace)) != ColorSpaceFlags::None) {
+            bits |= (1 << i);
+        }
+    }
+
+    return bits;
+}
+
+bool VulkanAdapter::enumerateSurfaceFormats(ISurface* surface, uint32_t index, SurfaceFormat* surfaceFormat) const noexcept {
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfaceFormatsKHR == nullptr) {
+        return false;
+    }
+
+    if (surface->handleType() != ObjectType::SurfaceKHR) {
+        return false;
+    }
+
+    VkSurfaceKHR vkSurface = surface->handle<VkSurfaceKHR>();
+
+    uint32_t vkSurfaceFormatCount;
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfaceFormatsKHR(_adapterData.vkPhysicalDevice, vkSurface, &vkSurfaceFormatCount, nullptr) != VK_SUCCESS) {
+        return false;
+    }
+
+    if (index >= vkSurfaceFormatCount) {
+        return false;
+    }
+
+    std::vector<VkSurfaceFormatKHR> vkSurfaceFormats(vkSurfaceFormatCount);
+    if (_adapterData.functionPointers.surfaceKHR.vkGetPhysicalDeviceSurfaceFormatsKHR(_adapterData.vkPhysicalDevice, vkSurface, &vkSurfaceFormatCount, &vkSurfaceFormats[0]) != VK_SUCCESS) {
+        return false;
+    }
+
+    surfaceFormat->format = castEnum<Format>(vkSurfaceFormats[index].format);
+    surfaceFormat->colorSpaceFlags = castEnum<ColorSpaceFlags>(vkSurfaceFormats[index].colorSpace);
+
+    return true;
+}
+
+bool VulkanAdapter::enumerateSurfaceFormatsByBits(ISurface* surface, uint64_t bits, SurfaceFormat* surfaceFormat) const noexcept {
+    uint32_t index = 0;
+    for (index = 0; index < 64; index += 1) {
+        if ((bits & (1 << index)) != 0) {
+            return enumerateSurfaceFormats(surface, index, surfaceFormat);
+        }
+    }
+
+    return false;
+}
+
 Result VulkanAdapter::createDevice(IDevice** device) {
     VkPhysicalDeviceFeatures2 features2 = {};
     features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;

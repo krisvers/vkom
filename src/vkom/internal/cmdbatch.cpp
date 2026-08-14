@@ -146,7 +146,7 @@ void const* VulkanCommandBatch::vkData() const noexcept {
 
 /* IChild */
 IParent* VulkanCommandBatch::parent() const noexcept {
-    return _queue;
+    return _queue->queryInterface<IParent>();
 }
 
 /* IDispatchable */

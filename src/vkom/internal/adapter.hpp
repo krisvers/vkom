@@ -44,6 +44,12 @@ public:
     bool queryExtension(const char* extension) const noexcept override;
     QueueFlags queryQueueFamilyFlags(uint32_t family) const noexcept override;
 
+    void querySurfaceCapabilities(ISurface* surface, SurfaceCapabilities* capabilities) const noexcept override;
+    PresentModeFlags querySurfacePresentModes(ISurface* surface) const noexcept override;
+    uint64_t querySurfaceFormatBits(ISurface* surface, Format format, ColorSpaceFlags colorSpaceFlags) const noexcept override;
+    bool enumerateSurfaceFormats(ISurface* surface, uint32_t index, SurfaceFormat* surfaceFormat) const noexcept override;
+    bool enumerateSurfaceFormatsByBits(ISurface* surface, uint64_t bits, SurfaceFormat* surfaceFormat) const noexcept override;
+
     Result createDevice(IDevice** device) override;
 
     /* IHandled */

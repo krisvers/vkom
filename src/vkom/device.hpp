@@ -5,6 +5,9 @@
 #include <vkom/enums.hpp>
 #include <vkom/object.hpp>
 
+#include <vkom/surface.hpp>
+#include <vkom/swapchain.hpp>
+
 namespace vkom {
 
 inline const uint32_t QUEUE_FAMILY_ANY = std::numeric_limits<uint32_t>::max();
@@ -26,6 +29,9 @@ public:
 
     virtual Result acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept = 0;
     virtual Result acquireFence(bool signalled, IFence** fence) noexcept = 0;
+
+    virtual Result createSwapchain(ISurface* surface, SwapchainInfo const* info, ISwapchain** swapchain) noexcept = 0;
+    virtual Result createSwapchainAndSurface(SurfaceWSIInfo const* surfaceInfo, SwapchainInfo const* swapchainInfo, ISurface** surface, ISwapchain** swapchain) noexcept = 0;
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("8af16862-cec4-4dbc-9fe7-c00a6eb9e41c");

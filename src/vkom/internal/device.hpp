@@ -53,6 +53,9 @@ public:
     Result acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept override;
     Result acquireFence(bool signaled, IFence** fence) noexcept override;
 
+    Result createSwapchain(ISurface* surface, SwapchainInfo const* info, ISwapchain** swapchain) noexcept override;
+    Result createSwapchainAndSurface(SurfaceWSIInfo const* surfaceInfo, SwapchainInfo const* swapchainInfo, ISurface** surface, ISwapchain** swapchain) noexcept override;
+
     /* IHandled */
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;

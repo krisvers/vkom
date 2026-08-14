@@ -3,6 +3,8 @@
 #include <vkom/enums.hpp>
 #include <vkom/object.hpp>
 
+#include <vkom/texture.hpp>
+
 namespace vkom {
 
 struct SurfaceWSIInfo {
@@ -10,6 +12,23 @@ struct SurfaceWSIInfo {
     uint64_t windowHandle;
     uint64_t displayHandle;
     uint64_t miscHandle;
+};
+
+struct SurfaceCapabilities {
+    uint32_t minBackbufferCount;
+    uint32_t maxBackbufferCount;
+    TextureExtent currentExtent;
+    TextureDimensions minBackbufferDimensions;
+    TextureDimensions maxBackbufferDimensions;
+    SurfaceTransformFlags supportedTransforms;
+    SurfaceTransformFlags currentTransform;
+    CompositeAlphaFlags supportedCompositeAlpha;
+    TextureUsageFlags supportedBackbufferUsages;
+};
+
+struct SurfaceFormat {
+    Format format;
+    ColorSpaceFlags colorSpaceFlags;
 };
 
 class ISurface : virtual public IHandled, virtual public ICollected, virtual public IChild {

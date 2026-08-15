@@ -6,7 +6,155 @@ namespace vkom {
 
 namespace internal {
 
-VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* device, ISurface* surface, SwapchainInfo const& info, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _surface(surface), _info(info), _swapchainData(swapchainData) {
+VulkanManualBackbuffer::VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _index(index), _textureData(textureData), _swapchainData(swapchainData) {
+    
+}
+
+VulkanManualBackbuffer::~VulkanManualBackbuffer() {
+
+}
+
+/* IBackbuffer */
+uint32_t VulkanManualBackbuffer::index() const noexcept {
+    return _index;
+}
+
+Result VulkanManualBackbuffer::present(PresentInfo const* info, IPresentFence** signal) noexcept {
+    PFN_vkQueuePresentKHR vkQueuePresentKHR = _device->loadDispatchSymbol<PFN_vkQueuePresentKHR>("vkQueuePresentKHR");
+    if (vkQueuePresentKHR == nullptr) {
+        return Result::ErrorUnsupportedFeature;
+    }
+
+    VkSwapchainPresentFenceInfoKHR presentFenceInfo = {};
+    presentFenceInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR;
+    presentFenceInfo.swapchainCount = 1;
+
+    uint64_t presentID = 0;
+
+    VkPresentIdKHR presentIdInfo = {};
+    presentIdInfo.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
+    presentIdInfo.swapchainCount = 1;
+    presentIdInfo.pPresentIds = &presentID;
+
+    /* TODO: timeline semaphores */
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = ;
+    presentInfo.pWaitSemaphores = ;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &_swapchainData.vkSwapchain;
+    presentInfo.pImageIndices = &_index;
+    
+    if (info->requestFence) {
+        AdapterFeatures features;
+        _adapter->queryFeatures(&features);
+
+        if (features.swapchainMaintenance1) {
+            
+
+            presentFenceInfo.pFences = &vkPresentFence;
+
+            presentInfo.pNext = &presentFenceInfo;
+        } else if (features.presentID && features.presentWait) {
+            presentInfo.pNext = &presentIdInfo;
+        }
+    }
+
+    _presented = true;
+    return Result::Success;
+}
+
+/* ITexture */
+void VulkanManualBackbuffer::getInfo(TextureInfo* info) const noexcept {
+    *info = _info;
+}
+
+Result VulkanManualBackbuffer::createView(TextureViewInfo const* info, ITextureView** view) noexcept {
+    /* TODO: */
+    return Result::ErrorUnknown;
+}
+
+/* IResource */
+bool VulkanManualBackbuffer::isAlias() const noexcept {
+    return false;
+}
+
+void VulkanManualBackbuffer::getAllocationInfo(ResourceAllocationInfo* info) const noexcept {
+    info->alignment = 0;
+    info->resourceSize = 0;
+    info->allocationLocalOffset = 0;
+    info->allocationLocalSize = 0;
+}
+
+/* IHandled */
+uint64_t VulkanManualBackbuffer::handle() const noexcept {
+    return reinterpret_cast<uint64_t>(_textureData.vkImage);
+}
+
+ObjectType VulkanManualBackbuffer::handleType() const noexcept {
+    return ObjectType::Image;
+}
+
+void const* VulkanManualBackbuffer::vkData() const noexcept {
+    return &_textureData;
+}
+
+/* IChild */
+IParent* VulkanManualBackbuffer::parent() const noexcept {
+    return _swapchain->queryInterface<IParent>();
+}
+
+/* ICollected */
+uint32_t VulkanManualBackbuffer::release() {
+    if (_referenceCount == 0) {
+        _acquired = false;
+        _presented = false;
+        return 0;
+    }
+
+    _referenceCount -= 1;
+    if (_referenceCount == 0) {
+        if (_acquired && !_presented) {
+            releaseSwapchainImage();
+        }
+
+        _acquired = false;
+        _presented = false;
+        return 0;
+    }
+
+    return _referenceCount;
+}
+
+uint32_t VulkanManualBackbuffer::retain() {
+    _referenceCount += 1;
+    return _referenceCount;
+}
+
+/* IInterface */
+void* VulkanManualBackbuffer::queryInterface(IID const& iid) noexcept {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == ICollected::iid()) {
+        return static_cast<ICollected*>(this);
+    } else if (iid == IChild::iid()) {
+        return static_cast<IChild*>(this);
+    } else if (iid == IParent::iid()) {
+        return static_cast<IParent*>(this);
+    } else if (iid == IResource::iid()) {
+        return static_cast<IResource*>(this);
+    } else if (iid == ITexture::iid()) {
+        return static_cast<ITexture*>(this);
+    } else if (iid == IBackbuffer::iid()) {
+        return static_cast<IBackbuffer*>(this);
+    }
+
+    return nullptr;
+}
+
+VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* device, ISurface* surface, SwapchainInfo const& info, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _surface(surface), _info(info), _swapchainData(swapchainData), _backbufferHeapData(VulkanHeapData(_swapchainData.deviceData, nullptr)) {
     /* TODO: backbuffer creation */
     uint32_t backbufferCount;
     PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR = _device->loadDispatchSymbol<PFN_vkGetSwapchainImagesKHR>("vkGetSwapchainImagesKHR");
@@ -21,6 +169,22 @@ VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* devi
     _backbufferImages.resize(backbufferCount);
     if (vkGetSwapchainImagesKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, &backbufferCount, &_backbufferImages[0]) != VK_SUCCESS) {
         throw std::runtime_error("vkGetSwapchainImagesKHR failed");
+    }
+
+    _backbuffers.resize(backbufferCount);
+    
+    SurfaceFormat surfaceFormat;
+    _adapter->enumerateSurfaceFormatsByBits(surface, info.surfaceFormatBits, &surfaceFormat);
+
+    TextureInfo backbufferInfo = info.backbufferInfo;
+    backbufferInfo.format = surfaceFormat.format;
+    backbufferInfo.samplesPerTexel = 1;
+    backbufferInfo.location = MemoryLocationFlags::GPU;
+
+    for (uint32_t i = 0; i < backbufferCount; i += 1) {
+        VulkanTextureData textureData = VulkanTextureData(_backbufferHeapData, nullptr, {}, _backbufferImages[i]);
+        _backbuffers[i] = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData);
+        adopt(_backbuffers[i]);
     }
 
     _surface->retain();

@@ -23,9 +23,34 @@ struct SwapchainInfo {
     bool clipped;
 };
 
+struct PresentInfo {
+    uint32_t waitCount;
+    SemaphorePoint const* waits;
+    bool requestFence;
+};
+
+class IPresentFence : virtual public IFence {
+public:
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("307ed28c-1ba1-4bb0-b48d-9fd235881a97");
+        return iid;
+    }
+};
+
+class IPresentIDFence : virtual public IPresentFence {
+public:
+    virtual uint64_t presentID() const noexcept = 0;
+
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("3d765e58-a614-474f-9eb5-1ed470a37b02");
+        return iid;
+    }
+};
+
 class IBackbuffer : virtual public ITexture {
 public:
     virtual uint32_t index() const noexcept = 0;
+    virtual Result present(PresentInfo const* info, IPresentFence** fence) noexcept = 0;
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("deeef755-cf7c-48d3-ac67-baaf1345a2d3");
@@ -53,8 +78,9 @@ public:
 /* TODO: */
 class IManagedBackbuffer : virtual public IBackbuffer {
 public:
-    virtual ISemaphore* semaphore() const noexcept = 0;
-    virtual IFence* fence() const noexcept = 0;
+    virtual ISemaphore* acquisitionFinishedSemaphore() const noexcept = 0;
+    virtual uint64_t acquisitionFinishedSemaphoreValue() const noexcept = 0;
+    virtual IFence* acquisitionFinishedFence() const noexcept = 0;
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("cc61aeff-a82d-4f20-9ffb-2c904510ebab");

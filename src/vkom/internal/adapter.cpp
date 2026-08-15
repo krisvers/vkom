@@ -46,6 +46,27 @@ VulkanAdapter::VulkanAdapter(bool inheritedHandle, IInstance* instance, VulkanAd
     VkPhysicalDeviceFeatures2 features2 = {};
     features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
+    VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR swapchainMaintenance1Features = {};
+    swapchainMaintenance1Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR;
+    swapchainMaintenance1Features.pNext = features2.pNext;
+    if (queryExtension(VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) || queryExtension(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME)) {
+        features2.pNext = &swapchainMaintenance1Features;
+    }
+
+    VkPhysicalDevicePresentIdFeaturesKHR presentIdFeatures = {};
+    presentIdFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR;
+    presentIdFeatures.pNext = features2.pNext;
+    if (queryExtension(VK_KHR_PRESENT_ID_EXTENSION_NAME)) {
+        features2.pNext = &presentIdFeatures;
+    }
+
+    VkPhysicalDevicePresentWaitFeaturesKHR presentWaitFeatures = {};
+    presentWaitFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR;
+    presentWaitFeatures.pNext = features2.pNext;
+    if (queryExtension(VK_KHR_PRESENT_WAIT_EXTENSION_NAME)) {
+        features2.pNext = &presentWaitFeatures;
+    }
+
     VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {};
     dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
     dynamicRenderingFeatures.pNext = features2.pNext;
@@ -110,6 +131,9 @@ VulkanAdapter::VulkanAdapter(bool inheritedHandle, IInstance* instance, VulkanAd
     }
 
     _features.swapchain = queryExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    _features.swapchainMaintenance1 = swapchainMaintenance1Features.swapchainMaintenance1;
+    _features.presentID = presentIdFeatures.presentId;
+    _features.presentWait = presentWaitFeatures.presentWait;
     _features.dynamicRendering = dynamicRenderingFeatures.dynamicRendering;
     _features.timelineSemaphores = timelineSemaphoreFeatures.timelineSemaphore;
     _features.bufferDeviceAddress = bufferDeviceAddressFeatures.bufferDeviceAddress;
@@ -364,6 +388,30 @@ Result VulkanAdapter::createDevice(IDevice** device) {
     features2.features.shaderInt64 = _features.shaderInt64;
     features2.features.shaderFloat64 = _features.shaderFloat64;
 
+    VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR swapchainMaintenance1Features = {};
+    swapchainMaintenance1Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR;
+    swapchainMaintenance1Features.pNext = features2.pNext;
+    swapchainMaintenance1Features.swapchainMaintenance1 = _features.swapchainMaintenance1;
+    if (_features.swapchainMaintenance1) {
+        features2.pNext = &swapchainMaintenance1Features;
+    }
+
+    VkPhysicalDevicePresentIdFeaturesKHR presentIdFeatures = {};
+    presentIdFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR;
+    presentIdFeatures.pNext = features2.pNext;
+    presentIdFeatures.presentId = _features.presentID;
+    if (_features.presentID) {
+        features2.pNext = &presentIdFeatures;
+    }
+
+    VkPhysicalDevicePresentWaitFeaturesKHR presentWaitFeatures = {};
+    presentWaitFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR;
+    presentWaitFeatures.pNext = features2.pNext;
+    presentWaitFeatures.presentWait = _features.presentWait;
+    if (_features.presentWait) {
+        features2.pNext = &presentWaitFeatures;
+    }
+
     VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {};
     dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
     dynamicRenderingFeatures.pNext = features2.pNext;
@@ -448,6 +496,12 @@ Result VulkanAdapter::createDevice(IDevice** device) {
     std::vector<const char*> enabledExtensions = {};
     for (VkExtensionProperties const& extension : _availableExtensions) {
         if (std::strcmp(extension.extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0) {
+            enabledExtensions.push_back(extension.extensionName);
+        } else if (std::strcmp(extension.extensionName, VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0 || std::strcmp(extension.extensionName, VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0) {
+            enabledExtensions.push_back(extension.extensionName);
+        } else if (std::strcmp(extension.extensionName, VK_KHR_PRESENT_ID_EXTENSION_NAME) == 0) {
+            enabledExtensions.push_back(extension.extensionName);
+        } else if (std::strcmp(extension.extensionName, VK_KHR_PRESENT_WAIT_EXTENSION_NAME) == 0) {
             enabledExtensions.push_back(extension.extensionName);
         } else if (!enabledExtensionBufferDeviceAddress && std::strcmp(extension.extensionName, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) == 0) {
             enabledExtensions.push_back(extension.extensionName);

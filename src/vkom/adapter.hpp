@@ -19,6 +19,9 @@ struct AdapterInfo {
 
 struct AdapterFeatures {
     bool swapchain;
+    bool swapchainMaintenance1;
+    bool presentID;
+    bool presentWait;
     bool dynamicRendering;
     bool timelineSemaphores;
     bool bufferDeviceAddress;

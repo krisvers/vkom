@@ -26,12 +26,61 @@ struct DummyWSISynchronizationPrimitives {
 };
 
 /* TODO: backbuffer */
-class VulkanManualBackbuffer final : virtual public IBackbuffer, virtual public CollectedByHeap {
+class VulkanManualBackbuffer final : virtual public IBackbuffer, virtual public ParentByVector {
 private:
+    bool _inheritedHandle = false;
+    bool _alias = false;
+    ISwapchain* _swapchain = nullptr;
+    IDevice* _device = nullptr;
+    IAdapter* _adapter = nullptr;
+    IInstance* _instance = nullptr;
+    TextureInfo _info = {};
+    uint32_t _index = 0;
+    VulkanTextureData _textureData;
+    VulkanSwapchainData _swapchainData;
 
+    uint32_t _referenceCount = 0;
+    bool _acquired = false;
+    bool _presented = false;
+
+    void releaseSwapchainImage() noexcept;
+    Result acquireSwapchainMaintenancePresentFence(IPresentFence** fence) noexcept;
+    Result acquirePresentIDFence(uint64_t presentID, IPresentIDFence** fence) noexcept;
 
 public:
+    VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSwapchainData const& swapchainData);
+    ~VulkanManualBackbuffer();
 
+    bool markAcquired() noexcept;
+
+    /* IBackbuffer */
+    uint32_t index() const noexcept override;
+    Result present(PresentInfo const* info, IPresentFence** signal) noexcept override;
+
+    /* ITexture */
+    void getInfo(TextureInfo* info) const noexcept override;
+
+    Result createView(TextureViewInfo const* info, ITextureView** view) noexcept override;
+
+    /* IResource */
+    bool isAlias() const noexcept override;
+    void getAllocationInfo(ResourceAllocationInfo* info) const noexcept override;
+
+    /* IHandled */
+    uint64_t handle() const noexcept override;
+    ObjectType handleType() const noexcept override;
+
+    void const* vkData() const noexcept override;
+
+    /* IChild */
+    IParent* parent() const noexcept override;
+
+    /* ICollected */
+    uint32_t release() override;
+    uint32_t retain() override;
+
+    /* IInterface */
+    void* queryInterface(IID const& iid) noexcept override;
 };
 
 class VulkanManualSwapchain final : virtual public ISwapchain, virtual public CollectedByHeap, virtual public ParentByVector {
@@ -43,6 +92,7 @@ private:
     ISurface* _surface = nullptr;
     SwapchainInfo _info;
     VulkanSwapchainData _swapchainData;
+    VulkanHeapData _backbufferHeapData;
 
     std::vector<VkImage> _backbufferImages = {};
     std::vector<IBackbuffer*> _backbuffers = {};

@@ -76,13 +76,24 @@ IChild* ParentByVector::enumerateChildren(uint32_t id, IID const& filter) const 
     }
 
     if (filter == IID::null() || filter == IChild::iid() || filter == IBase::iid()) {
-        return _children[id];
+        IChild* child = _children[id];
+        ICollected* collected = child->queryInterface<ICollected>();
+        if (collected != nullptr) {
+            collected->retain();
+        }
+
+        return child;
     }
 
     uint32_t currentID = 0;
     for (IChild* child : _children) {
         if (child->queryInterface(filter) != nullptr) {
             if (currentID == id) {
+                ICollected* collected = child->queryInterface<ICollected>();
+                if (collected != nullptr) {
+                    collected->retain();
+                }
+
                 return child;
             }
 

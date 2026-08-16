@@ -63,6 +63,7 @@ Result VulkanQueue::acquireCommandEncoder(ICommandEncoder** encoder) noexcept {
     VulkanCommandEncoderData encoderData = VulkanCommandEncoderData(_queueData, _vkCommandPool, vkCommandBuffer, false);
 
     *encoder = new VulkanCommandEncoder(false, IInterface::queryInterface<IQueue>(), encoderData);
+    adopt(*encoder);
     return Result::Success;
 }
 
@@ -75,6 +76,7 @@ Result VulkanQueue::acquireCommandBatch(ICommandBatch** batch) noexcept {
     VulkanCommandBatchData batchData = VulkanCommandBatchData(_queueData, _vkCommandPool, vkCommandBuffer, false);
 
     *batch = new VulkanCommandBatch(false, IInterface::queryInterface<IQueue>(), batchData);
+    adopt(*batch);
     return Result::Success;
 }
 

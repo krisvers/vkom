@@ -271,6 +271,7 @@ Result createInstance(bool debug, InstanceLoaderInfo const* loaderInfo, IInstanc
     }
 
     bool portabilityEnumeration = false;
+    bool enabledExtensionSurfaceMaintenance1 = false;
 
     std::vector<const char*> enabledExtensions = {};
     for (VkExtensionProperties const& props : availableExtensions) {
@@ -283,6 +284,10 @@ Result createInstance(bool debug, InstanceLoaderInfo const* loaderInfo, IInstanc
             #endif
         } else if (std::strcmp(props.extensionName, VK_KHR_SURFACE_EXTENSION_NAME) == 0) {
             enabledExtensions.push_back(props.extensionName);
+        }
+        else if (!enabledExtensionSurfaceMaintenance1 && (std::strcmp(props.extensionName, VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME) == 0 || std::strcmp(props.extensionName, VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME) == 0)) {
+            enabledExtensions.push_back(props.extensionName);
+            enabledExtensionSurfaceMaintenance1 = true;
         } else if (std::strcmp(props.extensionName, "VK_KHR_win32_surface") == 0) {
             enabledExtensions.push_back(props.extensionName);
         } else if (std::strcmp(props.extensionName, "VK_KHR_xlib_surface") == 0) {

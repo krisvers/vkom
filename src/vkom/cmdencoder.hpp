@@ -68,6 +68,22 @@ struct TextureResolve {
     TextureDimensions dimensions;
 };
 
+struct ColorTextureClear {
+    TextureLayout layout;
+    float color[4];
+    TextureSubresourcePosition subresourcePosition;
+    TextureSubresourceDimensions subresourceDimensions;
+};
+
+struct DepthStencilTextureClear {
+    TextureLayout layout;
+    float depth;
+    uint32_t stencil;
+    TextureAspectFlags aspectFlags;
+    TextureSubresourcePosition subresourcePosition;
+    TextureSubresourceDimensions subresourceDimensions;
+};
+
 struct GeneralBarrier {
     PipelineStageFlags srcStage;
     PipelineStageFlags dstStage;
@@ -118,9 +134,11 @@ public:
     virtual void smallBufferUpload(IBuffer* dstBuffer, SmallBufferUpload const* upload) noexcept = 0;
     virtual void fillBuffer(IBuffer* dstBuffer, BufferFill const* fill) noexcept = 0;
 
-    /* blit/resolve commands */
+    /* texture modification commands */
     virtual void blitTexture(ITexture* dstTexture, ITexture* srcTexture, TextureBlit const* blit) noexcept = 0;
     virtual void resolveTexture(ITexture* dstTexture, ITexture* srcTexture, TextureResolve const* resolve) noexcept = 0;
+    virtual void clearColorTexture(ITexture* texture, ColorTextureClear const* clear) noexcept = 0;
+    virtual void clearDepthStencilTexture(ITexture* texture, DepthStencilTextureClear const* clear) noexcept = 0;
 
     /* synchronization commands */
     virtual void globalMemoryBarrier(GeneralBarrier const* barrier) noexcept = 0;

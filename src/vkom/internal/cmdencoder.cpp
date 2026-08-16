@@ -398,6 +398,68 @@ void VulkanCommandEncoder::resolveTexture(ITexture* dstTexture, ITexture* srcTex
     _encoderData.functionPointers.commandBuffer10.vkCmdResolveImage(_encoderData.vkCommandBuffer, vkSrcImage, castEnum<VkImageLayout>(resolve->srcLayout), vkDstImage, castEnum<VkImageLayout>(resolve->dstLayout), 1, &vkResolve);
 }
 
+void VulkanCommandEncoder::clearColorTexture(ITexture* texture, ColorTextureClear const* clear) noexcept {
+    if (_ended) {
+        /* TODO: encoder already ended: can't encode anymore commands */
+        return;
+    }
+
+    if (texture->handleType() != ObjectType::Image) {
+        /* TODO: error */
+        return;
+    }
+
+    /* TODO: more error checking */
+
+    VkImage vkImage = texture->handle<VkImage>();
+
+    VkClearColorValue vkColor = {};
+    vkColor.float32[0] = clear->color[0];
+    vkColor.float32[1] = clear->color[1];
+    vkColor.float32[2] = clear->color[2];
+    vkColor.float32[3] = clear->color[3];
+
+    VkImageSubresourceRange vkSubresourceRange = {};
+    vkSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    vkSubresourceRange.baseMipLevel = clear->subresourcePosition.mip;
+    vkSubresourceRange.levelCount = clear->subresourceDimensions.mips;
+    vkSubresourceRange.baseArrayLayer = clear->subresourcePosition.layer;
+    vkSubresourceRange.layerCount = clear->subresourceDimensions.layers;
+
+    /* TODO: possibly cache clear commands and pool them together between barriers/passes? */
+    _encoderData.functionPointers.commandBuffer10.vkCmdClearColorImage(_encoderData.vkCommandBuffer, vkImage, castEnum<VkImageLayout>(clear->layout), &vkColor, 1, &vkSubresourceRange);
+}
+
+void VulkanCommandEncoder::clearDepthStencilTexture(ITexture* texture, DepthStencilTextureClear const* clear) noexcept {
+    if (_ended) {
+        /* TODO: encoder already ended: can't encode anymore commands */
+        return;
+    }
+
+    if (texture->handleType() != ObjectType::Image) {
+        /* TODO: error */
+        return;
+    }
+
+    /* TODO: more error checking */
+
+    VkImage vkImage = texture->handle<VkImage>();
+
+    VkClearDepthStencilValue vkDepthStencil = {};
+    vkDepthStencil.depth = clear->depth;
+    vkDepthStencil.stencil = clear->stencil;
+
+    VkImageSubresourceRange vkSubresourceRange = {};
+    vkSubresourceRange.aspectMask = castEnum<VkImageAspectFlags>(clear->aspectFlags);
+    vkSubresourceRange.baseMipLevel = clear->subresourcePosition.mip;
+    vkSubresourceRange.levelCount = clear->subresourceDimensions.mips;
+    vkSubresourceRange.baseArrayLayer = clear->subresourcePosition.layer;
+    vkSubresourceRange.layerCount = clear->subresourceDimensions.layers;
+
+    /* TODO: possibly cache clear commands and pool them together between barriers/passes? */
+    _encoderData.functionPointers.commandBuffer10.vkCmdClearDepthStencilImage(_encoderData.vkCommandBuffer, vkImage, castEnum<VkImageLayout>(clear->layout), &vkDepthStencil, 1, &vkSubresourceRange);
+}
+
 void VulkanCommandEncoder::globalMemoryBarrier(GeneralBarrier const* barrier) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */

@@ -6,62 +6,179 @@ namespace vkom {
 
 namespace internal {
 
+VulkanSwapchainMaintenance1PresentFence::VulkanSwapchainMaintenance1PresentFence(bool inheritedHandle, ISwapchain* swapchain, uint64_t presentID, VulkanFenceData const& fenceData, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _presentID(presentID), _fenceData(fenceData), _swapchainData(swapchainData) {
+    _swapchain->retain();
+}
+
+VulkanSwapchainMaintenance1PresentFence::~VulkanSwapchainMaintenance1PresentFence() {
+    _swapchain->disown(IInterface::queryInterface<IChild>());
+
+    if (!_inheritedHandle) {
+        _fenceData.deviceData.functionPointers.device10.vkDestroyFence(_fenceData.deviceData.vkDevice, _fenceData.vkFence, _fenceData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
+    }
+
+    _swapchain->release();
+}
+
+/* IPresentIDFence */
+uint64_t VulkanSwapchainMaintenance1PresentFence::presentID() const noexcept {
+    return _presentID;
+}
+
+/* IFence */
+Result VulkanSwapchainMaintenance1PresentFence::wait(uint64_t timeout) noexcept {
+    return castEnum<Result>(_fenceData.deviceData.functionPointers.device10.vkWaitForFences(_fenceData.deviceData.vkDevice, 1, &_fenceData.vkFence, true, timeout));
+}
+
+Result VulkanSwapchainMaintenance1PresentFence::reset() noexcept {
+    return castEnum<Result>(_fenceData.deviceData.functionPointers.device10.vkResetFences(_fenceData.deviceData.vkDevice, 1, &_fenceData.vkFence));
+}
+
+bool VulkanSwapchainMaintenance1PresentFence::status() const noexcept {
+    return (_fenceData.deviceData.functionPointers.device10.vkGetFenceStatus(_fenceData.deviceData.vkDevice, _fenceData.vkFence) == VK_SUCCESS);
+}
+
+/* IHandled */
+uint64_t VulkanSwapchainMaintenance1PresentFence::handle() const noexcept {
+    return reinterpret_cast<uint64_t>(_fenceData.vkFence);
+}
+
+ObjectType VulkanSwapchainMaintenance1PresentFence::handleType() const noexcept {
+    return ObjectType::Fence;
+}
+
+void const* VulkanSwapchainMaintenance1PresentFence::vkData() const noexcept {
+    return reinterpret_cast<void const*>(&_fenceData);
+}
+
+/* IChild */
+IParent* VulkanSwapchainMaintenance1PresentFence::parent() const noexcept {
+    return _swapchain->queryInterface<IParent>();
+}
+
+/* IInterface */
+void* VulkanSwapchainMaintenance1PresentFence::queryInterface(IID const& iid) noexcept {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == ICollected::iid()) {
+        return static_cast<ICollected*>(this);
+    } else if (iid == IParent::iid()) {
+        return static_cast<IChild*>(this);
+    } else if (iid == IFence::iid()) {
+        return static_cast<IFence*>(this);
+    } else if (iid == IPresentFence::iid()) {
+        return static_cast<IPresentFence*>(this);
+    } else if (iid == IPresentIDFence::iid()) {
+        AdapterFeatures features;
+        _adapter->queryFeatures(&features);
+
+        if (features.presentID) {
+            return static_cast<IPresentIDFence*>(this);
+        }
+    }
+
+    return nullptr;
+}
+
+VulkanPresentWaitPresentIDFence::VulkanPresentWaitPresentIDFence(ISwapchain* swapchain, uint64_t presentID, VulkanSwapchainData const& swapchainData) : _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _presentID(presentID), _swapchainData(swapchainData) {
+    _swapchain->retain();
+}
+
+VulkanPresentWaitPresentIDFence::~VulkanPresentWaitPresentIDFence() {
+    _swapchain->disown(IInterface::queryInterface<IChild>());
+    _swapchain->release();
+}
+
+/* IPresentIDFence */
+uint64_t VulkanPresentWaitPresentIDFence::presentID() const noexcept {
+    return _presentID;
+}
+
+/* IFence */
+Result VulkanPresentWaitPresentIDFence::wait(uint64_t timeout) noexcept {
+    PFN_vkWaitForPresentKHR vkWaitForPresentKHR = _device->loadDispatchSymbol<PFN_vkWaitForPresentKHR>("vkWaitForPresentKHR");
+    if (vkWaitForPresentKHR == nullptr) {
+        return Result::ErrorUnsupportedFeature;
+    }
+
+    return castEnum<Result>(vkWaitForPresentKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, _presentID, timeout));
+}
+
+Result VulkanPresentWaitPresentIDFence::reset() noexcept {
+    return Result::ErrorUnsupportedFeature;
+}
+
+bool VulkanPresentWaitPresentIDFence::status() const noexcept {
+    PFN_vkWaitForPresentKHR vkWaitForPresentKHR = _device->loadDispatchSymbol<PFN_vkWaitForPresentKHR>("vkWaitForPresentKHR");
+    if (vkWaitForPresentKHR == nullptr) {
+        return false;
+    }
+
+    Result result = castEnum<Result>(vkWaitForPresentKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, _presentID, _defaultStatusTimeout));
+    return (result == Result::Success || result == Result::SuboptimalSwapchain || result == Result::ErrorOutOfDateSwapchain);
+}
+
+/* IHandled */
+uint64_t VulkanPresentWaitPresentIDFence::handle() const noexcept {
+    return _presentID;
+}
+
+ObjectType VulkanPresentWaitPresentIDFence::handleType() const noexcept {
+    return ObjectType::Unknown;
+}
+
+void const* VulkanPresentWaitPresentIDFence::vkData() const noexcept {
+    return nullptr;
+}
+
+/* IChild */
+IParent* VulkanPresentWaitPresentIDFence::parent() const noexcept {
+    return _swapchain->queryInterface<IParent>();
+}
+
+/* IInterface */
+void* VulkanPresentWaitPresentIDFence::queryInterface(IID const& iid) noexcept {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == ICollected::iid()) {
+        return static_cast<ICollected*>(this);
+    } else if (iid == IParent::iid()) {
+        return static_cast<IChild*>(this);
+    } else if (iid == IFence::iid()) {
+        return static_cast<IFence*>(this);
+    } else if (iid == IPresentFence::iid()) {
+        return static_cast<IPresentFence*>(this);
+    } else if (iid == IPresentIDFence::iid()) {
+        return static_cast<IPresentIDFence*>(this);
+    }
+
+    return nullptr;
+}
+
 VulkanManualBackbuffer::VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _index(index), _textureData(textureData), _swapchainData(swapchainData) {
     
 }
 
 VulkanManualBackbuffer::~VulkanManualBackbuffer() {
+    ParentByVector::disownAll();
+    _swapchain->disown(IInterface::queryInterface<IChild>());
 
+    if (_acquisitionIssued && !_presented) {
+        releaseSwapchainImage();
+    }
+
+    if (_acquisitionIssued) {
+        _swapchain->release();
+    }
 }
 
 /* IBackbuffer */
 uint32_t VulkanManualBackbuffer::index() const noexcept {
     return _index;
-}
-
-Result VulkanManualBackbuffer::present(PresentInfo const* info, IPresentFence** signal) noexcept {
-    PFN_vkQueuePresentKHR vkQueuePresentKHR = _device->loadDispatchSymbol<PFN_vkQueuePresentKHR>("vkQueuePresentKHR");
-    if (vkQueuePresentKHR == nullptr) {
-        return Result::ErrorUnsupportedFeature;
-    }
-
-    VkSwapchainPresentFenceInfoKHR presentFenceInfo = {};
-    presentFenceInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR;
-    presentFenceInfo.swapchainCount = 1;
-
-    uint64_t presentID = 0;
-
-    VkPresentIdKHR presentIdInfo = {};
-    presentIdInfo.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
-    presentIdInfo.swapchainCount = 1;
-    presentIdInfo.pPresentIds = &presentID;
-
-    /* TODO: timeline semaphores */
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = ;
-    presentInfo.pWaitSemaphores = ;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &_swapchainData.vkSwapchain;
-    presentInfo.pImageIndices = &_index;
-    
-    if (info->requestFence) {
-        AdapterFeatures features;
-        _adapter->queryFeatures(&features);
-
-        if (features.swapchainMaintenance1) {
-            
-
-            presentFenceInfo.pFences = &vkPresentFence;
-
-            presentInfo.pNext = &presentFenceInfo;
-        } else if (features.presentID && features.presentWait) {
-            presentInfo.pNext = &presentIdInfo;
-        }
-    }
-
-    _presented = true;
-    return Result::Success;
 }
 
 /* ITexture */
@@ -107,18 +224,17 @@ IParent* VulkanManualBackbuffer::parent() const noexcept {
 /* ICollected */
 uint32_t VulkanManualBackbuffer::release() {
     if (_referenceCount == 0) {
-        _acquired = false;
+        _acquisitionIssued = false;
         _presented = false;
         return 0;
     }
 
     _referenceCount -= 1;
     if (_referenceCount == 0) {
-        if (_acquired && !_presented) {
+        if (_acquisitionIssued && !_presented) {
             releaseSwapchainImage();
         }
 
-        _acquired = false;
         _presented = false;
         return 0;
     }
@@ -154,6 +270,30 @@ void* VulkanManualBackbuffer::queryInterface(IID const& iid) noexcept {
     return nullptr;
 }
 
+/* internal */
+void VulkanManualBackbuffer::releaseSwapchainImage() noexcept {
+    PFN_vkReleaseSwapchainImagesKHR vkReleaseSwapchainImagesKHR = _device->loadDispatchSymbol<PFN_vkReleaseSwapchainImagesKHR>("vkReleaseSwapchainImagesKHR");
+    if (vkReleaseSwapchainImagesKHR == nullptr) {
+        return;
+    }
+
+    VkReleaseSwapchainImagesInfoKHR releaseInfo = {};
+    releaseInfo.sType = VK_STRUCTURE_TYPE_RELEASE_SWAPCHAIN_IMAGES_INFO_KHR;
+    releaseInfo.swapchain = _swapchainData.vkSwapchain;
+    releaseInfo.imageIndexCount = 1;
+    releaseInfo.pImageIndices = &_index;
+
+    vkReleaseSwapchainImagesKHR(_swapchainData.deviceData.vkDevice, &releaseInfo);
+}
+
+void VulkanManualBackbuffer::markAcquisitionIssued() noexcept {
+    _acquisitionIssued = true;
+}
+
+void VulkanManualBackbuffer::markPresented() noexcept {
+    _presented = true;
+}
+
 VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* device, ISurface* surface, SwapchainInfo const& info, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _surface(surface), _info(info), _swapchainData(swapchainData), _backbufferHeapData(VulkanHeapData(_swapchainData.deviceData, nullptr)) {
     /* TODO: backbuffer creation */
     uint32_t backbufferCount;
@@ -170,8 +310,6 @@ VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* devi
     if (vkGetSwapchainImagesKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, &backbufferCount, &_backbufferImages[0]) != VK_SUCCESS) {
         throw std::runtime_error("vkGetSwapchainImagesKHR failed");
     }
-
-    _backbuffers.resize(backbufferCount);
     
     SurfaceFormat surfaceFormat;
     _adapter->enumerateSurfaceFormatsByBits(surface, info.surfaceFormatBits, &surfaceFormat);
@@ -183,8 +321,8 @@ VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* devi
 
     for (uint32_t i = 0; i < backbufferCount; i += 1) {
         VulkanTextureData textureData = VulkanTextureData(_backbufferHeapData, nullptr, {}, _backbufferImages[i]);
-        _backbuffers[i] = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData);
-        adopt(_backbuffers[i]);
+        VulkanManualBackbuffer* backbuffer = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData, _swapchainData);
+        adopt(backbuffer);
     }
 
     _surface->retain();
@@ -258,7 +396,7 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
     vkCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     vkCreateInfo.surface = _surface->handle<VkSurfaceKHR>();
     vkCreateInfo.minImageCount = info->backbufferCount;
-    vkCreateInfo.imageFormat = castEnum<VkFormat>(info->backbufferInfo.format);
+    vkCreateInfo.imageFormat = castEnum<VkFormat>(surfaceFormat.format);
     vkCreateInfo.imageColorSpace = castEnum<VkColorSpaceKHR>(surfaceFormat.colorSpaceFlags);
     vkCreateInfo.imageExtent.width = info->backbufferInfo.dimensions.extent.width;
     vkCreateInfo.imageExtent.height = info->backbufferInfo.dimensions.extent.height;
@@ -287,14 +425,24 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
         return Result::ErrorUnknown;
     }
 
-    for (size_t i = 0; i < _dummyWSISync.size(); i += 1) {
-        releaseDummyWSISync(_dummyWSISync.begin() + i);
-    }
-
     VkSwapchainKHR vkNewSwapchain;
     Result result = castEnum<Result>(vkCreateSwapchainKHR(_swapchainData.deviceData.vkDevice, &vkCreateInfo, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkNewSwapchain));
     if (result != Result::Success) {
         return result;
+    }
+
+    for (DummyWSISynchronizationPrimitives const& primitives : _dummyWSISync) {
+        releaseDummyWSISync(primitives, true);
+    }
+
+    _dummyWSISync.clear();
+
+    /* NOTE: this feels gross */
+
+    IBackbuffer* backbuffer;
+    while ((backbuffer = enumerateBackbuffers(0)) != nullptr) {
+        VulkanManualBackbuffer* manualBackbuffer = dynamic_cast<VulkanManualBackbuffer*>(backbuffer);
+        delete manualBackbuffer;
     }
 
     vkDestroySwapchainKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
@@ -303,6 +451,32 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
     _swapchainData.vkSwapchain = vkNewSwapchain;
 
     _info = actualInfo;
+
+    uint32_t backbufferCount;
+    PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR = _device->loadDispatchSymbol<PFN_vkGetSwapchainImagesKHR>("vkGetSwapchainImagesKHR");
+    if (vkGetSwapchainImagesKHR == nullptr) {
+        throw std::runtime_error("vkGetSwapchainImagesKHR failed");
+    }
+
+    if (vkGetSwapchainImagesKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, &backbufferCount, nullptr) != VK_SUCCESS) {
+        throw std::runtime_error("vkGetSwapchainImagesKHR failed");
+    }
+
+    _backbufferImages.resize(backbufferCount);
+    if (vkGetSwapchainImagesKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, &backbufferCount, &_backbufferImages[0]) != VK_SUCCESS) {
+        throw std::runtime_error("vkGetSwapchainImagesKHR failed");
+    }
+
+    TextureInfo backbufferInfo = _info.backbufferInfo;
+    backbufferInfo.format = surfaceFormat.format;
+    backbufferInfo.samplesPerTexel = 1;
+    backbufferInfo.location = MemoryLocationFlags::GPU;
+
+    for (uint32_t i = 0; i < backbufferCount; i += 1) {
+        VulkanTextureData textureData = VulkanTextureData(_backbufferHeapData, nullptr, {}, _backbufferImages[i]);
+        VulkanManualBackbuffer* backbuffer = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData, _swapchainData);
+        adopt(backbuffer);
+    }
 
     return result;
 }
@@ -343,8 +517,6 @@ Result VulkanManualSwapchain::acquireNextIndex(SemaphorePoint const* signalSemap
         return Result::ErrorUnsupportedFeature;
     }
 
-    PFN_vkQueueSubmit vkQueueSubmit = _device->loadDispatchSymbol<PFN_vkQueueSubmit>("vkQueueSubmit");
-    VkQueue vkDummySubmissionQueue = VK_NULL_HANDLE;
     VkSemaphore vkBinarySemaphore = vkProvidedSemaphore;
     DummyWSISynchronizationPrimitives dummyPrimitives = {};
     if (timeline) {
@@ -353,63 +525,174 @@ Result VulkanManualSwapchain::acquireNextIndex(SemaphorePoint const* signalSemap
         }
 
         vkBinarySemaphore = dummyPrimitives.vkBinarySemaphore;
-
-        AdapterLimits adapterLimits;
-        _adapter->queryLimits(&adapterLimits);
-
-        uint32_t firstPresentQueueFamily = std::numeric_limits<uint32_t>::max();
-        for (uint32_t i = 0; i < adapterLimits.queueFamilyCount; i += 1) {
-            if ((_adapter->queryQueueFamilyFlags(i) & QueueFlags::Present) != QueueFlags::None) {
-                firstPresentQueueFamily = i;
-                break;
-            }
-        }
-
-        if (firstPresentQueueFamily == std::numeric_limits<uint32_t>::max()) {
-            return Result::ErrorUnsupportedFeature;
-        }
-
-        _swapchainData.deviceData.functionPointers.device10.vkGetDeviceQueue(_swapchainData.deviceData.vkDevice, firstPresentQueueFamily, 0, &vkDummySubmissionQueue);
-
-        if (vkQueueSubmit == nullptr) {
-            return Result::ErrorUnsupportedFeature;
-        }
     }
 
     Result result = castEnum<Result>(vkAcquireNextImageKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, timeout, vkBinarySemaphore, vkFence, index));
+    if (result != Result::Success && result != Result::NotReady && result != Result::SuboptimalSwapchain && result != Result::Timeout) {
+        if (timeline) {
+            releaseDummyWSISync(dummyPrimitives, false);
+        }
+
+        return result;
+    }
+
+    /* NOTE: this is kinda gross and should be avoided, but is relatively neglible in this case
+    *   (implementations usually should not touch other implementation internals, even if its a child)
+    *   (this is due to trying to allow for extensibility with adopting external implementations)
+    */
+
+    VulkanManualBackbuffer* manualBackbuffer = reinterpret_cast<VulkanManualBackbuffer*>(enumerateBackbuffers(*index));
+    manualBackbuffer->markAcquisitionIssued();
+
     if (!timeline) {
         return result;
     }
 
-    if (result != Result::Success && result != Result::NotReady && result != Result::SuboptimalSwapchain && result != Result::Timeout) {
-        releaseDummyWSISync(dummyPrimitives);
-        return result;
-    }
-
-    uint64_t vkBinarySemaphoreWaitValue = 0;
-
-    VkTimelineSemaphoreSubmitInfo timelineSubmitInfo = {};
-    timelineSubmitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
-    timelineSubmitInfo.waitSemaphoreValueCount = 1;
-    timelineSubmitInfo.pWaitSemaphoreValues = &vkBinarySemaphoreWaitValue;
-    timelineSubmitInfo.signalSemaphoreValueCount = 1;
-    timelineSubmitInfo.pSignalSemaphoreValues = &vkSemaphoreValue;
-
-    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-
-    VkSubmitInfo dummySubmitInfo = {};
-    dummySubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    dummySubmitInfo.pNext = &timelineSubmitInfo;
-    dummySubmitInfo.waitSemaphoreCount = 1;
-    dummySubmitInfo.pWaitSemaphores = &dummyPrimitives.vkBinarySemaphore;
-    dummySubmitInfo.pWaitDstStageMask = &waitStage;
-    dummySubmitInfo.signalSemaphoreCount = 1;
-    dummySubmitInfo.pSignalSemaphores = &vkProvidedSemaphore;
-
-    Result queueResult = castEnum<Result>(vkQueueSubmit(vkDummySubmissionQueue, 1, &dummySubmitInfo, dummyPrimitives.vkTriggeredFence));
+    Result queueResult = dummyTimelineSubmit({ dummyPrimitives.vkBinarySemaphore }, { 0 }, { VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT }, { vkProvidedSemaphore }, { vkSemaphoreValue }, dummyPrimitives.vkTriggeredFence);
     if (queueResult != Result::Success) {
+        releaseDummyWSISync(dummyPrimitives, false);
         return queueResult;
     }
+
+    appendDummyWSISync(dummyPrimitives);
+    return result;
+}
+
+Result VulkanManualSwapchain::present(IQueue* queue, IBackbuffer* backbuffer, PresentInfo const* info, IPresentFence** signal) noexcept {
+    if (!hasChild(backbuffer)) {
+        /* TODO: error */
+        return Result::ErrorUnknown;
+    }
+
+    /* NOTE: this is kinda gross and should be avoided, but is relatively neglible in this case
+    *   (implementations usually should not touch other implementation internals, even if its a child)
+    *   (this is due to trying to allow for extensibility with adopting external implementations)
+    */
+
+    VulkanManualBackbuffer* manualBackbuffer = reinterpret_cast<VulkanManualBackbuffer*>(backbuffer);
+
+    PFN_vkQueuePresentKHR vkQueuePresentKHR = _device->loadDispatchSymbol<PFN_vkQueuePresentKHR>("vkQueuePresentKHR");
+    if (vkQueuePresentKHR == nullptr) {
+        /* TODO: error */
+        return Result::ErrorUnsupportedFeature;
+    }
+
+    if ((queue->flags() & QueueFlags::Present) == QueueFlags::None) {
+        /* TODO: warn about queue not advertising present support */
+    }
+
+    if (queue->handleType() != ObjectType::Queue) {
+        /* TODO: error */
+        return Result::ErrorUnknown;
+    }
+
+    VkQueue vkQueue = queue->handle<VkQueue>();
+
+    VkSwapchainPresentFenceInfoKHR presentFenceInfo = {};
+    presentFenceInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR;
+    presentFenceInfo.swapchainCount = 1;
+
+    uint64_t presentID = std::numeric_limits<uint64_t>::max();
+
+    VkPresentIdKHR presentIdInfo = {};
+    presentIdInfo.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
+    presentIdInfo.swapchainCount = 1;
+    presentIdInfo.pPresentIds = &presentID;
+
+    uint32_t backbufferIndex = backbuffer->index();
+
+    std::vector<VkSemaphore> vkWaitSemaphores(info->waitCount);
+    std::vector<uint64_t> vkWaitSemaphoreValues(info->waitCount);
+
+    bool timeline = false;
+    for (uint32_t i = 0; i < info->waitCount; i += 1) {
+        if (info->waits[i].semaphore->queryInterface<ITimelineSemaphore>() != nullptr) {
+            timeline = true;
+        }
+
+        vkWaitSemaphores[i] = info->waits[i].semaphore->handle<VkSemaphore>();
+        vkWaitSemaphoreValues[i] = info->waits[i].value;
+    }
+
+    DummyWSISynchronizationPrimitives dummyPrimitives = {};
+    std::vector<VkSemaphore> vkPresentWaitSemaphores = {};
+    if (timeline) {
+        if (!acquireDummyWSISync(dummyPrimitives)) {
+            return Result::ErrorUnsupportedFeature;
+        }
+
+        std::vector<VkPipelineStageFlags> vkWaitDstStageMasks(info->waitCount, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+
+        vkPresentWaitSemaphores.push_back(dummyPrimitives.vkBinarySemaphore);
+        Result result = dummyTimelineSubmit(vkWaitSemaphores, vkWaitSemaphoreValues, vkWaitDstStageMasks, { dummyPrimitives.vkBinarySemaphore }, { 0 }, dummyPrimitives.vkTriggeredFence);
+        if (result != Result::Success) {
+            releaseDummyWSISync(dummyPrimitives);
+            return result;
+        }
+
+        appendDummyWSISync(dummyPrimitives);
+    } else {
+        vkPresentWaitSemaphores = vkWaitSemaphores;
+    }
+
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = static_cast<uint32_t>(vkPresentWaitSemaphores.size());
+    presentInfo.pWaitSemaphores = (vkPresentWaitSemaphores.empty() ? nullptr : &vkPresentWaitSemaphores[0]);
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &_swapchainData.vkSwapchain;
+    presentInfo.pImageIndices = &backbufferIndex;
+
+    AdapterFeatures features;
+    _adapter->queryFeatures(&features);
+
+    VkFence vkPresentFence = VK_NULL_HANDLE;
+    IPresentFence* presentFence = nullptr;
+    if (signal != nullptr) {
+        if (features.swapchainMaintenance1) {
+            presentFence = acquireSwapchainMaintenance1PresentFence(presentID);
+            if (presentFence == nullptr) {
+                /* TODO: error */
+                return Result::ErrorUnknown;
+            }
+
+            vkPresentFence = presentFence->handle<VkFence>();
+            presentFenceInfo.pFences = &vkPresentFence;
+
+            presentFenceInfo.pNext = presentInfo.pNext;
+            presentInfo.pNext = &presentFenceInfo;
+        }
+        else if (features.presentID && features.presentWait) {
+            presentIdInfo.pNext = presentInfo.pNext;
+            presentInfo.pNext = &presentIdInfo;
+        }
+    }
+
+    Result result = castEnum<Result>(vkQueuePresentKHR(vkQueue, &presentInfo));
+    if (result == Result::Success || result == Result::SuboptimalSwapchain) {
+        *signal = presentFence;
+        manualBackbuffer->markPresented();
+    } else {
+        if (presentFence != nullptr) {
+            if (result == Result::ErrorOutOfDateSwapchain) {
+                presentFence->wait();
+            }
+
+            presentFence->release();
+        }
+
+        *signal = nullptr;
+    }
+
+    if (signal != nullptr && !features.swapchainMaintenance1 && features.presentID && features.presentWait) {
+        presentFence = acquirePresentWaitPresentIDFence(presentID);
+        if (presentFence == nullptr) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+    }
+
+    _lastPresentQueue = vkQueue;
 
     return result;
 }
@@ -452,7 +735,102 @@ void* VulkanManualSwapchain::queryInterface(IID const& iid) noexcept {
 }
 
 /* internal */
-bool VulkanManualSwapchain::acquireDummyWSISync(DummyWSISynchronizationPrimitives& primitives) {
+Result VulkanManualSwapchain::dummyTimelineSubmit(std::vector<VkSemaphore> const& vkWaitSemaphores, std::vector<uint64_t> const& vkWaitSemaphoreValues, std::vector<VkPipelineStageFlags> const& vkWaitDstStageMasks, std::vector<VkSemaphore> const& vkSignalSemaphores, std::vector<uint64_t> const& vkSignalSemaphoreValues, VkFence vkSignalFence) noexcept {
+    VkTimelineSemaphoreSubmitInfo timelineSubmitInfo = {};
+    timelineSubmitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+    timelineSubmitInfo.waitSemaphoreValueCount = static_cast<uint32_t>(vkWaitSemaphoreValues.size());
+    timelineSubmitInfo.pWaitSemaphoreValues = (vkWaitSemaphoreValues.empty() ? nullptr : &vkWaitSemaphoreValues[0]);
+    timelineSubmitInfo.signalSemaphoreValueCount = static_cast<uint32_t>(vkSignalSemaphoreValues.size());
+    timelineSubmitInfo.pSignalSemaphoreValues = (vkSignalSemaphoreValues.empty() ? nullptr : &vkSignalSemaphoreValues[0]);
+
+    VkSubmitInfo dummySubmitInfo = {};
+    dummySubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    dummySubmitInfo.pNext = &timelineSubmitInfo;
+    dummySubmitInfo.waitSemaphoreCount = static_cast<uint32_t>(vkWaitSemaphores.size());
+    dummySubmitInfo.pWaitSemaphores = (vkWaitSemaphores.empty() ? nullptr : &vkWaitSemaphores[0]);
+    dummySubmitInfo.pWaitDstStageMask = (vkWaitDstStageMasks.empty() ? nullptr : &vkWaitDstStageMasks[0]);
+    dummySubmitInfo.signalSemaphoreCount = static_cast<uint32_t>(vkSignalSemaphores.size());
+    dummySubmitInfo.pSignalSemaphores = (vkSignalSemaphores.empty() ? nullptr : &vkSignalSemaphores[0]);
+
+    PFN_vkQueueSubmit vkQueueSubmit = _device->loadDispatchSymbol<PFN_vkQueueSubmit>("vkQueueSubmit");
+    if (vkQueueSubmit == nullptr) {
+        return Result::ErrorUnknown;
+    }
+
+    AdapterLimits adapterLimits;
+    _adapter->queryLimits(&adapterLimits);
+
+    VkQueue vkQueue = _lastPresentQueue;
+    if (vkQueue == VK_NULL_HANDLE) {
+        uint32_t firstPresentQueueFamily = std::numeric_limits<uint32_t>::max();
+        for (uint32_t i = 0; i < adapterLimits.queueFamilyCount; i += 1) {
+            if ((_adapter->queryQueueFamilyFlags(i) & QueueFlags::Present) != QueueFlags::None) {
+                firstPresentQueueFamily = i;
+                break;
+            }
+        }
+
+        if (firstPresentQueueFamily == std::numeric_limits<uint32_t>::max()) {
+            return Result::ErrorUnsupportedFeature;
+        }
+
+        _swapchainData.deviceData.functionPointers.device10.vkGetDeviceQueue(_swapchainData.deviceData.vkDevice, firstPresentQueueFamily, 0, &vkQueue);
+    }
+
+    PFN_vkQueueInsertDebugUtilsLabelEXT vkQueueInsertDebugUtilsLabelEXT = _device->loadDispatchSymbol<PFN_vkQueueInsertDebugUtilsLabelEXT>("vkQueueInsertDebugUtilsLabelEXT");
+    if (_swapchainData.deviceData.adapterData.instanceData.debug && vkQueueInsertDebugUtilsLabelEXT != nullptr) {
+        VkDebugUtilsLabelEXT labelInfo = {};
+        labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+        labelInfo.pLabelName = "WSI Dummy Timeline-Binary Submission";
+        labelInfo.color[0] = 0.25f;
+        labelInfo.color[1] = 0.25f;
+        labelInfo.color[2] = 0.25f;
+        labelInfo.color[3] = 1.00f;
+
+        vkQueueInsertDebugUtilsLabelEXT(vkQueue, &labelInfo);
+    }
+
+    return castEnum<Result>(vkQueueSubmit(vkQueue, 1, &dummySubmitInfo, vkSignalFence));
+}
+
+VulkanSwapchainMaintenance1PresentFence* VulkanManualSwapchain::acquireSwapchainMaintenance1PresentFence(uint64_t presentID) noexcept {
+    VkFenceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+    VkFence vkFence;
+    if (_swapchainData.deviceData.functionPointers.device10.vkCreateFence(_swapchainData.deviceData.vkDevice, &createInfo, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkFence) != VK_SUCCESS) {
+        return nullptr;
+    }
+
+    VulkanSwapchainMaintenance1PresentFence* fence;
+    VulkanFenceData fenceData = VulkanFenceData(_swapchainData.deviceData, false, vkFence);
+
+    try {
+        fence = new VulkanSwapchainMaintenance1PresentFence(false, this, presentID, fenceData, _swapchainData);
+    } catch (std::runtime_error err) {
+        return nullptr;
+    }
+
+    adopt(fence);
+    _device->label(fence, "VulkanSwapchainMaintenance1PresentFence");
+    return fence;
+}
+
+VulkanPresentWaitPresentIDFence* VulkanManualSwapchain::acquirePresentWaitPresentIDFence(uint64_t presentID) noexcept {
+    VulkanPresentWaitPresentIDFence* fence;
+
+    try {
+        fence = new VulkanPresentWaitPresentIDFence(this, presentID, _swapchainData);
+    }
+    catch (std::runtime_error err) {
+        return nullptr;
+    }
+
+    adopt(fence);
+    return fence;
+}
+
+bool VulkanManualSwapchain::acquireDummyWSISync(DummyWSISynchronizationPrimitives& primitives) noexcept {
     VkSemaphoreCreateInfo semaphoreCreateInfo = {};
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -468,17 +846,25 @@ bool VulkanManualSwapchain::acquireDummyWSISync(DummyWSISynchronizationPrimitive
         return false;
     }
 
-    _dummyWSISync.push_back(primitives);
+    _device->labelHandle(ObjectType::Semaphore, primitives.vkBinarySemaphore, "WSI Dummy Binary Semaphore");
+    _device->labelHandle(ObjectType::Fence, primitives.vkTriggeredFence, "WSI Dummy Triggered Fence");
     return true;
 }
 
-void VulkanManualSwapchain::releaseDummyWSISync(std::vector<DummyWSISynchronizationPrimitives>::iterator it) {
+void VulkanManualSwapchain::appendDummyWSISync(DummyWSISynchronizationPrimitives& primitives) noexcept {
+    _dummyWSISync.push_back(primitives);
+}
+
+void VulkanManualSwapchain::releaseDummyWSISync(std::vector<DummyWSISynchronizationPrimitives>::iterator it) noexcept {
     releaseDummyWSISync(*it);
     _dummyWSISync.erase(it);
 }
 
-void VulkanManualSwapchain::releaseDummyWSISync(DummyWSISynchronizationPrimitives const& primitives) {
-    _swapchainData.deviceData.functionPointers.device10.vkWaitForFences(_swapchainData.deviceData.vkDevice, 1, &primitives.vkTriggeredFence, true, std::numeric_limits<uint64_t>::max());
+void VulkanManualSwapchain::releaseDummyWSISync(DummyWSISynchronizationPrimitives const& primitives, bool wait) noexcept {
+    if (wait) {
+        _swapchainData.deviceData.functionPointers.device10.vkWaitForFences(_swapchainData.deviceData.vkDevice, 1, &primitives.vkTriggeredFence, true, std::numeric_limits<uint64_t>::max());
+    }
+
     _swapchainData.deviceData.functionPointers.device10.vkDestroyFence(_swapchainData.deviceData.vkDevice, primitives.vkTriggeredFence, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
     _swapchainData.deviceData.functionPointers.device10.vkDestroySemaphore(_swapchainData.deviceData.vkDevice, primitives.vkBinarySemaphore, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
 }

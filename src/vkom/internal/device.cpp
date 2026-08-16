@@ -63,6 +63,25 @@ bool VulkanDevice::queryExtension(const char* extension) const noexcept {
     return false;
 }
 
+void VulkanDevice::labelHandle(ObjectType handleType, uint64_t handle, const char* name) noexcept {
+    PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT = IDispatchable::loadDispatchSymbol<PFN_vkSetDebugUtilsObjectNameEXT>("vkSetDebugUtilsObjectNameEXT");
+    if (vkSetDebugUtilsObjectNameEXT == nullptr) {
+        return;
+    }
+
+    VkDebugUtilsObjectNameInfoEXT nameInfo = {};
+    nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    nameInfo.objectType = castEnum<VkObjectType>(handleType);
+    nameInfo.objectHandle = handle;
+    nameInfo.pObjectName = name;
+
+    vkSetDebugUtilsObjectNameEXT(_deviceData.vkDevice, &nameInfo);
+}
+
+void VulkanDevice::label(IHandled* handled, const char* name) noexcept {
+    labelHandle(handled->handleType(), handled->handle(), name);
+}
+
 Result VulkanDevice::acquireQueue(uint32_t family, QueueFlags flags, IQueue** queue) noexcept {
     if (family == QUEUE_FAMILY_ANY) {
         for (uint32_t i = 0; i < _queueFamilies.size(); i += 1) {

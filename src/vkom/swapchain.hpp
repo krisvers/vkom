@@ -9,6 +9,7 @@
 #include <vkom/texture.hpp>
 #include <vkom/fence.hpp>
 #include <vkom/semaphore.hpp>
+#include <vkom/queue.hpp>
 
 namespace vkom {
 
@@ -26,7 +27,6 @@ struct SwapchainInfo {
 struct PresentInfo {
     uint32_t waitCount;
     SemaphorePoint const* waits;
-    bool requestFence;
 };
 
 class IPresentFence : virtual public IFence {
@@ -50,7 +50,6 @@ public:
 class IBackbuffer : virtual public ITexture {
 public:
     virtual uint32_t index() const noexcept = 0;
-    virtual Result present(PresentInfo const* info, IPresentFence** fence) noexcept = 0;
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("deeef755-cf7c-48d3-ac67-baaf1345a2d3");
@@ -68,6 +67,7 @@ public:
     virtual Result recreate(SwapchainInfo const* info) noexcept = 0;
 
     virtual Result acquireNextIndex(SemaphorePoint const* signalSemaphore, IFence* signalFence, uint32_t* index, uint64_t timeout = std::numeric_limits<uint64_t>::max()) noexcept = 0;
+    virtual Result present(IQueue* queue, IBackbuffer* backbuffer, PresentInfo const* info, IPresentFence** fence) noexcept = 0;
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("e6ef4a7c-42b0-48f7-95f7-2dbaac560886");

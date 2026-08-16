@@ -62,6 +62,8 @@ public:
 
     void blitTexture(ITexture* dstTexture, ITexture* srcTexture, TextureBlit const* blit) noexcept override;
     void resolveTexture(ITexture* dstTexture, ITexture* srcTexture, TextureResolve const* resolve) noexcept override;
+    void clearColorTexture(ITexture* texture, ColorTextureClear const* clear) noexcept override;
+    void clearDepthStencilTexture(ITexture* texture, DepthStencilTextureClear const* clear) noexcept override;
 
     void globalMemoryBarrier(GeneralBarrier const* barrier) noexcept override;
     void transitionTexture(ITexture* texture, TextureTransition const* transition) noexcept override;

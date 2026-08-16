@@ -17,7 +17,6 @@ VulkanFence::VulkanFence(bool inheritedHandle, IDevice* device, VulkanFenceData 
 }
 
 VulkanFence::~VulkanFence() {
-    wait();
     _device->disown(IInterface::queryInterface<IChild>());
 
     if (!_inheritedHandle) {
@@ -28,16 +27,16 @@ VulkanFence::~VulkanFence() {
 }
 
 /* IFence */
+Result VulkanFence::wait(uint64_t timeout) noexcept {
+    return castEnum<Result>(_fenceData.deviceData.functionPointers.device10.vkWaitForFences(_fenceData.deviceData.vkDevice, 1, &_fenceData.vkFence, true, timeout));
+}
+
 Result VulkanFence::reset() noexcept {
     return castEnum<Result>(_fenceData.deviceData.functionPointers.device10.vkResetFences(_fenceData.deviceData.vkDevice, 1, &_fenceData.vkFence));
 }
 
 bool VulkanFence::status() const noexcept {
     return (_fenceData.deviceData.functionPointers.device10.vkGetFenceStatus(_fenceData.deviceData.vkDevice, _fenceData.vkFence) == VK_SUCCESS);
-}
-
-Result VulkanFence::wait(uint64_t timeout) noexcept {
-    return castEnum<Result>(_fenceData.deviceData.functionPointers.device10.vkWaitForFences(_fenceData.deviceData.vkDevice, 1, &_fenceData.vkFence, true, timeout));
 }
 
 /* IHandled */

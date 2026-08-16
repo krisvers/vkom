@@ -45,6 +45,9 @@ public:
     Result waitIdle() const noexcept override;
     bool queryExtension(const char* extension) const noexcept override;
 
+    void labelHandle(ObjectType handleType, uint64_t handle, const char* name) noexcept override;
+    void label(IHandled* handled, const char* name) noexcept override;
+
     Result acquireQueue(uint32_t family, QueueFlags flags, IQueue** queue) noexcept override;
 
     IHeap* defaultHeap() noexcept override;

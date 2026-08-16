@@ -492,13 +492,15 @@ Result VulkanAdapter::createDevice(IDevice** device) {
     void* next = &features2;
 
     bool enabledExtensionBufferDeviceAddress = false;
+    bool enabledExtensionSwapchainMaintenance1 = false;
 
     std::vector<const char*> enabledExtensions = {};
     for (VkExtensionProperties const& extension : _availableExtensions) {
         if (std::strcmp(extension.extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0) {
             enabledExtensions.push_back(extension.extensionName);
-        } else if (std::strcmp(extension.extensionName, VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0 || std::strcmp(extension.extensionName, VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0) {
+        } else if (!enabledExtensionSwapchainMaintenance1 && (std::strcmp(extension.extensionName, VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0 || std::strcmp(extension.extensionName, VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME) == 0)) {
             enabledExtensions.push_back(extension.extensionName);
+            enabledExtensionSwapchainMaintenance1 = true;
         } else if (std::strcmp(extension.extensionName, VK_KHR_PRESENT_ID_EXTENSION_NAME) == 0) {
             enabledExtensions.push_back(extension.extensionName);
         } else if (std::strcmp(extension.extensionName, VK_KHR_PRESENT_WAIT_EXTENSION_NAME) == 0) {

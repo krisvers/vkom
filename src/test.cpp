@@ -251,31 +251,12 @@ int main(int argc, char** argv) {
 
     pool.push(queue);
 
-    vkom::ICommandEncoder* encoder;
-    if (queue->acquireCommandEncoder(&encoder) != vkom::Result::Success) {
-        return 1;
-    }
-
-    pool.push(encoder);
-
-    encoder->insertDebugLabel("vkom was here");
-
-    vkom::BufferFill fill = {};
-    fill.size = bufferInfo.size;
-    fill.dstOffset = 0;
-    fill.word = 0xb00bcafe;
-
-    encoder->fillBuffer(buffer, &fill);
-
-    vkom::ICommandBatch* batch;
-    if (encoder->batch(&batch) != vkom::Result::Success) {
-        return 1;
-    }
-
-    pool.push(batch);
-
     uint64_t pastFinishedValue = 0;
     uint64_t futureFinishedValue = 1;
+
+    vkom::ICommandEncoder* encoder = nullptr;
+    vkom::ICommandBatch* batch = nullptr;
+    vkom::IPresentFence* previousPresentFence = nullptr;
 
     bool quit = false;
     while (!quit) {
@@ -290,6 +271,11 @@ int main(int argc, char** argv) {
             }
         }
 
+        if (previousPresentFence != nullptr) {
+            previousPresentFence->wait();
+            previousPresentFence->release();
+        }
+
         futureFinishedValue = pastFinishedValue + 2;
 
         uint32_t index;
@@ -301,7 +287,82 @@ int main(int argc, char** argv) {
         /* TODO: actually use backbuffer and present */
         vkom::Result result = swapchain->acquireNextIndex(&signal, nullptr, &index);
         if (result != vkom::Result::Success) {
-            std::printf("%u\n", result);
+            adapter->querySurfaceCapabilities(surface, &surfaceCapabilities);
+            swapchainInfo.backbufferInfo.dimensions.extent = surfaceCapabilities.currentExtent;
+
+            swapchain->recreate(&swapchainInfo);
+            std::printf("%d\n", result);
+
+            continue;
+        }
+
+        vkom::IBackbuffer* backbuffer = swapchain->enumerateBackbuffers(index);
+
+        /* wait for previous batch to be finished */
+        batchFinishedFence->wait();
+        batchFinishedFence->reset();
+
+        if (batch != nullptr) {
+            batch->discard();
+            batch = nullptr;
+        }
+
+        if (encoder != nullptr) {
+            encoder->release();
+            encoder = nullptr;
+        }
+
+        if (queue->acquireCommandEncoder(&encoder) != vkom::Result::Success) {
+            return 2;
+        }
+
+        vkom::TextureTransition transitionBackbufferToTransferDestination = {};
+        transitionBackbufferToTransferDestination.general.srcStage = vkom::PipelineStageFlags::TopOfPipe;
+        transitionBackbufferToTransferDestination.general.dstStage = vkom::PipelineStageFlags::Transfer;
+        transitionBackbufferToTransferDestination.transfer.oldFamily = queue->family();
+        transitionBackbufferToTransferDestination.transfer.newFamily = queue->family();
+        transitionBackbufferToTransferDestination.oldLayout = vkom::TextureLayout::Undefined;
+        transitionBackbufferToTransferDestination.newLayout = vkom::TextureLayout::TransferDestination;
+        transitionBackbufferToTransferDestination.aspectFlags = vkom::TextureAspectFlags::Color;
+        transitionBackbufferToTransferDestination.subresourcePosition.layer = 0;
+        transitionBackbufferToTransferDestination.subresourcePosition.mip = 0;
+        transitionBackbufferToTransferDestination.subresourceDimensions.layers = 1;
+        transitionBackbufferToTransferDestination.subresourceDimensions.mips = 1;
+
+        encoder->transitionTexture(backbuffer, &transitionBackbufferToTransferDestination);
+
+        vkom::ColorTextureClear clearBackbuffer = {};
+        clearBackbuffer.layout = vkom::TextureLayout::TransferDestination;
+        clearBackbuffer.color[0] = 1.0f;
+        clearBackbuffer.color[1] = 0.0f;
+        clearBackbuffer.color[2] = 1.0f;
+        clearBackbuffer.color[3] = 1.0f;
+        clearBackbuffer.subresourcePosition.layer = 0;
+        clearBackbuffer.subresourcePosition.mip = 0;
+        clearBackbuffer.subresourceDimensions.layers = 1;
+        clearBackbuffer.subresourceDimensions.mips = 1;
+
+        encoder->clearColorTexture(backbuffer, &clearBackbuffer);
+
+        vkom::TextureTransition transitionBackbufferToPresentSourceAndMakeTransferWriteVisible = {};
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.general.srcStage = vkom::PipelineStageFlags::TopOfPipe;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.general.dstStage = vkom::PipelineStageFlags::Transfer;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.general.srcAccess = vkom::ResourceAccessFlags::None;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.general.dstAccess = vkom::ResourceAccessFlags::TransferRead;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.transfer.oldFamily = queue->family();
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.transfer.newFamily = queue->family();
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.oldLayout = vkom::TextureLayout::TransferDestination;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.newLayout = vkom::TextureLayout::PresentSource;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.aspectFlags = vkom::TextureAspectFlags::Color;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.subresourcePosition.layer = 0;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.subresourcePosition.mip = 0;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.subresourceDimensions.layers = 1;
+        transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.subresourceDimensions.mips = 1;
+
+        encoder->transitionTexture(backbuffer, &transitionBackbufferToPresentSourceAndMakeTransferWriteVisible);
+
+        if (encoder->batch(&batch) != vkom::Result::Success) {
+            return 3;
         }
 
         vkom::CommandBatchSubmitWaitInfo submitWaits[1] = {};
@@ -320,13 +381,34 @@ int main(int argc, char** argv) {
         submitInfo.signals = &submitSignals[0];
         submitInfo.signalFence = batchFinishedFence;
 
-        /* wait for batch to be finished */
-        batchFinishedFence->wait();
-        batchFinishedFence->reset();
+        if (batch->submit(&submitInfo) != vkom::Result::Success) {
+            return 4;
+        }
 
-        batch->submit(&submitInfo);
+        vkom::SemaphorePoint presentWaits[1] = {};
+        presentWaits[0].semaphore = submissionFinishedTimelineSemaphore;
+        presentWaits[0].value = futureFinishedValue;
+
+        vkom::PresentInfo presentInfo = {};
+        presentInfo.waitCount = 1;
+        presentInfo.waits = &presentWaits[0];
+
+        result = swapchain->present(queue, backbuffer, &presentInfo, &previousPresentFence);
+        if (result != vkom::Result::Success) {
+            adapter->querySurfaceCapabilities(surface, &surfaceCapabilities);
+            swapchainInfo.backbufferInfo.dimensions.extent = surfaceCapabilities.currentExtent;
+
+            swapchain->recreate(&swapchainInfo);
+            std::printf("%d\n", result);
+        }
 
         pastFinishedValue = futureFinishedValue;
+    }
+
+    device->waitIdle();
+
+    if (batch != nullptr) {
+        batch->discard();
     }
 
     return 0;

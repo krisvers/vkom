@@ -166,8 +166,10 @@ int main(int argc, char** argv) {
     vkom::SurfaceWSIInfo surfaceWSIInfo;
     window->getSurfaceWSIInfo(&surfaceWSIInfo);
 
+    vkom::IWSIInstance* wsiInstance = instance->queryInterface<vkom::IWSIInstance>();
+
     vkom::ISurface* surface;
-    if (instance->createSurface(&surfaceWSIInfo, &surface) != vkom::Result::Success) {
+    if (wsiInstance->createSurface(&surfaceWSIInfo, &surface) != vkom::Result::Success) {
         return 1;
     }
 
@@ -196,8 +198,10 @@ int main(int argc, char** argv) {
     swapchainInfo.surfaceFormatBits = adapter->querySurfaceFormatBits(surface, vkom::Format::BGRA8UnsignedNormSRGB, vkom::ColorSpaceFlags::All);
     swapchainInfo.presentModeFlags = vkom::PresentModeFlags::All;
 
+    vkom::IWSIDevice* wsiDevice = device->queryInterface<vkom::IWSIDevice>();
+
     vkom::ISwapchain* swapchain;
-    if (device->createSwapchain(surface, &swapchainInfo, &swapchain) != vkom::Result::Success) {
+    if (wsiDevice->createSwapchain(surface, &swapchainInfo, &swapchain) != vkom::Result::Success) {
         return 5;
     }
 

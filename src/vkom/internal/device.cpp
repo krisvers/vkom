@@ -1,3 +1,7 @@
+#include "vkom/device.hpp"
+#include "vkom/adapter.hpp"
+#include "vkom/instance.hpp"
+#include "vulkan/vulkan_core.h"
 #include <vkom/internal/device.hpp>
 
 #include <stdexcept>
@@ -55,6 +59,109 @@ VulkanDevice::~VulkanDevice() {
             _deviceData.functionPointers.device10.vkDestroyDevice(_deviceData.vkDevice, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
         }
     }
+}
+
+/* IWSIDevice */
+Result VulkanDevice::createSwapchain(ISurface* surface, SwapchainInfo const* info, ISwapchain** swapchain) noexcept {
+    /* TODO: more intelligent surface format selection */
+    SurfaceFormat surfaceFormat;
+    uint32_t surfaceFormatIndex = std::numeric_limits<uint32_t>::max();
+    for (uint32_t index = 0; index < 64; index += 1) {
+        if ((info->surfaceFormatBits & (1 << index)) != 0) {
+            if (!_adapter->enumerateSurfaceFormats(surface, index, &surfaceFormat)) {
+                continue;
+            }
+
+            surfaceFormatIndex = index;
+            break;
+        }
+    }
+
+    if (surfaceFormatIndex == std::numeric_limits<uint32_t>::max()) {
+        return Result::ErrorUnknown;
+    }
+
+    AdapterLimits limits;
+    _adapter->queryLimits(&limits);
+
+    std::vector<uint32_t> indices(limits.queueFamilyCount);
+
+    SwapchainInfo actualInfo = *info;
+    actualInfo.preTransform = lowestFlag(info->preTransform);
+    actualInfo.compositeAlpha = lowestFlag(info->compositeAlpha);
+    actualInfo.surfaceFormatBits = (1 << surfaceFormatIndex);
+    actualInfo.presentModeFlags = lowestFlag(info->presentModeFlags);
+
+    /* TODO: better flag selection */
+    VkSwapchainCreateInfoKHR vkCreateInfo = {};
+    vkCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    vkCreateInfo.surface = surface->handle<VkSurfaceKHR>();
+    vkCreateInfo.minImageCount = info->backbufferCount;
+    vkCreateInfo.imageFormat = castEnum<VkFormat>(surfaceFormat.format);
+    vkCreateInfo.imageColorSpace = castEnum<VkColorSpaceKHR>(surfaceFormat.colorSpaceFlags);
+    vkCreateInfo.imageExtent.width = info->backbufferInfo.dimensions.extent.width;
+    vkCreateInfo.imageExtent.height = info->backbufferInfo.dimensions.extent.height;
+    vkCreateInfo.imageArrayLayers = info->backbufferInfo.dimensions.subresource.layers;
+    vkCreateInfo.imageUsage = castEnum<VkImageUsageFlags>(info->backbufferInfo.usage);
+    vkCreateInfo.imageSharingMode = (info->backbufferInfo.queueConcurrency ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE);
+    if (!info->backbufferInfo.queueConcurrency) {
+        /* TODO: possibly more guaranteeable listing of all supported queue families? */
+        for (uint32_t i = 0; i < limits.queueFamilyCount; i += 1) {
+            indices[i] = i;
+        }
+
+        vkCreateInfo.queueFamilyIndexCount = limits.queueFamilyCount;
+        vkCreateInfo.pQueueFamilyIndices = &indices[0];
+    }
+
+    vkCreateInfo.preTransform = castEnum<VkSurfaceTransformFlagBitsKHR>(actualInfo.preTransform);
+    vkCreateInfo.compositeAlpha = castEnum<VkCompositeAlphaFlagBitsKHR>(actualInfo.compositeAlpha);
+    vkCreateInfo.presentMode = castEnum<VkPresentModeKHR>(actualInfo.presentModeFlags);
+    vkCreateInfo.clipped = info->clipped;
+
+    PFN_vkCreateSwapchainKHR vkCreateSwapchainKHR = IDispatchable::loadDispatchSymbol<PFN_vkCreateSwapchainKHR>("vkCreateSwapchainKHR");
+    PFN_vkDestroySwapchainKHR vkDestroySwapchainKHR = IDispatchable::loadDispatchSymbol<PFN_vkDestroySwapchainKHR>("vkDestroySwapchainKHR");
+    if (vkCreateSwapchainKHR == nullptr || vkDestroySwapchainKHR == nullptr) {
+        return Result::ErrorUnknown;
+    }
+
+    VkSwapchainKHR vkSwapchain;
+    Result result = castEnum<Result>(vkCreateSwapchainKHR(_deviceData.vkDevice, &vkCreateInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkSwapchain));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VulkanSwapchainData swapchainData = VulkanSwapchainData(_deviceData, vkSwapchain, actualInfo.backbufferCount);
+
+    try {
+        *swapchain = new VulkanManualSwapchain(false, IInterface::queryInterface<IDevice>(), surface, actualInfo, swapchainData);
+    } catch (std::runtime_error err) {
+        vkDestroySwapchainKHR(_deviceData.vkDevice, vkSwapchain, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    adopt(*swapchain);
+    return result;
+}
+
+Result VulkanDevice::createSwapchainAndSurface(SurfaceWSIInfo const* surfaceInfo, SwapchainInfo const* swapchainInfo, ISurface** surface, ISwapchain** swapchain) noexcept {
+    IWSIInstance* wsiInstance = _instance->queryInterface<IWSIInstance>();
+    if (wsiInstance == nullptr) {
+        return Result::ErrorUnsupportedFeature;
+    }
+
+    Result result = wsiInstance->createSurface(surfaceInfo, surface);
+    if (result != Result::Success) {
+        return result;
+    }
+
+    result = createSwapchain(*surface, swapchainInfo, swapchain);
+    if (result != Result::Success) {
+        (*surface)->release();
+        return result;
+    }
+
+    return Result::Success;
 }
 
 /* IDevice */
@@ -333,103 +440,6 @@ Result VulkanDevice::acquireFence(bool signaled, IFence** fence) noexcept {
     return Result::Success;
 }
 
-Result VulkanDevice::createSwapchain(ISurface* surface, SwapchainInfo const* info, ISwapchain** swapchain) noexcept {
-    /* TODO: more intelligent surface format selection */
-    SurfaceFormat surfaceFormat;
-    uint32_t surfaceFormatIndex = std::numeric_limits<uint32_t>::max();
-    for (uint32_t index = 0; index < 64; index += 1) {
-        if ((info->surfaceFormatBits & (1 << index)) != 0) {
-            if (!_adapter->enumerateSurfaceFormats(surface, index, &surfaceFormat)) {
-                continue;
-            }
-
-            surfaceFormatIndex = index;
-            break;
-        }
-    }
-
-    if (surfaceFormatIndex == std::numeric_limits<uint32_t>::max()) {
-        return Result::ErrorUnknown;
-    }
-
-    AdapterLimits limits;
-    _adapter->queryLimits(&limits);
-
-    std::vector<uint32_t> indices(limits.queueFamilyCount);
-
-    SwapchainInfo actualInfo = *info;
-    actualInfo.preTransform = lowestFlag(info->preTransform);
-    actualInfo.compositeAlpha = lowestFlag(info->compositeAlpha);
-    actualInfo.surfaceFormatBits = (1 << surfaceFormatIndex);
-    actualInfo.presentModeFlags = lowestFlag(info->presentModeFlags);
-
-    /* TODO: better flag selection */
-    VkSwapchainCreateInfoKHR vkCreateInfo = {};
-    vkCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    vkCreateInfo.surface = surface->handle<VkSurfaceKHR>();
-    vkCreateInfo.minImageCount = info->backbufferCount;
-    vkCreateInfo.imageFormat = castEnum<VkFormat>(surfaceFormat.format);
-    vkCreateInfo.imageColorSpace = castEnum<VkColorSpaceKHR>(surfaceFormat.colorSpaceFlags);
-    vkCreateInfo.imageExtent.width = info->backbufferInfo.dimensions.extent.width;
-    vkCreateInfo.imageExtent.height = info->backbufferInfo.dimensions.extent.height;
-    vkCreateInfo.imageArrayLayers = info->backbufferInfo.dimensions.subresource.layers;
-    vkCreateInfo.imageUsage = castEnum<VkImageUsageFlags>(info->backbufferInfo.usage);
-    vkCreateInfo.imageSharingMode = (info->backbufferInfo.queueConcurrency ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE);
-    if (!info->backbufferInfo.queueConcurrency) {
-        /* TODO: possibly more guaranteeable listing of all supported queue families? */
-        for (uint32_t i = 0; i < limits.queueFamilyCount; i += 1) {
-            indices[i] = i;
-        }
-
-        vkCreateInfo.queueFamilyIndexCount = limits.queueFamilyCount;
-        vkCreateInfo.pQueueFamilyIndices = &indices[0];
-    }
-
-    vkCreateInfo.preTransform = castEnum<VkSurfaceTransformFlagBitsKHR>(actualInfo.preTransform);
-    vkCreateInfo.compositeAlpha = castEnum<VkCompositeAlphaFlagBitsKHR>(actualInfo.compositeAlpha);
-    vkCreateInfo.presentMode = castEnum<VkPresentModeKHR>(actualInfo.presentModeFlags);
-    vkCreateInfo.clipped = info->clipped;
-
-    PFN_vkCreateSwapchainKHR vkCreateSwapchainKHR = IDispatchable::loadDispatchSymbol<PFN_vkCreateSwapchainKHR>("vkCreateSwapchainKHR");
-    PFN_vkDestroySwapchainKHR vkDestroySwapchainKHR = IDispatchable::loadDispatchSymbol<PFN_vkDestroySwapchainKHR>("vkDestroySwapchainKHR");
-    if (vkCreateSwapchainKHR == nullptr || vkDestroySwapchainKHR == nullptr) {
-        return Result::ErrorUnknown;
-    }
-
-    VkSwapchainKHR vkSwapchain;
-    Result result = castEnum<Result>(vkCreateSwapchainKHR(_deviceData.vkDevice, &vkCreateInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkSwapchain));
-    if (result != Result::Success) {
-        return result;
-    }
-
-    VulkanSwapchainData swapchainData = VulkanSwapchainData(_deviceData, vkSwapchain, actualInfo.backbufferCount);
-
-    try {
-        *swapchain = new VulkanManualSwapchain(false, IInterface::queryInterface<IDevice>(), surface, actualInfo, swapchainData);
-    } catch (std::runtime_error err) {
-        vkDestroySwapchainKHR(_deviceData.vkDevice, vkSwapchain, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
-        return Result::ErrorUnknown;
-    }
-
-    adopt(*swapchain);
-    return result;
-}
-
-Result VulkanDevice::createSwapchainAndSurface(SurfaceWSIInfo const* surfaceInfo, SwapchainInfo const* swapchainInfo, ISurface** surface, ISwapchain** swapchain) noexcept {
-    Result result = _instance->createSurface(surfaceInfo, surface);
-    if (result != Result::Success) {
-        return result;
-    }
-
-    result = createSwapchain(*surface, swapchainInfo, swapchain);
-    if (result != Result::Success) {
-        (*surface)->release();
-        return result;
-    }
-
-    return Result::Success;
-}
-
 /* IHandled */
 uint64_t VulkanDevice::handle() const noexcept {
     return reinterpret_cast<uint64_t>(_deviceData.vkDevice);
@@ -469,6 +479,8 @@ void* VulkanDevice::queryInterface(IID const& iid) noexcept {
         return static_cast<IDispatchable*>(this);
     } else if (iid == IDevice::iid()) {
         return static_cast<IDevice*>(this);
+    } else if (iid == IWSIDevice::iid() && queryExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
+        return static_cast<IWSIDevice*>(this);
     }
 
     return nullptr;

@@ -33,9 +33,6 @@ public:
     virtual Result acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept = 0;
     virtual Result acquireFence(bool signalled, IFence** fence) noexcept = 0;
 
-    virtual Result createSwapchain(ISurface* surface, SwapchainInfo const* info, ISwapchain** swapchain) noexcept = 0;
-    virtual Result createSwapchainAndSurface(SurfaceWSIInfo const* surfaceInfo, SwapchainInfo const* swapchainInfo, ISurface** surface, ISwapchain** swapchain) noexcept = 0;
-
     template<typename T>
     inline void labelHandle(ObjectType handleType, T handle, const char* name) noexcept {
         labelHandle(handleType, reinterpret_cast<uint64_t>(handle), name);
@@ -43,6 +40,17 @@ public:
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("8af16862-cec4-4dbc-9fe7-c00a6eb9e41c");
+        return iid;
+    }
+};
+
+class IWSIDevice : virtual public IDevice {
+public:
+    virtual Result createSwapchain(ISurface* surface, SwapchainInfo const* info, ISwapchain** swapchain) noexcept = 0;
+    virtual Result createSwapchainAndSurface(SurfaceWSIInfo const* surfaceInfo, SwapchainInfo const* swapchainInfo, ISurface** surface, ISwapchain** swapchain) noexcept = 0;
+
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("895ec6bb-3c91-4580-aa8e-ff801b48336b");
         return iid;
     }
 };

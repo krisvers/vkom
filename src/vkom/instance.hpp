@@ -23,10 +23,18 @@ public:
 
     virtual IAdapter* enumerateAdapters(uint32_t id) const noexcept = 0;
 
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("b77e41e7-8ad1-435d-979c-4b537954048f");
+        return iid;
+    }
+};
+
+class IWSIInstance : virtual public IInstance {
+public:
     virtual Result createSurface(SurfaceWSIInfo const* info, ISurface** surface) noexcept = 0;
 
     static inline IID const& iid() noexcept {
-        static IID iid = IID("b77e41e7-8ad1-435d-979c-4b537954048f");
+        static IID iid = IID("cd78599d-31c9-484e-a289-cf1c4fb6c354");
         return iid;
     }
 };

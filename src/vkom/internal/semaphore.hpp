@@ -17,9 +17,8 @@ namespace vkom {
 
 namespace internal {
 
-/*
-*   NOTE: while this class implements ITimelineSemaphore, instances are not guaranteed to advertise the interface
-*         only instances that wrap around an actual Vulkan timeline semaphore will advertise it
+/* NOTE: while this class implements ITimelineSemaphore, instances are not guaranteed to advertise the interface
+*   only instances that wrap around an actual Vulkan timeline semaphore will advertise it
 */
 
 class VulkanSemaphore final : virtual public ISemaphore, virtual public ITimelineSemaphore, virtual public CollectedByHeap {

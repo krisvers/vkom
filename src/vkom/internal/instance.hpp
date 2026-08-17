@@ -18,7 +18,11 @@ namespace internal {
 class VulkanAdapter;
 class VulkanDevice;
 
-class VulkanInstance final : virtual public IInstance, virtual public ParentByVector, virtual public CollectedByHeap {
+/* NOTE: while this class implements IWSIInstance, instances are not guaranteed to advertise the interface
+*   only instances that support surfaces will advertise support
+*/
+
+class VulkanInstance final : virtual public IInstance, virtual public IWSIInstance, virtual public ParentByVector, virtual public CollectedByHeap {
 private:
     uint32_t _vkApiVersion = 0;
     bool _inheritedHandle = false;
@@ -38,6 +42,9 @@ public:
     VulkanInstance(uint32_t vkApiVersion, bool inheritedHandle, IDynlib* dynlib, VulkanInstanceData const& instanceData, std::vector<const char*> const& enabledExtensions, PFN_vkDebugUtilsMessengerCallbackEXT vkDebugUtilsMessengerUserCallback, void* vkDebugUtilsMessengerUserData);
     ~VulkanInstance();
 
+    /* IWSIInstance */
+    Result createSurface(SurfaceWSIInfo const* info, ISurface** surface) noexcept override;
+
     /* IInstance */
     void setLogCallback(InstanceLogCallbackPFN callback, void* userData) noexcept override;
     void log(DebugMessageSeverityFlags severity, DebugMessageTypeFlags types, const char* message) noexcept override;
@@ -46,8 +53,6 @@ public:
     uint32_t queryApiVersion() const noexcept override;
 
     IAdapter* enumerateAdapters(uint32_t id) const noexcept override;
-
-    Result createSurface(SurfaceWSIInfo const* info, ISurface** surface) noexcept override;
 
     /* IHandled */
     uint64_t handle() const noexcept override;

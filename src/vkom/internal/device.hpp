@@ -26,7 +26,11 @@ struct VulkanDeviceQueueFamily {
     std::vector<IQueue*> queues;
 };
 
-class VulkanDevice final : virtual public IDevice, virtual public ParentByVector, virtual public CollectedByHeap {
+/* NOTE: while this class implements IWSIDevice, instances are not guaranteed to advertise the interface
+*   only instances that support swapchains will advertise support
+*/
+
+class VulkanDevice final : virtual public IDevice, virtual public IWSIDevice, virtual public ParentByVector, virtual public CollectedByHeap {
 private:
     bool _inheritedHandle = false;
     IAdapter* _adapter = nullptr;
@@ -40,6 +44,10 @@ private:
 public:
     VulkanDevice(bool inheritedHandle, IAdapter* adapter, VulkanDeviceData const& deviceData, std::vector<const char*> const& enabledExtensions);
     ~VulkanDevice();
+
+    /* IWSIDevice */
+    Result createSwapchain(ISurface* surface, SwapchainInfo const* info, ISwapchain** swapchain) noexcept override;
+    Result createSwapchainAndSurface(SurfaceWSIInfo const* surfaceInfo, SwapchainInfo const* swapchainInfo, ISurface** surface, ISwapchain** swapchain) noexcept override;
 
     /* IDevice */
     Result waitIdle() const noexcept override;
@@ -55,9 +63,6 @@ public:
 
     Result acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept override;
     Result acquireFence(bool signaled, IFence** fence) noexcept override;
-
-    Result createSwapchain(ISurface* surface, SwapchainInfo const* info, ISwapchain** swapchain) noexcept override;
-    Result createSwapchainAndSurface(SurfaceWSIInfo const* surfaceInfo, SwapchainInfo const* swapchainInfo, ISurface** surface, ISwapchain** swapchain) noexcept override;
 
     /* IHandled */
     uint64_t handle() const noexcept override;

@@ -74,6 +74,30 @@ VulkanInstance::~VulkanInstance() {
     }
 }
 
+/* IWSIInstance */
+Result VulkanInstance::createSurface(SurfaceWSIInfo const* info, ISurface** surface) noexcept {
+    VkSurfaceKHR vkSurface;
+    Result result = castEnum<Result>(internal::createSurface(_instanceData.vkInstance, _instanceData.vkGetInstanceProcAddr, _instanceData.vkAllocationCallbacks, *info, vkSurface));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VulkanSurfaceData surfaceData = VulkanSurfaceData(_instanceData, vkSurface);
+    try {
+        *surface = new VulkanSurface(false, IInterface::queryInterface<IInstance>(), *info, surfaceData);
+    } catch (std::runtime_error err) {
+        PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR = IDispatchable::loadDispatchSymbol<PFN_vkDestroySurfaceKHR>("vkDestroySurfaceKHR");
+        if (vkDestroySurfaceKHR != nullptr) {
+            vkDestroySurfaceKHR(_instanceData.vkInstance, vkSurface, _instanceData.vkAllocationCallbacks);
+        }
+
+        return Result::ErrorUnknown;
+    }
+
+    adopt(*surface);
+    return Result::Success;
+}
+
 /* IInstance */
 void VulkanInstance::setLogCallback(InstanceLogCallbackPFN callback, void* userData) noexcept {
     _logCallback = callback;
@@ -102,29 +126,6 @@ uint32_t VulkanInstance::queryApiVersion() const noexcept {
 
 IAdapter* VulkanInstance::enumerateAdapters(uint32_t id) const noexcept {
     return IParent::enumerateChildren<IAdapter>(id);
-}
-
-Result VulkanInstance::createSurface(SurfaceWSIInfo const* info, ISurface** surface) noexcept {
-    VkSurfaceKHR vkSurface;
-    Result result = castEnum<Result>(internal::createSurface(_instanceData.vkInstance, _instanceData.vkGetInstanceProcAddr, _instanceData.vkAllocationCallbacks, *info, vkSurface));
-    if (result != Result::Success) {
-        return result;
-    }
-
-    VulkanSurfaceData surfaceData = VulkanSurfaceData(_instanceData, vkSurface);
-    try {
-        *surface = new VulkanSurface(false, IInterface::queryInterface<IInstance>(), *info, surfaceData);
-    } catch (std::runtime_error err) {
-        PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR = IDispatchable::loadDispatchSymbol<PFN_vkDestroySurfaceKHR>("vkDestroySurfaceKHR");
-        if (vkDestroySurfaceKHR != nullptr) {
-            vkDestroySurfaceKHR(_instanceData.vkInstance, vkSurface, _instanceData.vkAllocationCallbacks);
-        }
-
-        return Result::ErrorUnknown;
-    }
-
-    adopt(*surface);
-    return Result::Success;
 }
 
 /* IHandled */
@@ -159,6 +160,8 @@ void* VulkanInstance::queryInterface(IID const& iid) noexcept {
         return static_cast<IDispatchable*>(this);
     } else if (iid == IInstance::iid()) {
         return static_cast<IInstance*>(this);
+    } else if (iid == IWSIInstance::iid() && queryExtension(VK_KHR_SURFACE_EXTENSION_NAME)) {
+        return static_cast<IWSIInstance*>(this);
     }
 
     return nullptr;

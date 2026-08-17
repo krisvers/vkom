@@ -160,19 +160,15 @@ void* VulkanPresentWaitPresentIDFence::queryInterface(IID const& iid) noexcept {
 }
 
 VulkanManualBackbuffer::VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _index(index), _textureData(textureData), _swapchainData(swapchainData) {
-    
+
 }
 
 VulkanManualBackbuffer::~VulkanManualBackbuffer() {
     ParentByVector::disownAll();
     _swapchain->disown(IInterface::queryInterface<IChild>());
 
-    if (_acquisitionIssued && !_presented) {
+    if (_acquired && !_presented) {
         releaseSwapchainImage();
-    }
-
-    if (_acquisitionIssued) {
-        _swapchain->release();
     }
 }
 
@@ -224,17 +220,16 @@ IParent* VulkanManualBackbuffer::parent() const noexcept {
 /* ICollected */
 uint32_t VulkanManualBackbuffer::release() {
     if (_referenceCount == 0) {
-        _acquisitionIssued = false;
-        _presented = false;
         return 0;
     }
 
     _referenceCount -= 1;
     if (_referenceCount == 0) {
-        if (_acquisitionIssued && !_presented) {
+        if (!_presented) {
             releaseSwapchainImage();
         }
 
+        _acquired = false;
         _presented = false;
         return 0;
     }
@@ -286,11 +281,28 @@ void VulkanManualBackbuffer::releaseSwapchainImage() noexcept {
     vkReleaseSwapchainImagesKHR(_swapchainData.deviceData.vkDevice, &releaseInfo);
 }
 
-void VulkanManualBackbuffer::markAcquisitionIssued() noexcept {
-    _acquisitionIssued = true;
+void VulkanManualBackbuffer::recreate(TextureInfo const& info, uint32_t index, VkImage vkImage) noexcept {
+    if (_acquired && !_presented) {
+        releaseSwapchainImage();
+    }
+
+    _referenceCount = 0;
+
+    _info = info;
+    _index = index;
+    _textureData.vkImage = vkImage;
 }
 
-void VulkanManualBackbuffer::markPresented() noexcept {
+void VulkanManualBackbuffer::acquire() noexcept {
+    if (_referenceCount != 0) {
+        /* TODO: warn about missing releases */
+    }
+
+    _referenceCount = 0;
+    _acquired = true;
+}
+
+void VulkanManualBackbuffer::present() noexcept {
     _presented = true;
 }
 
@@ -362,6 +374,13 @@ IBackbuffer* VulkanManualSwapchain::enumerateBackbuffers(uint32_t id) const noex
 }
 
 Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
+    if (info->backbufferInfo.dimensions.extent.width == 0 || info->backbufferInfo.dimensions.extent.height == 0) {
+        _lastRecreateMinimized = true;
+        return Result::Success;
+    }
+
+    _lastRecreateMinimized = false;
+
     /* TODO: more intelligent surface format selection */
     SurfaceFormat surfaceFormat;
     uint32_t surfaceFormatIndex = std::numeric_limits<uint32_t>::max();
@@ -437,16 +456,9 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
 
     _dummyWSISync.clear();
 
-    /* NOTE: this feels gross */
-
-    IBackbuffer* backbuffer;
-    while ((backbuffer = enumerateBackbuffers(0)) != nullptr) {
-        VulkanManualBackbuffer* manualBackbuffer = dynamic_cast<VulkanManualBackbuffer*>(backbuffer);
-        delete manualBackbuffer;
-    }
-
     vkDestroySwapchainKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
 
+    uint32_t previousBackbufferCount = _swapchainData.backbufferCount;
     _swapchainData.backbufferCount = info->backbufferCount;
     _swapchainData.vkSwapchain = vkNewSwapchain;
 
@@ -472,10 +484,17 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
     backbufferInfo.samplesPerTexel = 1;
     backbufferInfo.location = MemoryLocationFlags::GPU;
 
-    for (uint32_t i = 0; i < backbufferCount; i += 1) {
-        VulkanTextureData textureData = VulkanTextureData(_backbufferHeapData, nullptr, {}, _backbufferImages[i]);
-        VulkanManualBackbuffer* backbuffer = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData, _swapchainData);
-        adopt(backbuffer);
+    for (uint32_t i = 0; i < std::max(_swapchainData.backbufferCount, previousBackbufferCount); i += 1) {
+        if (i >= info->backbufferCount) {
+            VulkanManualBackbuffer* manualBackbuffer = dynamic_cast<VulkanManualBackbuffer*>(enumerateBackbuffers(i));
+            delete manualBackbuffer;
+        } else if (i >= previousBackbufferCount) {
+            VulkanTextureData textureData = VulkanTextureData(_backbufferHeapData, nullptr, {}, _backbufferImages[i]);
+            VulkanManualBackbuffer* manualBackbuffer = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData, _swapchainData);
+        } else {
+            VulkanManualBackbuffer* manualBackbuffer = dynamic_cast<VulkanManualBackbuffer*>(enumerateBackbuffers(i));
+            manualBackbuffer->recreate(backbufferInfo, i, _backbufferImages[i]);
+        }
     }
 
     return result;
@@ -542,7 +561,7 @@ Result VulkanManualSwapchain::acquireNextIndex(SemaphorePoint const* signalSemap
     */
 
     VulkanManualBackbuffer* manualBackbuffer = reinterpret_cast<VulkanManualBackbuffer*>(enumerateBackbuffers(*index));
-    manualBackbuffer->markAcquisitionIssued();
+    manualBackbuffer->acquire();
 
     if (!timeline) {
         return result;
@@ -671,7 +690,7 @@ Result VulkanManualSwapchain::present(IQueue* queue, IBackbuffer* backbuffer, Pr
     Result result = castEnum<Result>(vkQueuePresentKHR(vkQueue, &presentInfo));
     if (result == Result::Success || result == Result::SuboptimalSwapchain) {
         *signal = presentFence;
-        manualBackbuffer->markPresented();
+        manualBackbuffer->present();
     } else {
         if (presentFence != nullptr) {
             if (result == Result::ErrorOutOfDateSwapchain) {

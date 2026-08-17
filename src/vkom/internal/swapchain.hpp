@@ -118,17 +118,20 @@ private:
     VulkanSwapchainData _swapchainData;
 
     uint32_t _referenceCount = 0;
-    bool _acquisitionIssued = false;
+    bool _acquired = false;
     bool _presented = false;
 
+    /* internal */
     void releaseSwapchainImage() noexcept;
 
 public:
     VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSwapchainData const& swapchainData);
     ~VulkanManualBackbuffer();
 
-    void markAcquisitionIssued() noexcept;
-    void markPresented() noexcept;
+    /* internal */
+    void recreate(TextureInfo const& info, uint32_t index, VkImage vkImage) noexcept;
+    void acquire() noexcept;
+    void present() noexcept;
 
     /* IBackbuffer */
     uint32_t index() const noexcept override;
@@ -170,6 +173,7 @@ private:
     VulkanSwapchainData _swapchainData;
     VulkanHeapData _backbufferHeapData;
 
+    bool _lastRecreateMinimized = false;
     VkQueue _lastPresentQueue = VK_NULL_HANDLE;
 
     std::vector<VkImage> _backbufferImages = {};

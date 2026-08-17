@@ -1,6 +1,5 @@
 #pragma once
 
-#include "vulkan/vulkan_core.h"
 #include <vkom/swapchain.hpp>
 
 #include <vkom/texture.hpp>
@@ -13,9 +12,8 @@
 
 #include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vkdata.hpp>
-
-#include <vkom/internal/texture.hpp>
 
 namespace vkom {
 

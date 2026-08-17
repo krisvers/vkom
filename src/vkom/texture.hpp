@@ -2,6 +2,7 @@
 
 #include <vkom/enums.hpp>
 #include <vkom/object.hpp>
+
 #include <vkom/resource.hpp>
 
 namespace vkom {

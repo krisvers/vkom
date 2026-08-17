@@ -1,16 +1,20 @@
-#include "vkom/enums.hpp"
-#include "vkom/object.hpp"
-#include <cstdint>
 #include <vkom/internal/adapter.hpp>
 
 #include <algorithm>
+#include <stdexcept>
+#include <vector>
 #include <cstring>
+#include <cstdint>
 
 #include <vkom/internal/instance.hpp>
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/vksurface.hpp>
-#include <vkom/internal/vma.hpp>
+
+#include <vkom/internal/object.hpp>
+#include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 

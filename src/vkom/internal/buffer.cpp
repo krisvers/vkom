@@ -1,13 +1,16 @@
 #include <vkom/internal/buffer.hpp>
 
-#include <stdexcept>
-
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/resource.hpp>
 #include <vkom/internal/heap.hpp>
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
+
+#include <vkom/internal/object.hpp>
+#include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 

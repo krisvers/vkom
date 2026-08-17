@@ -1,9 +1,11 @@
-#include "vkom/adapter.hpp"
-#include "vkom/enums.hpp"
-#include "vulkan/vulkan_core.h"
 #include <vkom/internal/swapchain.hpp>
 
 #include <vkom/internal/enums.hpp>
+
+#include <vkom/internal/object.hpp>
+#include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 

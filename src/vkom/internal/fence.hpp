@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits>
+
 #include <vkom/fence.hpp>
 
 #include <vkom/device.hpp>
@@ -8,6 +10,7 @@
 
 #include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vkdata.hpp>
 
 namespace vkom {

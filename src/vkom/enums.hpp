@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <type_traits>
+#include <cstdint>
 
 #define VKOM_DEFINE_ENUM_BITFLAGS_OPERATOR_BINARY(T_, op_) \
 inline T_ operator op_(T_ const& a, T_ const& b) { \

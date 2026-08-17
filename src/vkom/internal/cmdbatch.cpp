@@ -1,8 +1,7 @@
-#include "vkom/enums.hpp"
-#include "vkom/interface.hpp"
-#include "vkom/object.hpp"
-#include "vulkan/vulkan_core.h"
 #include <vkom/internal/cmdbatch.hpp>
+
+#include <stdexcept>
+#include <vector>
 
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/cmdencoder.hpp>
@@ -10,6 +9,11 @@
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
+
+#include <vkom/internal/object.hpp>
+#include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 
@@ -74,7 +78,7 @@ Result VulkanCommandBatch::submit(CommandBatchSubmitInfo const* submitInfo) noex
     std::vector<VkPipelineStageFlags> vkWaitStageFlags(submitInfo->waitCount);
     std::vector<VkSemaphore> vkWaitSemaphores(submitInfo->waitCount);
     std::vector<uint64_t> vkWaitSemaphoreValues(submitInfo->waitCount);
-    
+
     bool timeline = false;
     for (uint32_t i = 0; i < submitInfo->waitCount; i += 1) {
         vkWaitStageFlags[i] = castEnum<VkPipelineStageFlags>(submitInfo->waits[i].stageFlags);

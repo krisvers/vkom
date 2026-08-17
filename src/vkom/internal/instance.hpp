@@ -1,15 +1,14 @@
 #pragma once
 
 #include <vector>
-#include <unordered_map>
 
 #include <vkom/enums.hpp>
 #include <vkom/instance.hpp>
 #include <vkom/dynlib.hpp>
 
 #include <vkom/internal/object.hpp>
-#include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vkdata.hpp>
 
 namespace vkom {

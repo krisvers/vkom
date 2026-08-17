@@ -1,13 +1,15 @@
-#include "vkom/enums.hpp"
 #include <vkom/internal/vksurface.hpp>
 
 #include <vkom/platform.hpp>
 
-#include <vkom/internal/vulkan.hpp>
-
 #ifdef VKOM_PLATFORM_FAMILY_NT
 
+#include <vkom/internal/vulkan.hpp>
+
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
 #include <vulkan/vulkan_win32.h>
 
 namespace vkom {

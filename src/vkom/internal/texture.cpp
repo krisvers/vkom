@@ -9,6 +9,12 @@
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
 
+#include <vkom/internal/object.hpp>
+#include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
+#include <vkom/internal/vma.hpp>
+#include <vkom/internal/vkdata.hpp>
+
 namespace vkom {
 
 namespace internal {

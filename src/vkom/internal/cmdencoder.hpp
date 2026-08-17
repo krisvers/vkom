@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include <vkom/enums.hpp>
 #include <vkom/cmdencoder.hpp>
 
@@ -30,12 +28,6 @@ private:
 
     IRenderPass* _renderPass = nullptr;
     bool _ended = false;
-
-    /* ICollected */
-    uint32_t _referenceCount = 1;
-
-    /* IParent */
-    std::vector<IChild*> _children = {};
 
     void hashLabelToColor(const char* label, float& r, float& g, float& b);
 

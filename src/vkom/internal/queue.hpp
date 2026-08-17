@@ -11,6 +11,7 @@
 
 #include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vkdata.hpp>
 
 namespace vkom {

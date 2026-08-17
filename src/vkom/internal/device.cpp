@@ -1,7 +1,10 @@
 #include <vkom/internal/device.hpp>
 
+#include <stdexcept>
+#include <vector>
 #include <limits>
 #include <bitset>
+#include <cstring>
 
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/heap.hpp>
@@ -11,6 +14,12 @@
 #include <vkom/internal/swapchain.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
+
+#include <vkom/internal/object.hpp>
+#include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
+#include <vkom/internal/vma.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 
@@ -290,7 +299,7 @@ Result VulkanDevice::acquireSemaphore(bool timeline, ISemaphore** semaphore) noe
     }
 
     VulkanSemaphoreData semaphoreData = VulkanSemaphoreData(_deviceData, typeInfo.semaphoreType, vkSemaphore);
-    
+
     try {
         *semaphore = new VulkanSemaphore(false, this, semaphoreData);
     } catch (std::runtime_error err) {
@@ -313,7 +322,7 @@ Result VulkanDevice::acquireFence(bool signaled, IFence** fence) noexcept {
     }
 
     VulkanFenceData fenceData = VulkanFenceData(_deviceData, signaled, vkFence);
-    
+
     try {
         *fence = new VulkanFence(false, this, fenceData);
     } catch (std::runtime_error err) {

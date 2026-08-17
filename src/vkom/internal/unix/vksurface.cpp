@@ -2,9 +2,9 @@
 
 #include <vkom/platform.hpp>
 
-#include <vkom/internal/vulkan.hpp>
-
 #if defined(VKOM_PLATFORM_FAMILY_UNIX) && !defined(VKOM_PLATFORM_FAMILY_APPLE)
+
+#include <vkom/internal/vulkan.hpp>
 
 struct Display;
 using Window = unsigned int;

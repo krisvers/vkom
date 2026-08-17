@@ -1,14 +1,18 @@
-#include "vulkan/vulkan_core.h"
 #include <vkom/internal/instance.hpp>
 
-#include <cstring>
-#include <algorithm>
 #include <stdexcept>
+#include <algorithm>
+#include <cstring>
 
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/surface.hpp>
 #include <vkom/internal/vksurface.hpp>
+
+#include <vkom/internal/object.hpp>
+#include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 
@@ -110,7 +114,7 @@ Result VulkanInstance::createSurface(SurfaceWSIInfo const* info, ISurface** surf
     VulkanSurfaceData surfaceData = VulkanSurfaceData(_instanceData, vkSurface);
     try {
         *surface = new VulkanSurface(false, IInterface::queryInterface<IInstance>(), *info, surfaceData);
-    } catch (std::runtime_error) {
+    } catch (std::runtime_error err) {
         PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR = IDispatchable::loadDispatchSymbol<PFN_vkDestroySurfaceKHR>("vkDestroySurfaceKHR");
         if (vkDestroySurfaceKHR != nullptr) {
             vkDestroySurfaceKHR(_instanceData.vkInstance, vkSurface, _instanceData.vkAllocationCallbacks);

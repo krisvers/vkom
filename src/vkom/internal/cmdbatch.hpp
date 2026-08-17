@@ -1,9 +1,5 @@
 #pragma once
 
-#include "vkom/internal/object.hpp"
-#include "vkom/internal/vkdata.hpp"
-#include <vector>
-
 #include <vkom/enums.hpp>
 #include <vkom/cmdbatch.hpp>
 
@@ -13,8 +9,10 @@
 #include <vkom/adapter.hpp>
 #include <vkom/instance.hpp>
 
-#include <vkom/internal/funcptrs.hpp>
+#include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>
+#include <vkom/internal/funcptrs.hpp>
+#include <vkom/internal/vkdata.hpp>
 
 namespace vkom {
 

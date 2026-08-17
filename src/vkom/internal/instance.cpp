@@ -1,3 +1,4 @@
+#include "vulkan/vulkan_core.h"
 #include <vkom/internal/instance.hpp>
 
 #include <cstring>
@@ -284,8 +285,10 @@ Result createInstance(bool debug, InstanceLoaderInfo const* loaderInfo, IInstanc
             #endif
         } else if (std::strcmp(props.extensionName, VK_KHR_SURFACE_EXTENSION_NAME) == 0) {
             enabledExtensions.push_back(props.extensionName);
-        }
-        else if (!enabledExtensionSurfaceMaintenance1 && (std::strcmp(props.extensionName, VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME) == 0 || std::strcmp(props.extensionName, VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME) == 0)) {
+        } else if (!enabledExtensionSurfaceMaintenance1 && (std::strcmp(props.extensionName, VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME) == 0 || std::strcmp(props.extensionName, VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME) == 0)) {
+            enabledExtensions.push_back(props.extensionName);
+            enabledExtensionSurfaceMaintenance1 = true;
+        } else if (std::strcmp(props.extensionName, VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME) == 0) {
             enabledExtensions.push_back(props.extensionName);
             enabledExtensionSurfaceMaintenance1 = true;
         } else if (std::strcmp(props.extensionName, "VK_KHR_win32_surface") == 0) {

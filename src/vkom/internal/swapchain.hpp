@@ -1,5 +1,6 @@
 #pragma once
 
+#include "vulkan/vulkan_core.h"
 #include <vkom/swapchain.hpp>
 
 #include <vkom/texture.hpp>
@@ -22,7 +23,7 @@ namespace internal {
 
 struct DummyWSISynchronizationPrimitives {
     VkSemaphore vkBinarySemaphore = VK_NULL_HANDLE;
-    VkFence vkTriggeredFence = VK_NULL_HANDLE;
+    VkFence vkSemaphoreConsumedFence = VK_NULL_HANDLE;
 };
 
 /* NOTE: VulkanSwapchainMaintenance1PresentFence may not advertise support for IPresentIDFence due to presentId
@@ -115,6 +116,7 @@ private:
     TextureInfo _info = {};
     uint32_t _index = 0;
     VulkanTextureData _textureData;
+    VulkanSemaphoreData _semaphoreData;
     VulkanSwapchainData _swapchainData;
 
     uint32_t _referenceCount = 0;
@@ -125,13 +127,14 @@ private:
     void releaseSwapchainImage() noexcept;
 
 public:
-    VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSwapchainData const& swapchainData);
+    VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSemaphoreData const& semaphoreData, VulkanSwapchainData const& swapchainData);
     ~VulkanManualBackbuffer();
 
     /* internal */
     void recreate(TextureInfo const& info, uint32_t index, VkImage vkImage) noexcept;
     void acquire() noexcept;
     void present() noexcept;
+    VkSemaphore vkBinarySemaphore() const noexcept;
 
     /* IBackbuffer */
     uint32_t index() const noexcept override;
@@ -173,21 +176,23 @@ private:
     VulkanSwapchainData _swapchainData;
     VulkanHeapData _backbufferHeapData;
 
+    static const uint64_t _defaultTimeout = 5000000000;
+
     bool _lastRecreateMinimized = false;
     VkQueue _lastPresentQueue = VK_NULL_HANDLE;
 
     std::vector<VkImage> _backbufferImages = {};
     std::vector<DummyWSISynchronizationPrimitives> _dummyWSISync = {};
 
-    Result dummyTimelineSubmit(std::vector<VkSemaphore> const& vkWaitSemaphores, std::vector<uint64_t> const& vkWaitSemaphoreValues, std::vector<VkPipelineStageFlags> const& vkWaitDstStageMasks, std::vector<VkSemaphore> const& vkSignalSemaphores, std::vector<uint64_t> const& vkSignalSemaphoreValues, VkFence vkSignalFence) noexcept;
+    Result dummySubmit(std::vector<VkSemaphore> const& vkWaitSemaphores, std::vector<uint64_t> const& vkWaitSemaphoreValues, std::vector<VkPipelineStageFlags> const& vkWaitDstStageMasks, std::vector<VkSemaphore> const& vkSignalSemaphores, std::vector<uint64_t> const& vkSignalSemaphoreValues, VkFence vkSignalFence) noexcept;
 
     VulkanSwapchainMaintenance1PresentFence* acquireSwapchainMaintenance1PresentFence(uint64_t presentID) noexcept;
     VulkanPresentWaitPresentIDFence* acquirePresentWaitPresentIDFence(uint64_t presentID) noexcept;
 
     bool acquireDummyWSISync(DummyWSISynchronizationPrimitives& primitives) noexcept;
     void appendDummyWSISync(DummyWSISynchronizationPrimitives& primitives) noexcept;
-    void releaseDummyWSISync(std::vector<DummyWSISynchronizationPrimitives>::iterator it) noexcept;
-    void releaseDummyWSISync(DummyWSISynchronizationPrimitives const& primitives, bool wait = true) noexcept;
+    void releaseDummyWSISync(std::vector<DummyWSISynchronizationPrimitives>::iterator it, bool waitForConsumed) noexcept;
+    void releaseDummyWSISync(DummyWSISynchronizationPrimitives const& primitives, bool waitForConsumed) noexcept;
 
 public:
     VulkanManualSwapchain(bool inheritedHandle, IDevice* device, ISurface* surface, SwapchainInfo const& info, VulkanSwapchainData const& swapchainData);

@@ -1,3 +1,6 @@
+#include "vkom/adapter.hpp"
+#include "vkom/enums.hpp"
+#include "vulkan/vulkan_core.h"
 #include <vkom/internal/swapchain.hpp>
 
 #include <vkom/internal/enums.hpp>
@@ -159,13 +162,15 @@ void* VulkanPresentWaitPresentIDFence::queryInterface(IID const& iid) noexcept {
     return nullptr;
 }
 
-VulkanManualBackbuffer::VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _index(index), _textureData(textureData), _swapchainData(swapchainData) {
-
-}
+VulkanManualBackbuffer::VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSemaphoreData const& semaphoreData, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _index(index), _textureData(textureData), _semaphoreData(semaphoreData), _swapchainData(swapchainData) {}
 
 VulkanManualBackbuffer::~VulkanManualBackbuffer() {
     ParentByVector::disownAll();
     _swapchain->disown(IInterface::queryInterface<IChild>());
+
+    if (!_inheritedHandle) {
+        _semaphoreData.deviceData.functionPointers.device10.vkDestroySemaphore(_semaphoreData.deviceData.vkDevice, _semaphoreData.vkSemaphore, _semaphoreData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
+    }
 
     if (_acquired && !_presented) {
         releaseSwapchainImage();
@@ -306,6 +311,10 @@ void VulkanManualBackbuffer::present() noexcept {
     _presented = true;
 }
 
+VkSemaphore VulkanManualBackbuffer::vkBinarySemaphore() const noexcept {
+    return _semaphoreData.vkSemaphore;
+}
+
 VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* device, ISurface* surface, SwapchainInfo const& info, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _surface(surface), _info(info), _swapchainData(swapchainData), _backbufferHeapData(VulkanHeapData(_swapchainData.deviceData, nullptr)) {
     /* TODO: backbuffer creation */
     uint32_t backbufferCount;
@@ -322,7 +331,7 @@ VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* devi
     if (vkGetSwapchainImagesKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, &backbufferCount, &_backbufferImages[0]) != VK_SUCCESS) {
         throw std::runtime_error("vkGetSwapchainImagesKHR failed");
     }
-    
+
     SurfaceFormat surfaceFormat;
     _adapter->enumerateSurfaceFormatsByBits(surface, info.surfaceFormatBits, &surfaceFormat);
 
@@ -333,7 +342,17 @@ VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* devi
 
     for (uint32_t i = 0; i < backbufferCount; i += 1) {
         VulkanTextureData textureData = VulkanTextureData(_backbufferHeapData, nullptr, {}, _backbufferImages[i]);
-        VulkanManualBackbuffer* backbuffer = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData, _swapchainData);
+        VkSemaphoreCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkSemaphore vkSemaphore;
+        if (_swapchainData.deviceData.functionPointers.device10.vkCreateSemaphore(_swapchainData.deviceData.vkDevice, &createInfo, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkSemaphore) != VK_SUCCESS) {
+            /* TODO: cleanup */
+
+        }
+
+        VulkanSemaphoreData semaphoreData = VulkanSemaphoreData(_swapchainData.deviceData, VK_SEMAPHORE_TYPE_BINARY, vkSemaphore);
+        VulkanManualBackbuffer* backbuffer = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData, semaphoreData, _swapchainData);
         adopt(backbuffer);
     }
 
@@ -343,7 +362,7 @@ VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* devi
 
 VulkanManualSwapchain::~VulkanManualSwapchain() {
     for (size_t i = 0; i < _dummyWSISync.size(); i += 1) {
-        releaseDummyWSISync(_dummyWSISync.begin() + i);
+        releaseDummyWSISync(_dummyWSISync.begin() + i, true);
         i -= 1;
     }
 
@@ -456,6 +475,7 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
 
     _dummyWSISync.clear();
 
+    _device->waitIdle();
     vkDestroySwapchainKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
 
     uint32_t previousBackbufferCount = _swapchainData.backbufferCount;
@@ -467,16 +487,19 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
     uint32_t backbufferCount;
     PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR = _device->loadDispatchSymbol<PFN_vkGetSwapchainImagesKHR>("vkGetSwapchainImagesKHR");
     if (vkGetSwapchainImagesKHR == nullptr) {
-        throw std::runtime_error("vkGetSwapchainImagesKHR failed");
+        /* TODO: cleanup */
+        return Result::ErrorUnknown;
     }
 
     if (vkGetSwapchainImagesKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, &backbufferCount, nullptr) != VK_SUCCESS) {
-        throw std::runtime_error("vkGetSwapchainImagesKHR failed");
+        /* TODO: cleanup */
+        return Result::ErrorUnknown;
     }
 
     _backbufferImages.resize(backbufferCount);
     if (vkGetSwapchainImagesKHR(_swapchainData.deviceData.vkDevice, _swapchainData.vkSwapchain, &backbufferCount, &_backbufferImages[0]) != VK_SUCCESS) {
-        throw std::runtime_error("vkGetSwapchainImagesKHR failed");
+        /* TODO: cleanup */
+        return Result::ErrorUnknown;
     }
 
     TextureInfo backbufferInfo = _info.backbufferInfo;
@@ -490,7 +513,18 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
             delete manualBackbuffer;
         } else if (i >= previousBackbufferCount) {
             VulkanTextureData textureData = VulkanTextureData(_backbufferHeapData, nullptr, {}, _backbufferImages[i]);
-            VulkanManualBackbuffer* manualBackbuffer = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData, _swapchainData);
+            VkSemaphoreCreateInfo createInfo = {};
+            createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+            VkSemaphore vkSemaphore;
+            if (_swapchainData.deviceData.functionPointers.device10.vkCreateSemaphore(_swapchainData.deviceData.vkDevice, &createInfo, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkSemaphore) != VK_SUCCESS) {
+                /* TODO: cleanup */
+                return Result::ErrorUnknown;
+            }
+
+            VulkanSemaphoreData semaphoreData = VulkanSemaphoreData(_swapchainData.deviceData, VK_SEMAPHORE_TYPE_BINARY, vkSemaphore);
+            VulkanManualBackbuffer* manualBackbuffer = new VulkanManualBackbuffer(false, this, backbufferInfo, i, textureData, semaphoreData, _swapchainData);
+            adopt(manualBackbuffer);
         } else {
             VulkanManualBackbuffer* manualBackbuffer = dynamic_cast<VulkanManualBackbuffer*>(enumerateBackbuffers(i));
             manualBackbuffer->recreate(backbufferInfo, i, _backbufferImages[i]);
@@ -502,8 +536,8 @@ Result VulkanManualSwapchain::recreate(SwapchainInfo const* info) noexcept {
 
 Result VulkanManualSwapchain::acquireNextIndex(SemaphorePoint const* signalSemaphore, IFence* signalFence, uint32_t* index, uint64_t timeout) noexcept {
     for (size_t i = 0; i < _dummyWSISync.size(); i += 1) {
-        if (_swapchainData.deviceData.functionPointers.device10.vkGetFenceStatus(_swapchainData.deviceData.vkDevice, _dummyWSISync[i].vkTriggeredFence) == VK_SUCCESS) {
-            releaseDummyWSISync(_dummyWSISync.begin() + i);
+        if (_swapchainData.deviceData.functionPointers.device10.vkGetFenceStatus(_swapchainData.deviceData.vkDevice, _dummyWSISync[i].vkSemaphoreConsumedFence) == VK_SUCCESS) {
+            releaseDummyWSISync(_dummyWSISync.begin() + i, false);
             i -= 1;
         }
     }
@@ -560,14 +594,14 @@ Result VulkanManualSwapchain::acquireNextIndex(SemaphorePoint const* signalSemap
     *   (this is due to trying to allow for extensibility with adopting external implementations)
     */
 
-    VulkanManualBackbuffer* manualBackbuffer = reinterpret_cast<VulkanManualBackbuffer*>(enumerateBackbuffers(*index));
+    VulkanManualBackbuffer* manualBackbuffer = dynamic_cast<VulkanManualBackbuffer*>(enumerateBackbuffers(*index));
     manualBackbuffer->acquire();
 
     if (!timeline) {
         return result;
     }
 
-    Result queueResult = dummyTimelineSubmit({ dummyPrimitives.vkBinarySemaphore }, { 0 }, { VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT }, { vkProvidedSemaphore }, { vkSemaphoreValue }, dummyPrimitives.vkTriggeredFence);
+    Result queueResult = dummySubmit({ dummyPrimitives.vkBinarySemaphore }, { 0 }, { VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT }, { vkProvidedSemaphore }, { vkSemaphoreValue }, dummyPrimitives.vkSemaphoreConsumedFence);
     if (queueResult != Result::Success) {
         releaseDummyWSISync(dummyPrimitives, false);
         return queueResult;
@@ -588,7 +622,7 @@ Result VulkanManualSwapchain::present(IQueue* queue, IBackbuffer* backbuffer, Pr
     *   (this is due to trying to allow for extensibility with adopting external implementations)
     */
 
-    VulkanManualBackbuffer* manualBackbuffer = reinterpret_cast<VulkanManualBackbuffer*>(backbuffer);
+    VulkanManualBackbuffer* manualBackbuffer = dynamic_cast<VulkanManualBackbuffer*>(backbuffer);
 
     PFN_vkQueuePresentKHR vkQueuePresentKHR = _device->loadDispatchSymbol<PFN_vkQueuePresentKHR>("vkQueuePresentKHR");
     if (vkQueuePresentKHR == nullptr) {
@@ -633,31 +667,19 @@ Result VulkanManualSwapchain::present(IQueue* queue, IBackbuffer* backbuffer, Pr
         vkWaitSemaphoreValues[i] = info->waits[i].value;
     }
 
-    DummyWSISynchronizationPrimitives dummyPrimitives = {};
-    std::vector<VkSemaphore> vkPresentWaitSemaphores = {};
-    if (timeline) {
-        if (!acquireDummyWSISync(dummyPrimitives)) {
-            return Result::ErrorUnsupportedFeature;
-        }
+    VkSemaphore vkBackbufferBinarySemaphore = manualBackbuffer->vkBinarySemaphore();
 
-        std::vector<VkPipelineStageFlags> vkWaitDstStageMasks(info->waitCount, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-
-        vkPresentWaitSemaphores.push_back(dummyPrimitives.vkBinarySemaphore);
-        Result result = dummyTimelineSubmit(vkWaitSemaphores, vkWaitSemaphoreValues, vkWaitDstStageMasks, { dummyPrimitives.vkBinarySemaphore }, { 0 }, dummyPrimitives.vkTriggeredFence);
-        if (result != Result::Success) {
-            releaseDummyWSISync(dummyPrimitives);
-            return result;
-        }
-
-        appendDummyWSISync(dummyPrimitives);
-    } else {
-        vkPresentWaitSemaphores = vkWaitSemaphores;
+    std::vector<VkPipelineStageFlags> vkWaitDstStageMasks(info->waitCount, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+    Result result = dummySubmit(vkWaitSemaphores, vkWaitSemaphoreValues, vkWaitDstStageMasks, { vkBackbufferBinarySemaphore }, { 0 }, VK_NULL_HANDLE);
+    if (result != Result::Success) {
+        /* TODO: error */
+        return result;
     }
 
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = static_cast<uint32_t>(vkPresentWaitSemaphores.size());
-    presentInfo.pWaitSemaphores = (vkPresentWaitSemaphores.empty() ? nullptr : &vkPresentWaitSemaphores[0]);
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &vkBackbufferBinarySemaphore;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &_swapchainData.vkSwapchain;
     presentInfo.pImageIndices = &backbufferIndex;
@@ -687,7 +709,7 @@ Result VulkanManualSwapchain::present(IQueue* queue, IBackbuffer* backbuffer, Pr
         }
     }
 
-    Result result = castEnum<Result>(vkQueuePresentKHR(vkQueue, &presentInfo));
+    result = castEnum<Result>(vkQueuePresentKHR(vkQueue, &presentInfo));
     if (result == Result::Success || result == Result::SuboptimalSwapchain) {
         *signal = presentFence;
         manualBackbuffer->present();
@@ -754,7 +776,7 @@ void* VulkanManualSwapchain::queryInterface(IID const& iid) noexcept {
 }
 
 /* internal */
-Result VulkanManualSwapchain::dummyTimelineSubmit(std::vector<VkSemaphore> const& vkWaitSemaphores, std::vector<uint64_t> const& vkWaitSemaphoreValues, std::vector<VkPipelineStageFlags> const& vkWaitDstStageMasks, std::vector<VkSemaphore> const& vkSignalSemaphores, std::vector<uint64_t> const& vkSignalSemaphoreValues, VkFence vkSignalFence) noexcept {
+Result VulkanManualSwapchain::dummySubmit(std::vector<VkSemaphore> const& vkWaitSemaphores, std::vector<uint64_t> const& vkWaitSemaphoreValues, std::vector<VkPipelineStageFlags> const& vkWaitDstStageMasks, std::vector<VkSemaphore> const& vkSignalSemaphores, std::vector<uint64_t> const& vkSignalSemaphoreValues, VkFence vkSignalFence) noexcept {
     VkTimelineSemaphoreSubmitInfo timelineSubmitInfo = {};
     timelineSubmitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
     timelineSubmitInfo.waitSemaphoreValueCount = static_cast<uint32_t>(vkWaitSemaphoreValues.size());
@@ -762,9 +784,15 @@ Result VulkanManualSwapchain::dummyTimelineSubmit(std::vector<VkSemaphore> const
     timelineSubmitInfo.signalSemaphoreValueCount = static_cast<uint32_t>(vkSignalSemaphoreValues.size());
     timelineSubmitInfo.pSignalSemaphoreValues = (vkSignalSemaphoreValues.empty() ? nullptr : &vkSignalSemaphoreValues[0]);
 
+    AdapterFeatures adapterFeatures;
+    _adapter->queryFeatures(&adapterFeatures);
+
     VkSubmitInfo dummySubmitInfo = {};
     dummySubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    dummySubmitInfo.pNext = &timelineSubmitInfo;
+    if (adapterFeatures.timelineSemaphores) {
+        dummySubmitInfo.pNext = &timelineSubmitInfo;
+    }
+
     dummySubmitInfo.waitSemaphoreCount = static_cast<uint32_t>(vkWaitSemaphores.size());
     dummySubmitInfo.pWaitSemaphores = (vkWaitSemaphores.empty() ? nullptr : &vkWaitSemaphores[0]);
     dummySubmitInfo.pWaitDstStageMask = (vkWaitDstStageMasks.empty() ? nullptr : &vkWaitDstStageMasks[0]);
@@ -840,8 +868,7 @@ VulkanPresentWaitPresentIDFence* VulkanManualSwapchain::acquirePresentWaitPresen
 
     try {
         fence = new VulkanPresentWaitPresentIDFence(this, presentID, _swapchainData);
-    }
-    catch (std::runtime_error err) {
+    } catch (std::runtime_error err) {
         return nullptr;
     }
 
@@ -860,13 +887,14 @@ bool VulkanManualSwapchain::acquireDummyWSISync(DummyWSISynchronizationPrimitive
     VkFenceCreateInfo fenceCreateInfo = {};
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-    if (_swapchainData.deviceData.functionPointers.device10.vkCreateFence(_swapchainData.deviceData.vkDevice, &fenceCreateInfo, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &primitives.vkTriggeredFence) != VK_SUCCESS) {
+    if (_swapchainData.deviceData.functionPointers.device10.vkCreateFence(_swapchainData.deviceData.vkDevice, &fenceCreateInfo, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &primitives.vkSemaphoreConsumedFence) != VK_SUCCESS) {
         _swapchainData.deviceData.functionPointers.device10.vkDestroySemaphore(_swapchainData.deviceData.vkDevice, primitives.vkBinarySemaphore, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
         return false;
     }
 
     _device->labelHandle(ObjectType::Semaphore, primitives.vkBinarySemaphore, "WSI Dummy Binary Semaphore");
-    _device->labelHandle(ObjectType::Fence, primitives.vkTriggeredFence, "WSI Dummy Triggered Fence");
+    _device->labelHandle(ObjectType::Fence, primitives.vkSemaphoreConsumedFence, "WSI Dummy Binary Semaphore Consumed Fence");
+
     return true;
 }
 
@@ -874,17 +902,17 @@ void VulkanManualSwapchain::appendDummyWSISync(DummyWSISynchronizationPrimitives
     _dummyWSISync.push_back(primitives);
 }
 
-void VulkanManualSwapchain::releaseDummyWSISync(std::vector<DummyWSISynchronizationPrimitives>::iterator it) noexcept {
-    releaseDummyWSISync(*it);
+void VulkanManualSwapchain::releaseDummyWSISync(std::vector<DummyWSISynchronizationPrimitives>::iterator it, bool waitForConsumed) noexcept {
+    releaseDummyWSISync(*it, waitForConsumed);
     _dummyWSISync.erase(it);
 }
 
-void VulkanManualSwapchain::releaseDummyWSISync(DummyWSISynchronizationPrimitives const& primitives, bool wait) noexcept {
-    if (wait) {
-        _swapchainData.deviceData.functionPointers.device10.vkWaitForFences(_swapchainData.deviceData.vkDevice, 1, &primitives.vkTriggeredFence, true, std::numeric_limits<uint64_t>::max());
+void VulkanManualSwapchain::releaseDummyWSISync(DummyWSISynchronizationPrimitives const& primitives, bool waitForConsumed) noexcept {
+    if (waitForConsumed) {
+        _swapchainData.deviceData.functionPointers.device10.vkWaitForFences(_swapchainData.deviceData.vkDevice, 1, &primitives.vkSemaphoreConsumedFence, true, _defaultTimeout);
     }
 
-    _swapchainData.deviceData.functionPointers.device10.vkDestroyFence(_swapchainData.deviceData.vkDevice, primitives.vkTriggeredFence, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
+    _swapchainData.deviceData.functionPointers.device10.vkDestroyFence(_swapchainData.deviceData.vkDevice, primitives.vkSemaphoreConsumedFence, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
     _swapchainData.deviceData.functionPointers.device10.vkDestroySemaphore(_swapchainData.deviceData.vkDevice, primitives.vkBinarySemaphore, _swapchainData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
 }
 

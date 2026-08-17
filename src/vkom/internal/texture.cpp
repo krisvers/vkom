@@ -1,9 +1,6 @@
 #include <vkom/internal/texture.hpp>
 
-#include <stdexcept>
-
 #include <vkom/internal/enums.hpp>
-#include <vkom/internal/resource.hpp>
 #include <vkom/internal/heap.hpp>
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/adapter.hpp>

@@ -5,7 +5,6 @@
 #include <algorithm>
 
 #include <vkom/internal/enums.hpp>
-#include <vkom/internal/resource.hpp>
 #include <vkom/internal/buffer.hpp>
 #include <vkom/internal/texture.hpp>
 #include <vkom/internal/device.hpp>

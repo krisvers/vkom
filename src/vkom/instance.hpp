@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vkom/platform.hpp>
 #include <vkom/enums.hpp>
 #include <vkom/object.hpp>
 

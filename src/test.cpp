@@ -6,6 +6,7 @@
 #include <vkom/surface.hpp>
 #include <vkom/adapter.hpp>
 #include <vkom/device.hpp>
+#include <vkom/pipeline.hpp>
 #include <vkom/swapchain.hpp>
 #include <vkom/heap.hpp>
 #include <vkom/buffer.hpp>
@@ -17,6 +18,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <vector>
+#include <fstream>
 #include <algorithm>
 
 #include <vkom/internal/object.hpp>
@@ -141,6 +143,30 @@ public:
     }
 };
 
+std::vector<uint32_t> loadFile(const char* path) {
+    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    if (!in.good()) {
+        return {};
+    }
+
+    size_t byteSize = in.tellg();
+    if (byteSize % 4 != 0) {
+        in.close();
+        return {};
+    }
+
+    std::vector<uint32_t> code(byteSize / 4);
+    in.seekg(0, std::ios::beg);
+
+    if (!in.read(reinterpret_cast<char*>(&code[0]), byteSize)) {
+        in.close();
+        return {};
+    }
+
+    in.close();
+    return code;
+}
+
 int main(int argc, char** argv) {
     AutoReleasePool pool = {};
 
@@ -255,6 +281,50 @@ int main(int argc, char** argv) {
 
     pool.push(queue);
 
+    std::vector<uint32_t> shaderCode = loadFile("shader.spv");
+    if (shaderCode.empty()) {
+        return 9;
+    }
+
+    vkom::ShaderModuleInfo shaderInfo = {};
+    shaderInfo.length = shaderCode.size();
+    shaderInfo.spirv = &shaderCode[0];
+
+    vkom::IShaderModule* shader;
+    if (device->createShaderModule(&shaderInfo, &shader) != vkom::Result::Success) {
+        return 10;
+    }
+
+    pool.push(shader);
+
+    vkom::PushConstantRange computePipelineLayoutPushConstantRanges[1] = {};
+    computePipelineLayoutPushConstantRanges[0].stages = vkom::ShaderStageFlags::Compute;
+    computePipelineLayoutPushConstantRanges[0].offset = 0;
+    computePipelineLayoutPushConstantRanges[0].size = sizeof(uint64_t);
+
+    vkom::PipelineLayoutInfo computePipelineLayoutInfo = {};
+    computePipelineLayoutInfo.pushConstantRangeCount = 1;
+    computePipelineLayoutInfo.pushConstantRanges = &computePipelineLayoutPushConstantRanges[0];
+
+    vkom::IPipelineLayout* computePipelineLayout;
+    if (device->createPipelineLayout(&computePipelineLayoutInfo, &computePipelineLayout) != vkom::Result::Success) {
+        return 11;
+    }
+
+    pool.push(computePipelineLayout);
+
+    vkom::ComputePipelineInfo computePipelineInfo = {};
+    computePipelineInfo.shaderInfo.shader = shader;
+    computePipelineInfo.shaderInfo.stage = vkom::ShaderStageFlags::Compute;
+    computePipelineInfo.shaderInfo.entry = "main";
+
+    vkom::IComputePipeline* computePipeline;
+    if (device->createComputePipeline(&computePipelineInfo, nullptr, computePipelineLayout, &computePipeline) != vkom::Result::Success) {
+        return 12;
+    }
+
+    pool.push(computePipeline);
+
     uint64_t pastFinishedValue = 0;
     uint64_t futureFinishedValue = 1;
 
@@ -319,6 +389,19 @@ int main(int argc, char** argv) {
         if (queue->acquireCommandEncoder(&encoder) != vkom::Result::Success) {
             return 2;
         }
+
+        vkom::BufferInfo bufferInfo;
+        buffer->getInfo(&bufferInfo);
+
+        vkom::ComputePassDescriptor computePassDescriptor = {};
+
+        uint64_t bufferDeviceAddress = buffer->deviceAddress();
+
+        vkom::IComputePass* computePass = encoder->beginComputePass(&computePassDescriptor);
+        computePass->bindPipeline(computePipeline);
+        computePass->pushConstants(computePipelineLayout, vkom::ShaderStageFlags::Compute, 0, sizeof(bufferDeviceAddress), &bufferDeviceAddress);
+        computePass->dispatch(bufferInfo.size / 4, 1, 1);
+        computePass->end();
 
         vkom::TextureTransition transitionBackbufferToTransferDestination = {};
         transitionBackbufferToTransferDestination.general.srcStage = vkom::PipelineStageFlags::TopOfPipe;

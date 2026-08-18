@@ -1,3 +1,4 @@
+#include "vkom/internal/vma.hpp"
 #include <vkom/internal/buffer.hpp>
 
 #include <vkom/internal/enums.hpp>
@@ -68,6 +69,19 @@ void VulkanBuffer::getAllocationInfo(ResourceAllocationInfo* info) const noexcep
     info->resourceSize = _info.size;
     info->allocationLocalOffset = _bufferData.vmaAllocationInfo2.allocationInfo.offset;
     info->allocationLocalSize = _bufferData.vmaAllocationInfo2.allocationInfo.size;
+}
+
+void* VulkanBuffer::map() noexcept {
+    void* mapped;
+    if (vmaMapMemory(_bufferData.heapData.deviceData.vmaAllocator, _bufferData.vmaAllocation, &mapped) != VK_SUCCESS) {
+        return nullptr;
+    }
+
+    return mapped;
+}
+
+void VulkanBuffer::unmap() noexcept {
+    vmaUnmapMemory(_bufferData.heapData.deviceData.vmaAllocator, _bufferData.vmaAllocation);
 }
 
 /* IHandled */

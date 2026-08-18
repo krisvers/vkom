@@ -507,4 +507,45 @@ enum class TexelFilter : uint32_t {
     Cubic = 1000015000,
 };
 
+enum class ShaderStageFlags : uint32_t {
+    Vertex = 0x00000001,
+    Hull = 0x0000002,
+    Domain = 0x00000004,
+    Geometry = 0x00000008,
+    Fragment = 0x00000010,
+    Compute = 0x00000020,
+    AllGraphics = Vertex | Hull | Domain | Geometry | Fragment,
+
+    /* TODO: */
+
+    All = 0x7fffffff,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(ShaderStageFlags)
+
+enum class PipelineShaderFlags : uint32_t {
+    None = 0x00000000,
+    AllowVaryingSubgroupSize = 0x00000001,
+    RequireFullSubgroups = 0x00000002,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(PipelineShaderFlags)
+
+enum class PipelineFlags : uint32_t {
+    None = 0x00000000,
+    DisableOptimization = 0x00000001,
+    AllowDerivatives = 0x00000002,
+    Derivative = 0x00000004,
+    ViewIndexFromDeviceIndex = 0x00000008,
+    DispatchBase = 0x00000010,
+    FailOnPipelineCompileRequired = 0x00000100,
+    EarlyReturnOnFailure = 0x00000200,
+    NoProtectedAccess = 0x08000000,
+    ProtectedAccessOnly = 0x40000000,
+
+    /* TODO: */
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(PipelineFlags)
+
 }

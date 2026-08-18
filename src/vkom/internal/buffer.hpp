@@ -42,6 +42,9 @@ public:
     bool isAlias() const noexcept override;
     void getAllocationInfo(ResourceAllocationInfo* info) const noexcept override;
 
+    void* map() noexcept override;
+    void unmap() noexcept override;
+
     /* IHandled */
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;

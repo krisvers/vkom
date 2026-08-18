@@ -206,6 +206,14 @@ void VulkanManualBackbuffer::getAllocationInfo(ResourceAllocationInfo* info) con
     info->allocationLocalSize = 0;
 }
 
+void* VulkanManualBackbuffer::map() noexcept {
+    return nullptr;
+}
+
+void VulkanManualBackbuffer::unmap() noexcept {
+    return;
+}
+
 /* IHandled */
 uint64_t VulkanManualBackbuffer::handle() const noexcept {
     return reinterpret_cast<uint64_t>(_textureData.vkImage);

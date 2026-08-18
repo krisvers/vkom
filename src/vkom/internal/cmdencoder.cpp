@@ -62,7 +62,13 @@ VulkanCommandEncoder::~VulkanCommandEncoder() {
 
 /* ICommandEncoder */
 IComputePass* VulkanCommandEncoder::beginComputePass(ComputePassDescriptor const* descriptor) noexcept {
-    return nullptr;
+    VulkanCommandPassData passData = VulkanCommandPassData(_encoderData);
+
+    try {
+        return new VulkanComputePass(this, passData);
+    } catch (std::runtime_error err) {
+        return nullptr;
+    }
 }
 
 IRenderPass* VulkanCommandEncoder::beginRenderPass(RenderPassDescriptor const* descriptor) noexcept {

@@ -6,15 +6,20 @@
 namespace vkom {
 
 struct ComputePassDescriptor {
-    /* TODO: description */
+    /* TODO: */
 };
 
 struct RenderPassDescriptor {
     /* TODO: description */
 };
 
+class IPipeline;
+class IPipelineLayout;
+
 class IPass : virtual public IChild {
 public:
+    virtual void bindPipeline(IPipeline* pipeline) noexcept = 0;
+    virtual void pushConstants(IPipelineLayout* layout, ShaderStageFlags stages, uint32_t offset, uint32_t size, void const* data) noexcept = 0;
     virtual void end() noexcept = 0;
 
     static inline IID const& iid() noexcept {
@@ -23,19 +28,15 @@ public:
     }
 };
 
-class IComputePipeline;
-
 class IComputePass : virtual public IPass {
 public:
-    virtual void bindPipeline(IComputePipeline* pipeline) noexcept = 0;
+    virtual void dispatch(uint32_t width, uint32_t height, uint32_t depth) noexcept = 0;
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("c5062949-36c0-470b-bc5f-561caf85cae2");
         return iid;
     }
 };
-
-class IGraphicsPipeline;
 
 class IRenderPass : public IPass {
 public:

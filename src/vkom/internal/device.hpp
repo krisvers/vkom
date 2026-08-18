@@ -64,6 +64,12 @@ public:
     Result acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept override;
     Result acquireFence(bool signaled, IFence** fence) noexcept override;
 
+    Result createShaderModule(ShaderModuleInfo const* info, IShaderModule** shader) noexcept override;
+
+    Result createPipelineLayout(PipelineLayoutInfo const* info, IPipelineLayout** layout) noexcept override;
+    Result createGraphicsPipeline(GraphicsPipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IGraphicsPipeline** pipeline) noexcept override;
+    Result createComputePipeline(ComputePipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IComputePipeline** pipeline) noexcept override;
+
     /* IHandled */
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;

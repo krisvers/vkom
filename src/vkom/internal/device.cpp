@@ -1,6 +1,8 @@
 #include "vkom/device.hpp"
 #include "vkom/adapter.hpp"
+#include "vkom/enums.hpp"
 #include "vkom/instance.hpp"
+#include "vkom/internal/pipeline.hpp"
 #include "vulkan/vulkan_core.h"
 #include <vkom/internal/device.hpp>
 
@@ -434,6 +436,169 @@ Result VulkanDevice::acquireFence(bool signaled, IFence** fence) noexcept {
         *fence = new VulkanFence(false, this, fenceData);
     } catch (std::runtime_error err) {
         _deviceData.functionPointers.device10.vkDestroyFence(_deviceData.vkDevice, vkFence, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    return Result::Success;
+}
+
+Result VulkanDevice::createShaderModule(ShaderModuleInfo const* info, IShaderModule** shader) noexcept {
+    VkShaderModuleCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = info->length * 4;
+    createInfo.pCode = info->spirv;
+
+    VkShaderModule vkShaderModule;
+    Result result = castEnum<Result>(_deviceData.functionPointers.device10.vkCreateShaderModule(_deviceData.vkDevice, &createInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkShaderModule));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VulkanShaderModuleData moduleData = VulkanShaderModuleData(_deviceData, vkShaderModule);
+
+    try {
+        *shader = new VulkanShaderModule(false, this, moduleData);
+    } catch (std::runtime_error err) {
+        _deviceData.functionPointers.device10.vkDestroyShaderModule(_deviceData.vkDevice, vkShaderModule, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    return Result::Success;
+}
+
+Result VulkanDevice::createPipelineLayout(PipelineLayoutInfo const* info, IPipelineLayout** layout) noexcept {
+    if (info->descriptorSetLayoutCount != 0) {
+        /* TODO: */
+        return Result::ErrorUnknown;
+    }
+
+    std::vector<VkDescriptorSetLayout> vkDescriptorSetLayouts(info->descriptorSetLayoutCount);
+    for (uint32_t i = 0; i < info->descriptorSetLayoutCount; i += 1) {
+        vkDescriptorSetLayouts[i] = VK_NULL_HANDLE; /* TODO: info->descriptorSetLayouts[i]->handle<VkDescriptorSetLayout>(); */
+    }
+
+    std::vector<VkPushConstantRange> pushConstantRanges(info->pushConstantRangeCount);
+    for (uint32_t i = 0; i < info->pushConstantRangeCount; i += 1) {
+        pushConstantRanges[i].stageFlags = castEnum<VkShaderStageFlags>(info->pushConstantRanges[i].stages);
+        pushConstantRanges[i].offset = info->pushConstantRanges[i].offset;
+        pushConstantRanges[i].size = info->pushConstantRanges[i].size;
+    }
+
+    VkPipelineLayoutCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    createInfo.setLayoutCount = info->descriptorSetLayoutCount;
+    createInfo.pSetLayouts = nullptr; /* TODO: */
+    createInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
+    createInfo.pPushConstantRanges = (pushConstantRanges.empty() ? nullptr : &pushConstantRanges[0]);
+
+    VkPipelineLayout vkPipelineLayout;
+    Result result = castEnum<Result>(_deviceData.functionPointers.device10.vkCreatePipelineLayout(_deviceData.vkDevice, &createInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkPipelineLayout));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VulkanPipelineLayoutData layoutData = VulkanPipelineLayoutData(_deviceData, vkPipelineLayout);
+
+    try {
+        *layout = new VulkanPipelineLayout(false, this, layoutData);
+    } catch (std::runtime_error err) {
+        _deviceData.functionPointers.device10.vkDestroyPipelineLayout(_deviceData.vkDevice, vkPipelineLayout, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    return Result::Success;
+}
+
+Result VulkanDevice::createGraphicsPipeline(GraphicsPipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IGraphicsPipeline** pipeline) noexcept {
+    return Result::ErrorUnknown;
+
+    VkPipeline vkPipeline;
+    /* TODO: Result result = _deviceData.functionPointers.device10.vkCreateGraphicsPipelines(_deviceData.vkDevice, ) */
+
+    VulkanPipelineData pipelineData = VulkanPipelineData(_deviceData, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
+
+    try {
+        *pipeline = new VulkanPipeline(false, this, pipelineData);
+    } catch (std::runtime_error err) {
+        _deviceData.functionPointers.device10.vkDestroyPipeline(_deviceData.vkDevice, vkPipeline, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    return Result::Success;
+}
+
+Result VulkanDevice::createComputePipeline(ComputePipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IComputePipeline** pipeline) noexcept {
+    VkPipelineCache vkPipelineCache = VK_NULL_HANDLE;
+    if (cache != nullptr) {
+        if (cache->handleType() != ObjectType::PipelineCache) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+
+        vkPipelineCache = cache->handle<VkPipelineCache>();
+    }
+
+    VkPipelineLayout vkPipelineLayout = VK_NULL_HANDLE;
+    if (layout != nullptr) {
+        if (layout->handleType() != ObjectType::PipelineLayout) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+
+        vkPipelineLayout = layout->handle<VkPipelineLayout>();
+    }
+
+    VkPipeline vkBasePipeline = VK_NULL_HANDLE;
+    if (info->derivationInfo.base != nullptr) {
+        if (info->derivationInfo.base->handleType() != ObjectType::Pipeline) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+
+        vkBasePipeline = info->derivationInfo.base->handle<VkPipeline>();
+    }
+
+    std::vector<VkSpecializationMapEntry> specializationEntries(info->shaderInfo.specialization.entryCount);
+    for (uint32_t i = 0; i < info->shaderInfo.specialization.entryCount; i += 1) {
+        specializationEntries[i].constantID = info->shaderInfo.specialization.entries[i].constantID;
+        specializationEntries[i].offset = info->shaderInfo.specialization.entries[i].offset;
+        specializationEntries[i].size = static_cast<size_t>(info->shaderInfo.specialization.entries[i].size);
+    }
+
+    VkSpecializationInfo specializationInfo = {};
+    specializationInfo.mapEntryCount = static_cast<uint32_t>(specializationEntries.size());
+    specializationInfo.pMapEntries = (specializationEntries.empty() ? nullptr : &specializationEntries[0]);
+    specializationInfo.dataSize = static_cast<size_t>(info->shaderInfo.specialization.size);
+    specializationInfo.pData = info->shaderInfo.specialization.data;
+
+    VkComputePipelineCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    createInfo.flags = castEnum<VkPipelineCreateFlags>(info->flags);
+    createInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    createInfo.stage.flags = castEnum<VkPipelineShaderStageCreateFlags>(info->shaderInfo.flags);
+    createInfo.stage.stage = castEnum<VkShaderStageFlagBits>(info->shaderInfo.stage);
+    createInfo.stage.module = info->shaderInfo.shader->handle<VkShaderModule>();
+    createInfo.stage.pName = info->shaderInfo.entry;
+    if (info->shaderInfo.specialization.entryCount != 0) {
+        createInfo.stage.pSpecializationInfo = &specializationInfo;
+    }
+
+    createInfo.layout = vkPipelineLayout;
+    createInfo.basePipelineHandle = vkBasePipeline;
+    createInfo.basePipelineIndex = info->derivationInfo.index;
+
+    VkPipeline vkPipeline;
+    Result result = castEnum<Result>(_deviceData.functionPointers.device10.vkCreateComputePipelines(_deviceData.vkDevice, vkPipelineCache, 1, &createInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkPipeline));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VulkanPipelineData pipelineData = VulkanPipelineData(_deviceData, VK_PIPELINE_BIND_POINT_COMPUTE, vkPipeline);
+
+    try {
+        *pipeline = new VulkanPipeline(false, this, pipelineData);
+    } catch (std::runtime_error err) {
+        _deviceData.functionPointers.device10.vkDestroyPipeline(_deviceData.vkDevice, vkPipeline, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
         return Result::ErrorUnknown;
     }
 

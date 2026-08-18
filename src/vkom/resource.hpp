@@ -17,6 +17,9 @@ public:
     virtual bool isAlias() const noexcept = 0;
     virtual void getAllocationInfo(ResourceAllocationInfo* info) const noexcept = 0;
 
+    virtual void* map() noexcept = 0;
+    virtual void unmap() noexcept = 0;
+
     static inline IID const& iid() noexcept {
         static IID iid = IID("af77869c-6bd9-4f4f-9d31-87f993bf1ba6");
         return iid;

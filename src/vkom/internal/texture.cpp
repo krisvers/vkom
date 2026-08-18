@@ -57,6 +57,19 @@ void VulkanTexture::getAllocationInfo(ResourceAllocationInfo* info) const noexce
     info->allocationLocalSize = _textureData.vmaAllocationInfo2.allocationInfo.size;
 }
 
+void* VulkanTexture::map() noexcept {
+    void* mapped;
+    if (vmaMapMemory(_textureData.heapData.deviceData.vmaAllocator, _textureData.vmaAllocation, &mapped) != VK_SUCCESS) {
+        return nullptr;
+    }
+
+    return mapped;
+}
+
+void VulkanTexture::unmap() noexcept {
+    vmaUnmapMemory(_textureData.heapData.deviceData.vmaAllocator, _textureData.vmaAllocation);
+}
+
 /* IHandled */
 uint64_t VulkanTexture::handle() const noexcept {
     return reinterpret_cast<uint64_t>(_textureData.vkImage);

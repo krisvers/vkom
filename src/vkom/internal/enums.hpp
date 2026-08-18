@@ -1,6 +1,8 @@
 #pragma once
 
+#include "vulkan/vulkan_core.h"
 #include <type_traits>
+#include <limits>
 
 #include <vkom/enums.hpp>
 
@@ -241,6 +243,11 @@ VKOM_INTERNAL_ENUM_DEFINE_CAST(VkComponentSwizzle, TextureChannelSwizzle)
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkImageAspectFlags, TextureAspectFlags)
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkImageViewType, TextureViewType)
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkFilter, TexelFilter)
+
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkShaderStageFlagBits, ShaderStageFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkShaderStageFlags, ShaderStageFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkPipelineShaderStageCreateFlags, PipelineShaderFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkPipelineCreateFlags, PipelineFlags)
 
 template<typename Flags>
 inline Flags lowestFlag(Flags f) {

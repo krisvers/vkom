@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vkom/enums.hpp>
 #include <vkom/cmdencoder.hpp>
 
 #include <vkom/queue.hpp>

@@ -7,6 +7,7 @@
 
 #include <vkom/surface.hpp>
 #include <vkom/swapchain.hpp>
+#include <vkom/pipeline.hpp>
 
 namespace vkom {
 
@@ -33,6 +34,12 @@ public:
     virtual Result acquireSemaphore(bool timeline, ISemaphore** semaphore) noexcept = 0;
     virtual Result acquireFence(bool signalled, IFence** fence) noexcept = 0;
 
+    virtual Result createShaderModule(ShaderModuleInfo const* info, IShaderModule** shader) noexcept = 0;
+
+    virtual Result createPipelineLayout(PipelineLayoutInfo const* info, IPipelineLayout** layout) noexcept = 0;
+    virtual Result createGraphicsPipeline(GraphicsPipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IGraphicsPipeline** pipeline) noexcept = 0;
+    virtual Result createComputePipeline(ComputePipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IComputePipeline** pipeline) noexcept = 0;
+
     template<typename T>
     inline void labelHandle(ObjectType handleType, T handle, const char* name) noexcept {
         labelHandle(handleType, reinterpret_cast<uint64_t>(handle), name);
@@ -51,6 +58,16 @@ public:
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("895ec6bb-3c91-4580-aa8e-ff801b48336b");
+        return iid;
+    }
+};
+
+class IRayTracingDevice : virtual public IDevice {
+public:
+    virtual Result createRayTracingPipeline(RayTracingPipelineInfo const* info, IPipelineLayout* layout, IRayTracingPipeline** pipeline) noexcept = 0;
+
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("500b5c9c-eef2-40dd-b783-8d49ec641be1");
         return iid;
     }
 };

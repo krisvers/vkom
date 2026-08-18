@@ -146,6 +146,9 @@ public:
     bool isAlias() const noexcept override;
     void getAllocationInfo(ResourceAllocationInfo* info) const noexcept override;
 
+    void* map() noexcept override;
+    void unmap() noexcept override;
+
     /* IHandled */
     uint64_t handle() const noexcept override;
     ObjectType handleType() const noexcept override;
@@ -202,9 +205,8 @@ public:
     ISurface* surface() const noexcept override;
     IBackbuffer* enumerateBackbuffers(uint32_t id) const noexcept override;
 
-    Result recreate(SwapchainInfo const* info) noexcept;
-
-    Result acquireNextIndex(SemaphorePoint const* signalSemaphore, IFence* signalFence, uint32_t* index, uint64_t timeout = std::numeric_limits<uint64_t>::max()) noexcept;
+    Result recreate(SwapchainInfo const* info) noexcept override;
+    Result acquireNextIndex(SemaphorePoint const* signalSemaphore, IFence* signalFence, uint32_t* index, uint64_t timeout = std::numeric_limits<uint64_t>::max()) noexcept override;
     Result present(IQueue* queue, IBackbuffer* backbuffer, PresentInfo const* info, IPresentFence** fence) noexcept override;
 
     /* IHandled */

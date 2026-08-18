@@ -1,5 +1,6 @@
 #pragma once
 
+#include "vulkan/vulkan_core.h"
 #include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vulkan.hpp>
 #include <vkom/internal/vma.hpp>
@@ -133,14 +134,29 @@ struct VulkanTextureData {
     VulkanTextureData(VulkanHeapData const& heapData, VmaAllocation vmaAllocation, VmaAllocationInfo2 vmaAllocationInfo2, VkImage vkImage) : heapData(heapData), vmaAllocation(vmaAllocation), vmaAllocationInfo2(vmaAllocationInfo2), vkImage(vkImage) {}
 };
 
+struct VulkanShaderModuleData {
+    VulkanDeviceData const& deviceData;
+
+    VkShaderModule vkShaderModule;
+
+    VulkanShaderModuleData(VulkanDeviceData const& deviceData, VkShaderModule vkShaderModule) : deviceData(deviceData), vkShaderModule(vkShaderModule) {}
+};
+
+struct VulkanPipelineLayoutData {
+    VulkanDeviceData const& deviceData;
+
+    VkPipelineLayout vkPipelineLayout;
+
+    VulkanPipelineLayoutData(VulkanDeviceData const& deviceData, VkPipelineLayout vkPipelineLayout) : deviceData(deviceData), vkPipelineLayout(vkPipelineLayout) {}
+};
+
 struct VulkanPipelineData {
     VulkanDeviceData const& deviceData;
 
     VkPipelineBindPoint vkPipelineBindPoint;
-    VkPipelineLayout vkPipelineLayout;
     VkPipeline vkPipeline;
 
-    VulkanPipelineData(VulkanDeviceData const& deviceData, VkPipelineBindPoint vkPipelineBindPoint, VkPipelineLayout vkPipelineLayout, VkPipeline vkPipeline) : deviceData(deviceData), vkPipelineBindPoint(vkPipelineBindPoint), vkPipelineLayout(vkPipelineLayout), vkPipeline(vkPipeline) {}
+    VulkanPipelineData(VulkanDeviceData const& deviceData, VkPipelineBindPoint vkPipelineBindPoint, VkPipeline vkPipeline) : deviceData(deviceData), vkPipelineBindPoint(vkPipelineBindPoint), vkPipeline(vkPipeline) {}
 };
 
 struct VulkanQueueFunctionPointers {

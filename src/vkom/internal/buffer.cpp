@@ -1,3 +1,4 @@
+#include "vkom/enums.hpp"
 #include "vkom/internal/vma.hpp"
 #include <vkom/internal/buffer.hpp>
 
@@ -118,6 +119,44 @@ void* VulkanBuffer::queryInterface(IID const& iid) noexcept {
         return static_cast<IResource*>(this);
     } else if (iid == IBuffer::iid()) {
         return static_cast<IBuffer*>(this);
+    } else if (iid == IIndirectBuffer::iid()) {
+        return static_cast<IBuffer*>(this);
+    } else if (iid == IIndexBuffer::iid()) {
+        if ((_info.usage & BufferUsageFlags::IndexBuffer) != BufferUsageFlags::None) {
+            return static_cast<IIndexBuffer*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == IVertexBuffer::iid()) {
+        if ((_info.usage & BufferUsageFlags::VertexBuffer) != BufferUsageFlags::None) {
+            return static_cast<IVertexBuffer*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == IUniformBuffer::iid()) {
+        if ((_info.usage & BufferUsageFlags::UniformBuffer) != BufferUsageFlags::None || (_info.usage & BufferUsageFlags::UniformTexelBuffer) != BufferUsageFlags::None) {
+            return static_cast<IUniformBuffer*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == IStorageBuffer::iid()) {
+        if ((_info.usage & BufferUsageFlags::StorageBuffer) != BufferUsageFlags::None || (_info.usage & BufferUsageFlags::StorageTexelBuffer) != BufferUsageFlags::None) {
+            return static_cast<IStorageBuffer*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == ITexelBuffer::iid()) {
+        if ((_info.usage & BufferUsageFlags::UniformTexelBuffer) != BufferUsageFlags::None || (_info.usage & BufferUsageFlags::StorageTexelBuffer) != BufferUsageFlags::None) {
+            return static_cast<ITexelBuffer*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == IDeviceAddressBuffer::iid()) {
+        if ((_info.usage & BufferUsageFlags::ShaderDeviceAddress) != BufferUsageFlags::None) {
+            return static_cast<IDeviceAddressBuffer*>(this);
+        }
+
+        return nullptr;
     }
 
     return nullptr;

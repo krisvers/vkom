@@ -548,4 +548,19 @@ enum class PipelineFlags : uint32_t {
 
 VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(PipelineFlags)
 
+enum class IndexType : uint32_t {
+    Uint16 = 0,
+    Uint32 = 1,
+
+    None = 1000165000,
+    Uint8 = 1000265000,
+};
+
+enum class StencilFaceFlags : uint32_t {
+    Front = 0x0001,
+    Back = 0x0002,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(StencilFaceFlags)
+
 }

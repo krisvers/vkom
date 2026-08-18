@@ -17,7 +17,13 @@ namespace vkom {
 
 namespace internal {
 
-class VulkanBuffer final : virtual public IBuffer, virtual public ParentByVector, virtual public CollectedByHeap {
+/* NOTE: while this class implements IIndirectBuffer, IIndexBuffer, IVertexBuffer,
+ *  IUniformBuffer, IStorageBuffer, ITexelBuffer, and IDeviceAddressBuffer,
+ *  only instances that were created with the appropriate usage flags will advertise
+ *  support for each interface
+*/
+
+class VulkanBuffer final : virtual public IBuffer, virtual public IIndirectBuffer, virtual public IIndexBuffer, virtual public IVertexBuffer, virtual public IUniformBuffer, virtual public IStorageBuffer, virtual public ITexelBuffer, virtual public IDeviceAddressBuffer, virtual public ParentByVector, virtual public CollectedByHeap {
 private:
     bool _inheritedHandle = false;
     bool _alias = false;
@@ -32,9 +38,11 @@ public:
     VulkanBuffer(bool inheritedHandle, bool alias, IHeap* heap, BufferInfo const& info, VulkanBufferData const& bufferData);
     ~VulkanBuffer();
 
+    /* IDeviceAddressBuffer */
+    uint64_t deviceAddress() const noexcept override;
+
     /* IBuffer */
     void getInfo(BufferInfo* info) const noexcept override;
-    uint64_t deviceAddress() const noexcept override;
 
     Result createView(BufferViewInfo const* info, IBufferView** view) noexcept override;
 

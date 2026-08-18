@@ -249,6 +249,9 @@ VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkShaderStageFlags, ShaderStageFla
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkPipelineShaderStageCreateFlags, PipelineShaderFlags)
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkPipelineCreateFlags, PipelineFlags)
 
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkIndexType, IndexType)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkStencilFaceFlags, StencilFaceFlags)
+
 template<typename Flags>
 inline Flags lowestFlag(Flags f) {
     std::underlying_type_t<Flags> u = static_cast<std::underlying_type_t<Flags>>(f);

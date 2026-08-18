@@ -72,8 +72,8 @@ struct TextureResolve {
 struct ColorTextureClear {
     TextureLayout layout;
     float color[4];
-    TextureSubresourcePosition subresourcePosition;
-    TextureSubresourceDimensions subresourceDimensions;
+    TextureSubresourcePosition subresourceOffset;
+    TextureSubresourceDimensions subresourceRange;
 };
 
 struct DepthStencilTextureClear {
@@ -81,8 +81,8 @@ struct DepthStencilTextureClear {
     float depth;
     uint32_t stencil;
     TextureAspectFlags aspectFlags;
-    TextureSubresourcePosition subresourcePosition;
-    TextureSubresourceDimensions subresourceDimensions;
+    TextureSubresourcePosition subresourceOffset;
+    TextureSubresourceDimensions subresourceRange;
 };
 
 struct GeneralBarrier {

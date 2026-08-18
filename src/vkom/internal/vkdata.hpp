@@ -209,10 +209,18 @@ struct VulkanCommandBatchData {
     }
 };
 
-struct VulkanCommandPassData {
+struct VulkanComputePassData {
     VulkanCommandEncoderData const& encoderData;
 
-    VulkanCommandPassData(VulkanCommandEncoderData const& encoderData) : encoderData(encoderData) {}
+    VulkanComputePassData(VulkanCommandEncoderData const& encoderData) : encoderData(encoderData) {}
+};
+
+struct VulkanRenderPassData {
+    VulkanCommandEncoderData const& encoderData;
+
+    VkRenderPass vkRenderPass;
+
+    VulkanRenderPassData(VulkanCommandEncoderData const& encoderData, VkRenderPass vkRenderPass) : encoderData(encoderData), vkRenderPass(vkRenderPass) {}
 };
 
 }

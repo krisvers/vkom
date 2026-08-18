@@ -1,8 +1,8 @@
 #pragma once
 
-#include "vkom/enums.hpp"
 #include <vkom/cmdpasses.hpp>
 
+#include <vkom/enums.hpp>
 #include <vkom/cmdencoder.hpp>
 #include <vkom/queue.hpp>
 #include <vkom/device.hpp>
@@ -25,10 +25,10 @@ private:
     IDevice* _device = nullptr;
     IAdapter* _adapter = nullptr;
     IInstance* _instance = nullptr;
-    VulkanCommandPassData _passData;
+    VulkanComputePassData _passData;
 
 public:
-    VulkanComputePass(ICommandEncoder* encoder, VulkanCommandPassData const& passData);
+    VulkanComputePass(ICommandEncoder* encoder, VulkanComputePassData const& passData);
     ~VulkanComputePass();
 
     /* IComputePass */
@@ -53,11 +53,37 @@ private:
     IDevice* _device = nullptr;
     IAdapter* _adapter = nullptr;
     IInstance* _instance = nullptr;
-    VulkanCommandPassData _passData;
+    VulkanRenderPassData _passData;
 
 public:
-    VulkanRenderPass(ICommandEncoder* encoder, VulkanCommandPassData const& passData);
+    VulkanRenderPass(ICommandEncoder* encoder, VulkanRenderPassData const& passData);
     ~VulkanRenderPass();
+
+    /* IRenderPass */
+    void nextSubpass() noexcept override;
+
+    void clearColorTarget(uint32_t id, ColorTargetClear const* clear) noexcept override;
+    void clearDepthStencilTarget(DepthStencilTargetClear const* clear) noexcept override;
+
+    void setViewport(uint32_t index, Viewport const* viewport) noexcept override;
+    void setScissor(uint32_t index, Scissor const* scissor) noexcept override;
+
+    void setLineWidth(float lineWidth) noexcept override;
+    void setDepthBias(float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor) noexcept override;
+    void setBlendConstants(float const blendConstants[4]) noexcept override;
+    void setDepthBounds(float near, float far) noexcept override;
+
+    void setStencilCompareMask(StencilFaceFlags faces, uint32_t compareMask) noexcept override;
+    void setStencilWriteMask(StencilFaceFlags faces, uint32_t writeMask) noexcept override;
+    void setStencilReference(StencilFaceFlags faces, uint32_t reference) noexcept override;
+
+    void bindIndexBuffer(IIndexBuffer* buffer, uint64_t offset, IndexType type) noexcept override;
+    void bindVertexBuffer(uint32_t binding, IVertexBuffer* buffer, uint64_t offset) noexcept override;
+
+    void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) noexcept override;
+    void drawIndexed(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) noexcept override;
+    void drawIndirect(IIndirectBuffer* buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) noexcept override;
+    void drawIndirectIndexed(IIndirectBuffer* buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) noexcept override;
 
     /* IPass */
     void bindPipeline(IPipeline* pipeline) noexcept override;

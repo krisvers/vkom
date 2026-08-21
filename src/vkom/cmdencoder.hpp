@@ -115,6 +115,7 @@ struct BufferTransition {
 };
 
 class ICommandBatch;
+class IQueueEvent;
 
 class ICommandEncoder : virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IChild, virtual public IDispatchable {
 public:
@@ -141,10 +142,16 @@ public:
     virtual void clearColorTexture(ITransferDestinationTexture* texture, ColorTextureClear const* clear) noexcept = 0;
     virtual void clearDepthStencilTexture(ITransferDestinationTexture* texture, DepthStencilTextureClear const* clear) noexcept = 0;
 
-    /* synchronization commands */
+    /* barrier synchronization commands */
     virtual void globalMemoryBarrier(GeneralBarrier const* barrier) noexcept = 0;
     virtual void transitionTexture(ITexture* texture, TextureTransition const* transition) noexcept = 0;
     virtual void transitionBuffer(IBuffer* buffer, BufferTransition const* transition) noexcept = 0;
+
+    /* event synchronization commands */
+    virtual void setQueueEvent(IQueueEvent* event, bool signaled, PipelineStageFlags stageFlags) noexcept = 0;
+    virtual void waitQueueEventsForGlobalMemoryBarrier(uint32_t eventCount, IQueueEvent* const* events, GeneralBarrier const* barrier) noexcept = 0;
+    virtual void waitQueueEventsForTextureTransition(uint32_t eventCount, IQueueEvent* const* events, ITexture* texture, TextureTransition const* transition) noexcept = 0;
+    virtual void waitQueueEventsForBufferTransition(uint32_t eventCount, IQueueEvent* const* events, IBuffer* buffer, BufferTransition const* transition) noexcept = 0;
 
     /* once finish is called, no more commands can be encoded and no more passes can begin */
     virtual Result finish() noexcept = 0;

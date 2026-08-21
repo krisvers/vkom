@@ -18,6 +18,36 @@ namespace vkom {
 
 namespace internal {
 
+class VulkanQueueEvent final : virtual public IQueueEvent, virtual public CollectedByHeap {
+private:
+    bool _inheritedHandle = false;
+    IQueue* _queue = nullptr;
+    IDevice* _device = nullptr;
+    IAdapter* _adapter = nullptr;
+    IInstance* _instance = nullptr;
+    VulkanQueueEventData _eventData;
+
+public:
+    VulkanQueueEvent(bool inheritedHandle, IQueue* queue, VulkanQueueEventData const& eventData);
+    ~VulkanQueueEvent();
+
+    /* IQueueEvent */
+    Result set(bool signaled) noexcept override;
+    bool status() const noexcept override;
+
+    /* IHandled */
+    uint64_t handle() const noexcept override;
+    ObjectType handleType() const noexcept override;
+
+    void const* vkData() const noexcept override;
+
+    /* IChild */
+    IParent* parent() const noexcept override;
+
+    /* IInterface */
+    void* queryInterface(IID const& iid) noexcept override;
+};
+
 class VulkanQueue final : virtual public IQueue, virtual public ParentByVector, virtual public CollectedByHeap {
 private:
     bool _inheritedHandle = false;
@@ -43,6 +73,7 @@ public:
 
     Result waitIdle() const noexcept override;
 
+    Result acquireQueueEvent(IQueueEvent** event) noexcept override;
     Result acquireCommandEncoder(ICommandEncoder** encoder) noexcept override;
     Result acquireCommandBatch(ICommandBatch** batch) noexcept override;
 

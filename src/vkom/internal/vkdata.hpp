@@ -215,6 +215,14 @@ struct VulkanQueueData {
     }
 };
 
+struct VulkanQueueEventData {
+    VulkanQueueData const& queueData;
+
+    VkEvent vkEvent;
+
+    VulkanQueueEventData(VulkanQueueData const& queueData, VkEvent vkEvent) : queueData(queueData), vkEvent(vkEvent) {}
+};
+
 struct VulkanCommandBufferFunctionPointers {
     VulkanCommandBufferFunctionPointers10 commandBuffer10;
     VulkanCommandBufferFunctionPointersDebugUtilsEXT debugUtilsEXT;

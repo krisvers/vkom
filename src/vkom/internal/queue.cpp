@@ -16,6 +16,68 @@ namespace vkom {
 
 namespace internal {
 
+VulkanQueueEvent::VulkanQueueEvent(bool inheritedHandle, IQueue* queue, VulkanQueueEventData const& eventData) : _inheritedHandle(inheritedHandle), _queue(queue), _device(_queue->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _eventData(eventData) {
+    _queue->retain();
+}
+
+VulkanQueueEvent::~VulkanQueueEvent() {
+    _queue->disown(IInterface::queryInterface<IChild>());
+
+    if (!_inheritedHandle) {
+        _eventData.queueData.deviceData.functionPointers.device10.vkDestroyEvent(_eventData.queueData.deviceData.vkDevice, _eventData.vkEvent, _eventData.queueData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
+    }
+
+    _queue->release();
+}
+
+/* IQueueEvent */
+Result VulkanQueueEvent::set(bool signaled) noexcept {
+    if (signaled) {
+        return castEnum<Result>(_eventData.queueData.deviceData.functionPointers.device10.vkSetEvent(_eventData.queueData.deviceData.vkDevice, _eventData.vkEvent));
+    }
+
+    return castEnum<Result>(_eventData.queueData.deviceData.functionPointers.device10.vkResetEvent(_eventData.queueData.deviceData.vkDevice, _eventData.vkEvent));
+}
+
+bool VulkanQueueEvent::status() const noexcept {
+    return (_eventData.queueData.deviceData.functionPointers.device10.vkGetEventStatus(_eventData.queueData.deviceData.vkDevice, _eventData.vkEvent) == VK_EVENT_SET);
+}
+
+/* IHandled */
+uint64_t VulkanQueueEvent::handle() const noexcept {
+    return reinterpret_cast<uint64_t>(_eventData.vkEvent);
+}
+
+ObjectType VulkanQueueEvent::handleType() const noexcept {
+    return ObjectType::Event;
+}
+
+void const* VulkanQueueEvent::vkData() const noexcept {
+    return &_eventData;
+}
+
+/* IChild */
+IParent* VulkanQueueEvent::parent() const noexcept {
+    return _queue->queryInterface<IParent>();
+}
+
+/* IInterface */
+void* VulkanQueueEvent::queryInterface(IID const& iid) noexcept {
+    if (iid == IBase::iid()) {
+        return static_cast<IBase*>(this);
+    } else if (iid == IHandled::iid()) {
+        return static_cast<IHandled*>(this);
+    } else if (iid == ICollected::iid()) {
+        return static_cast<ICollected*>(this);
+    } else if (iid == IParent::iid()) {
+        return static_cast<IChild*>(this);
+    } else if (iid == IQueueEvent::iid()) {
+        return static_cast<IQueueEvent*>(this);
+    }
+
+    return nullptr;
+}
+
 VulkanQueue::VulkanQueue(bool inheritedHandle, IDevice* device, VulkanQueueData const& queueData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _queueData(queueData), _flags(_adapter->queryQueueFamilyFlags(_queueData.family)) {
     VkCommandPoolCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -54,6 +116,30 @@ QueueFlags VulkanQueue::flags() const noexcept {
 
 Result VulkanQueue::waitIdle() const noexcept {
     return castEnum<Result>(_queueData.functionPointers.queue10.vkQueueWaitIdle(_queueData.vkQueue));
+}
+
+Result VulkanQueue::acquireQueueEvent(IQueueEvent** event) noexcept {
+    VkEventCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
+
+    VkEvent vkEvent;
+    Result result = castEnum<Result>(_queueData.deviceData.functionPointers.device10.vkCreateEvent(_queueData.deviceData.vkDevice, &createInfo, _queueData.deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkEvent));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VulkanQueueEventData eventData = VulkanQueueEventData(_queueData, vkEvent);
+
+    try {
+        *event = new VulkanQueueEvent(false, this, eventData);
+    } catch (std::runtime_error err) {
+        /* TODO: error */
+        _queueData.deviceData.functionPointers.device10.vkDestroyEvent(_queueData.deviceData.vkDevice, vkEvent, _queueData.deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    adopt(*event);
+    return Result::Success;
 }
 
 Result VulkanQueue::acquireCommandEncoder(ICommandEncoder** encoder) noexcept {

@@ -8,6 +8,17 @@
 
 namespace vkom {
 
+class IQueueEvent : virtual public IHandled, virtual public ICollected, virtual public IChild {
+public:
+    virtual Result set(bool signaled) noexcept = 0;
+    virtual bool status() const noexcept = 0;
+
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("2f195a0b-4912-4274-99ac-49f83843dee5");
+        return iid;
+    }
+};
+
 class IQueue : virtual public IHandled, virtual public ICollected, virtual public IParent, virtual public IChild, virtual public IDispatchable {
 public:
     virtual uint32_t family() const noexcept = 0;
@@ -16,6 +27,7 @@ public:
 
     virtual Result waitIdle() const noexcept = 0;
 
+    virtual Result acquireQueueEvent(IQueueEvent** event) noexcept = 0;
     virtual Result acquireCommandEncoder(ICommandEncoder** encoder) noexcept = 0;
     virtual Result acquireCommandBatch(ICommandBatch** batch) noexcept = 0;
 

@@ -60,6 +60,11 @@ public:
     void transitionTexture(ITexture* texture, TextureTransition const* transition) noexcept override;
     void transitionBuffer(IBuffer* buffer, BufferTransition const* transition) noexcept override;
 
+    void setQueueEvent(IQueueEvent* event, bool signaled, PipelineStageFlags stageFlags) noexcept override;
+    void waitQueueEventsForGlobalMemoryBarrier(uint32_t eventCount, IQueueEvent* const* events, GeneralBarrier const* barrier) noexcept override;
+    void waitQueueEventsForTextureTransition(uint32_t eventCount, IQueueEvent* const* events, ITexture* texture, TextureTransition const* transition) noexcept override;
+    void waitQueueEventsForBufferTransition(uint32_t eventCount, IQueueEvent* const* events, IBuffer* buffer, BufferTransition const* transition) noexcept override;
+
     Result finish() noexcept override;
     Result batch(ICommandBatch** batch) noexcept override;
 

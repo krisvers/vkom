@@ -569,6 +569,161 @@ void VulkanCommandEncoder::transitionBuffer(IBuffer* buffer, BufferTransition co
     );
 }
 
+void VulkanCommandEncoder::setQueueEvent(IQueueEvent* event, bool signaled, PipelineStageFlags stageFlags) noexcept {
+    if (_ended) {
+        /* TODO: error */
+        return;
+    }
+
+    if (event->handleType() != ObjectType::Event) {
+        /* TODO: error */
+        return;
+    }
+
+    VkEvent vkEvent = event->handle<VkEvent>();
+
+    /* TODO: use vkCmdSetEvent2/vkCmdResetEvent2 if available */
+    if (signaled) {
+        _encoderData.functionPointers.commandBuffer10.vkCmdSetEvent(_encoderData.vkCommandBuffer, vkEvent, castEnum<VkPipelineStageFlags>(stageFlags));
+    } else {
+        _encoderData.functionPointers.commandBuffer10.vkCmdResetEvent(_encoderData.vkCommandBuffer, vkEvent, castEnum<VkPipelineStageFlags>(stageFlags));
+    }
+}
+
+void VulkanCommandEncoder::waitQueueEventsForGlobalMemoryBarrier(uint32_t eventCount, IQueueEvent* const* events, GeneralBarrier const* barrier) noexcept {
+    if (_ended) {
+        /* TODO: error */
+        return;
+    }
+
+    std::vector<VkEvent> vkEvents(eventCount);
+    for (uint32_t i = 0; i < eventCount; i += 1) {
+        IQueueEvent* event = events[i];
+        if (event->handleType() != ObjectType::Event) {
+            /* TODO: error */
+            return;
+        }
+
+        vkEvents[i] = event->handle<VkEvent>();
+    }
+
+    VkMemoryBarrier vkBarrier = {};
+    vkBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    vkBarrier.srcAccessMask = castEnum<VkAccessFlags>(barrier->srcAccess);
+    vkBarrier.dstAccessMask = castEnum<VkAccessFlags>(barrier->dstAccess);
+
+    /* TODO: use vkCmdWaitEvents2 when available */
+    /* TODO: cache event waits and pool them together */
+    _encoderData.functionPointers.commandBuffer10.vkCmdWaitEvents(_encoderData.vkCommandBuffer,
+        static_cast<uint32_t>(vkEvents.size()), (vkEvents.empty() ? nullptr : &vkEvents[0]),
+        castEnum<VkPipelineStageFlags>(barrier->srcStage), castEnum<VkPipelineStageFlags>(barrier->dstStage),
+        1, &vkBarrier,
+        0, nullptr,
+        0, nullptr
+    );
+}
+
+void VulkanCommandEncoder::waitQueueEventsForTextureTransition(uint32_t eventCount, IQueueEvent* const* events, ITexture* texture, TextureTransition const* transition) noexcept {
+    if (_ended) {
+        /* TODO: error */
+        return;
+    }
+
+    std::vector<VkEvent> vkEvents(eventCount);
+    for (uint32_t i = 0; i < eventCount; i += 1) {
+        IQueueEvent* event = events[i];
+        if (event->handleType() != ObjectType::Event) {
+            /* TODO: error */
+            return;
+        }
+
+        vkEvents[i] = event->handle<VkEvent>();
+    }
+
+    if (texture->handleType() != ObjectType::Image) {
+        /* TODO: error */
+        return;
+    }
+
+    /* TODO: more error checking */
+
+    VkImage vkImage = texture->handle<VkImage>();
+
+    VkImageMemoryBarrier vkTransition = {};
+    vkTransition.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    vkTransition.srcAccessMask = castEnum<VkAccessFlags>(transition->general.srcAccess);
+    vkTransition.dstAccessMask = castEnum<VkAccessFlags>(transition->general.dstAccess);
+    vkTransition.oldLayout = castEnum<VkImageLayout>(transition->oldLayout);
+    vkTransition.newLayout = castEnum<VkImageLayout>(transition->newLayout);
+    vkTransition.srcQueueFamilyIndex = transition->transfer.oldFamily;
+    vkTransition.dstQueueFamilyIndex = transition->transfer.newFamily;
+    vkTransition.image = vkImage;
+    vkTransition.subresourceRange.aspectMask = castEnum<VkImageAspectFlags>(transition->aspectFlags);
+    vkTransition.subresourceRange.baseArrayLayer = transition->subresourcePosition.layer;
+    vkTransition.subresourceRange.layerCount = transition->subresourceDimensions.layers;
+    vkTransition.subresourceRange.baseMipLevel = transition->subresourcePosition.mip;
+    vkTransition.subresourceRange.levelCount = transition->subresourceDimensions.mips;
+
+    /* TODO: use vkCmdWaitEvents2 when available */
+    /* TODO: cache event waits and pool them together */
+    _encoderData.functionPointers.commandBuffer10.vkCmdWaitEvents(_encoderData.vkCommandBuffer,
+        static_cast<uint32_t>(vkEvents.size()), (vkEvents.empty() ? nullptr : &vkEvents[0]),
+        castEnum<VkPipelineStageFlags>(transition->general.srcStage), castEnum<VkPipelineStageFlags>(transition->general.dstStage),
+        0, nullptr,
+        0, nullptr,
+        1, &vkTransition
+    );
+}
+
+void VulkanCommandEncoder::waitQueueEventsForBufferTransition(uint32_t eventCount, IQueueEvent* const* events, IBuffer* buffer, BufferTransition const* transition) noexcept {
+    if (_ended) {
+        /* TODO: error */
+        return;
+    }
+
+    std::vector<VkEvent> vkEvents(eventCount);
+    for (uint32_t i = 0; i < eventCount; i += 1) {
+        IQueueEvent* event = events[i];
+        if (event->handleType() != ObjectType::Event) {
+            /* TODO: error */
+            return;
+        }
+
+        vkEvents[i] = event->handle<VkEvent>();
+    }
+
+    if (buffer->handleType() != ObjectType::Buffer) {
+        /* TODO: error */
+        return;
+    }
+
+    /* TODO: more error checking */
+
+    VkBuffer vkBuffer = buffer->handle<VkBuffer>();
+
+    VkBufferMemoryBarrier vkTransition = {};
+    vkTransition.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    vkTransition.srcAccessMask = castEnum<VkAccessFlags>(transition->general.srcAccess);
+    vkTransition.dstAccessMask = castEnum<VkAccessFlags>(transition->general.dstAccess);
+    vkTransition.srcQueueFamilyIndex = transition->transfer.oldFamily;
+    vkTransition.dstQueueFamilyIndex = transition->transfer.newFamily;
+    vkTransition.buffer = vkBuffer;
+    vkTransition.offset = transition->offset;
+    vkTransition.size = transition->size;
+
+    /* TODO: more error checking */
+
+    /* TODO: use vkCmdWaitEvents2 when available */
+    /* TODO: cache event waits and pool them together */
+    _encoderData.functionPointers.commandBuffer10.vkCmdWaitEvents(_encoderData.vkCommandBuffer,
+        static_cast<uint32_t>(vkEvents.size()), (vkEvents.empty() ? nullptr : &vkEvents[0]),
+        castEnum<VkPipelineStageFlags>(transition->general.srcStage), castEnum<VkPipelineStageFlags>(transition->general.dstStage),
+        0, nullptr,
+        1, &vkTransition,
+        0, nullptr
+    );
+}
+
 Result VulkanCommandEncoder::finish() noexcept {
     if (_ended) {
         return Result::Success;

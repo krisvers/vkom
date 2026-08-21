@@ -27,15 +27,25 @@
 #include <SDL3/SDL_metal.h>
 #endif
 
+struct AutoReleaseEntry {
+    vkom::IInterface* object;
+    bool errorOnReleaseNonZero;
+};
+
 struct AutoReleasePool {
-    std::vector<vkom::IInterface*> objects = {};
+    std::vector<AutoReleaseEntry> entries = {};
 
     ~AutoReleasePool() {
-        for (size_t i = 0; i < objects.size(); i += 1) {
-            vkom::IInterface* object = objects[objects.size() - i - 1];
+        for (size_t i = 0; i < entries.size(); i += 1) {
+            AutoReleaseEntry entry = entries[entries.size() - i - 1];
+            vkom::IInterface* object = entry.object;
             vkom::ICollected* collected = object->queryInterface<vkom::ICollected>();
             if (collected != nullptr) {
-                collected->release();
+                uint32_t referenceCount = collected->release();
+                if (referenceCount != 0 && entry.errorOnReleaseNonZero) {
+                    std::printf("Object %p denoted to have error on release non-zero return: %u\n", object, referenceCount);
+                }
+
                 continue;
             }
 
@@ -53,8 +63,12 @@ struct AutoReleasePool {
         }
     }
 
-    void push(vkom::IInterface* object) {
-        objects.push_back(object);
+    void push(vkom::IInterface* object, bool errorOnReleaseNonZero = true) {
+        AutoReleaseEntry entry = {};
+        entry.object = object;
+        entry.errorOnReleaseNonZero = errorOnReleaseNonZero;
+
+        entries.push_back(entry);
     }
 };
 
@@ -167,6 +181,20 @@ std::vector<uint32_t> loadFile(const char* path) {
     return code;
 }
 
+/* trying to track retains and releases on VulkanDevice
+    + VulkanAdapter::createDevice   :
+    + createSwapchain               : VulkanManualSwapchain::VulkanManualSwapchain
+    + acquireSemaphore              : VulkanSemaphore::VulkanSemaphore
+    + acquireFence                  : VulkanFence::VulkanFence
+    + createHeap                    : VulkanHeap::VulkanHeap
+    + acquireQueue                  : VulkanQueue::VulkanQueue
+    + createShaderModule            : VulkanShaderModule::VulkanShaderModule
+    + createDescriptorSetLayout     : VulkanDescriptorSetLayout::VulkanDescriptorSetLayout
+    + createDescriptorPool          : VulkanDescriptorPool::VulkanDescriptorPool
+    + Vulkan::
+    + Vulkan::
+ */
+
 int main(int argc, char** argv) {
     AutoReleasePool pool = {};
 
@@ -183,7 +211,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    pool.push(instance);
+    pool.push(instance, true);
 
     instance->setLogCallback([](vkom::IInstance* instance, void* userData, vkom::DebugMessageSeverityFlags severity, vkom::DebugMessageTypeFlags type, const char* message) {
         std::printf("[vkom]: %s\n", message);
@@ -196,7 +224,7 @@ int main(int argc, char** argv) {
 
     vkom::ISurface* surface;
     if (wsiInstance->createSurface(&surfaceWSIInfo, &surface) != vkom::Result::Success) {
-        return 1;
+        return 2;
     }
 
     pool.push(surface);
@@ -205,7 +233,7 @@ int main(int argc, char** argv) {
 
     vkom::IDevice* device;
     if (adapter->createDevice(&device) != vkom::Result::Success) {
-        return 1;
+        return 3;
     }
 
     pool.push(device);
@@ -228,7 +256,7 @@ int main(int argc, char** argv) {
 
     vkom::ISwapchain* swapchain;
     if (wsiDevice->createSwapchain(surface, &swapchainInfo, &swapchain) != vkom::Result::Success) {
-        return 5;
+        return 4;
     }
 
     pool.push(swapchain);
@@ -237,27 +265,27 @@ int main(int argc, char** argv) {
     {
         vkom::ISemaphore* submissionFinishedSemaphore;
         if (device->acquireSemaphore(true, &submissionFinishedSemaphore) != vkom::Result::Success) {
-            return 1;
+            return 5;
         }
 
         pool.push(submissionFinishedSemaphore);
 
         submissionFinishedTimelineSemaphore = submissionFinishedSemaphore->queryInterface<vkom::ITimelineSemaphore>();
         if (submissionFinishedTimelineSemaphore == nullptr) {
-            return 1;
+            return 6;
         }
     }
 
     vkom::IFence* batchFinishedFence;
     if (device->acquireFence(true, &batchFinishedFence) != vkom::Result::Success) {
-        return 1;
+        return 7;
     }
 
     pool.push(batchFinishedFence);
 
     vkom::IHeap* heap;
     if (device->createHeap(vkom::BufferUsageFlags::TransferSource | vkom::BufferUsageFlags::TransferDestination | vkom::BufferUsageFlags::StorageBuffer | vkom::BufferUsageFlags::ShaderDeviceAddress, vkom::TextureUsageFlags::None, vkom::MemoryLocationFlags::GPU, &heap) != vkom::Result::Success) {
-        return 1;
+        return 8;
     }
 
     pool.push(heap);
@@ -269,21 +297,33 @@ int main(int argc, char** argv) {
 
     vkom::IBuffer* buffer;
     if (heap->createBuffer(&bufferInfo, &buffer) != vkom::Result::Success) {
-        return 1;
+        return 9;
     }
 
     pool.push(buffer);
 
+    vkom::BufferViewInfo bufferViewInfo = {};
+    bufferViewInfo.format = vkom::Format::Undefined;
+    bufferViewInfo.offset = 0;
+    bufferViewInfo.range = bufferInfo.size;
+
+    vkom::IBufferView* bufferView;
+    if (buffer->createView(&bufferViewInfo, &bufferView) != vkom::Result::Success) {
+        return 10;
+    }
+
+    pool.push(bufferView);
+
     vkom::IQueue* queue;
     if (device->acquireQueue(vkom::QUEUE_FAMILY_ANY, vkom::QueueFlags::Graphics | vkom::QueueFlags::Present, &queue) != vkom::Result::Success) {
-        return 1;
+        return 11;
     }
 
     pool.push(queue);
 
     std::vector<uint32_t> shaderCode = loadFile("shader.spv");
     if (shaderCode.empty()) {
-        return 9;
+        return 12;
     }
 
     vkom::ShaderModuleInfo shaderInfo = {};
@@ -292,10 +332,50 @@ int main(int argc, char** argv) {
 
     vkom::IShaderModule* shader;
     if (device->createShaderModule(&shaderInfo, &shader) != vkom::Result::Success) {
-        return 10;
+        return 13;
     }
 
     pool.push(shader);
+
+    vkom::DescriptorBindingInfo descriptorSetLayoutBindings[1] = {};
+    descriptorSetLayoutBindings[0].binding = 0;
+    descriptorSetLayoutBindings[0].flags = vkom::DescriptorFlags::StorageBuffer;
+    descriptorSetLayoutBindings[0].count = 1;
+    descriptorSetLayoutBindings[0].stages = vkom::ShaderStageFlags::Compute;
+
+    vkom::DescriptorSetLayoutInfo descriptorSetLayoutInfo = {};
+    descriptorSetLayoutInfo.bindingCount = 1;
+    descriptorSetLayoutInfo.bindings = &descriptorSetLayoutBindings[0];
+
+    vkom::IDescriptorSetLayout* descriptorSetLayout;
+    if (device->createDescriptorSetLayout(&descriptorSetLayoutInfo, &descriptorSetLayout) != vkom::Result::Success) {
+        return 14;
+    }
+
+    pool.push(descriptorSetLayout);
+
+    vkom::DescriptorPoolDescriptorInfo descriptorPoolDescriptors[1] = {};
+    descriptorPoolDescriptors[0].count = 1;
+    descriptorPoolDescriptors[0].flags = vkom::DescriptorFlags::StorageBuffer;
+
+    vkom::DescriptorPoolInfo descriptorPoolInfo = {};
+    descriptorPoolInfo.maxDescriptorSets = 1;
+    descriptorPoolInfo.descriptorCount = 1;
+    descriptorPoolInfo.descriptors = &descriptorPoolDescriptors[0];
+
+    vkom::IDescriptorPool* descriptorPool;
+    if (device->createDescriptorPool(&descriptorPoolInfo, &descriptorPool) != vkom::Result::Success) {
+        return 15;
+    }
+
+    pool.push(descriptorPool);
+
+    vkom::IDescriptorSet* descriptorSet;
+    if (descriptorPool->allocateDescriptorSets(descriptorSetLayout, 1, &descriptorSet) != vkom::Result::Success) {
+        return 16;
+    }
+
+    pool.push(descriptorSet);
 
     vkom::PushConstantRange computePipelineLayoutPushConstantRanges[1] = {};
     computePipelineLayoutPushConstantRanges[0].stages = vkom::ShaderStageFlags::Compute;
@@ -303,12 +383,14 @@ int main(int argc, char** argv) {
     computePipelineLayoutPushConstantRanges[0].size = sizeof(uint64_t);
 
     vkom::PipelineLayoutInfo computePipelineLayoutInfo = {};
+    computePipelineLayoutInfo.descriptorSetLayoutCount = 1;
+    computePipelineLayoutInfo.descriptorSetLayouts = &descriptorSetLayout;
     computePipelineLayoutInfo.pushConstantRangeCount = 1;
     computePipelineLayoutInfo.pushConstantRanges = &computePipelineLayoutPushConstantRanges[0];
 
     vkom::IPipelineLayout* computePipelineLayout;
     if (device->createPipelineLayout(&computePipelineLayoutInfo, &computePipelineLayout) != vkom::Result::Success) {
-        return 11;
+        return 17;
     }
 
     pool.push(computePipelineLayout);
@@ -320,7 +402,7 @@ int main(int argc, char** argv) {
 
     vkom::IComputePipeline* computePipeline;
     if (device->createComputePipeline(&computePipelineInfo, nullptr, computePipelineLayout, &computePipeline) != vkom::Result::Success) {
-        return 12;
+        return 18;
     }
 
     pool.push(computePipeline);
@@ -386,6 +468,17 @@ int main(int argc, char** argv) {
             encoder = nullptr;
         }
 
+        vkom::IResourceView* descriptorWriteViews[1] = {};
+        descriptorWriteViews[0] = bufferView;
+
+        vkom::DescriptorWrite descriptorWrite = {};
+        descriptorWrite.binding = 0;
+        descriptorWrite.element = 0;
+        descriptorWrite.count = 1;
+        descriptorWrite.views = &descriptorWriteViews[0];
+
+        descriptorSet->write(1, &descriptorWrite);
+
         if (queue->acquireCommandEncoder(&encoder) != vkom::Result::Success) {
             return 2;
         }
@@ -395,10 +488,12 @@ int main(int argc, char** argv) {
 
         vkom::ComputePassDescriptor computePassDescriptor = {};
 
-        uint64_t bufferDeviceAddress = buffer->deviceAddress();
+        vkom::IDeviceAddressBuffer* deviceAddressBuffer = buffer->queryInterface<vkom::IDeviceAddressBuffer>();
+        uint64_t bufferDeviceAddress = deviceAddressBuffer->deviceAddress();
 
         vkom::IComputePass* computePass = encoder->beginComputePass(&computePassDescriptor);
         computePass->bindPipeline(computePipeline);
+        computePass->bindDescriptorSet(computePipelineLayout, 0, descriptorSet, 0, nullptr);
         computePass->pushConstants(computePipelineLayout, vkom::ShaderStageFlags::Compute, 0, sizeof(bufferDeviceAddress), &bufferDeviceAddress);
         computePass->dispatch(bufferInfo.size / 4, 1, 1);
         computePass->end();
@@ -424,12 +519,12 @@ int main(int argc, char** argv) {
         clearBackbuffer.color[1] = 0.0f;
         clearBackbuffer.color[2] = 1.0f;
         clearBackbuffer.color[3] = 1.0f;
-        clearBackbuffer.subresourcePosition.layer = 0;
-        clearBackbuffer.subresourcePosition.mip = 0;
-        clearBackbuffer.subresourceDimensions.layers = 1;
-        clearBackbuffer.subresourceDimensions.mips = 1;
+        clearBackbuffer.subresourceOffset.layer = 0;
+        clearBackbuffer.subresourceOffset.mip = 0;
+        clearBackbuffer.subresourceRange.layers = 1;
+        clearBackbuffer.subresourceRange.mips = 1;
 
-        encoder->clearColorTexture(backbuffer, &clearBackbuffer);
+        encoder->clearColorTexture(backbuffer->queryInterface<vkom::ITransferDestinationTexture>(), &clearBackbuffer);
 
         vkom::TextureTransition transitionBackbufferToPresentSourceAndMakeTransferWriteVisible = {};
         transitionBackbufferToPresentSourceAndMakeTransferWriteVisible.general.srcStage = vkom::PipelineStageFlags::TopOfPipe;
@@ -449,7 +544,7 @@ int main(int argc, char** argv) {
         encoder->transitionTexture(backbuffer, &transitionBackbufferToPresentSourceAndMakeTransferWriteVisible);
 
         if (encoder->batch(&batch) != vkom::Result::Success) {
-            return 3;
+            return 19;
         }
 
         vkom::CommandBatchSubmitWaitInfo submitWaits[1] = {};
@@ -469,7 +564,7 @@ int main(int argc, char** argv) {
         submitInfo.signalFence = batchFinishedFence;
 
         if (batch->submit(&submitInfo) != vkom::Result::Success) {
-            return 4;
+            return 20;
         }
 
         vkom::SemaphorePoint presentWaits[1] = {};
@@ -496,6 +591,10 @@ int main(int argc, char** argv) {
 
     if (batch != nullptr) {
         batch->discard();
+    }
+
+    if (encoder != nullptr) {
+        encoder->release();
     }
 
     return 0;

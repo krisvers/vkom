@@ -1,8 +1,4 @@
-#include "vkom/device.hpp"
-#include "vkom/adapter.hpp"
 #include "vkom/enums.hpp"
-#include "vkom/instance.hpp"
-#include "vkom/internal/pipeline.hpp"
 #include "vulkan/vulkan_core.h"
 #include <vkom/internal/device.hpp>
 
@@ -18,6 +14,8 @@
 #include <vkom/internal/fence.hpp>
 #include <vkom/internal/semaphore.hpp>
 #include <vkom/internal/swapchain.hpp>
+#include <vkom/internal/pipeline.hpp>
+#include <vkom/internal/descriptor.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
 
@@ -52,6 +50,8 @@ VulkanDevice::VulkanDevice(bool inheritedHandle, IAdapter* adapter, VulkanDevice
 
 VulkanDevice::~VulkanDevice() {
     waitIdle();
+    _defaultHeap->release();
+
     ParentByVector::disownAll();
     _adapter->disown(IInterface::queryInterface<IChild>());
 
@@ -253,7 +253,8 @@ Result VulkanDevice::acquireQueue(uint32_t family, QueueFlags flags, IQueue** qu
 }
 
 IHeap* VulkanDevice::defaultHeap() noexcept {
-    return _defaultHeap->queryInterface<IHeap>();
+    _defaultHeap->retain();
+    return _defaultHeap;
 }
 
 Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags textureUsages, MemoryLocationFlags memoryLocation, IHeap** heap) noexcept {
@@ -416,6 +417,7 @@ Result VulkanDevice::acquireSemaphore(bool timeline, ISemaphore** semaphore) noe
         return Result::ErrorUnknown;
     }
 
+    adopt(*semaphore);
     return Result::Success;
 }
 
@@ -439,6 +441,7 @@ Result VulkanDevice::acquireFence(bool signaled, IFence** fence) noexcept {
         return Result::ErrorUnknown;
     }
 
+    adopt(*fence);
     return Result::Success;
 }
 
@@ -463,18 +466,105 @@ Result VulkanDevice::createShaderModule(ShaderModuleInfo const* info, IShaderMod
         return Result::ErrorUnknown;
     }
 
+    adopt(*shader);
+    return Result::Success;
+}
+
+Result VulkanDevice::createDescriptorSetLayout(DescriptorSetLayoutInfo const* info, IDescriptorSetLayout** layout) noexcept {
+    std::vector<VkSampler> vkImmutableSamplers = {};
+    std::vector<VkDescriptorSetLayoutBinding> bindingCreateInfos(info->bindingCount);
+    for (uint32_t i = 0; i < info->bindingCount; i += 1) {
+        size_t immutableSamplersStart = vkImmutableSamplers.size();
+        for (uint32_t j = 0; j < info->bindings[i].count; j += 1) {
+            if (info->bindings[i].immutableSamplers == nullptr) {
+                break;
+            }
+
+            ISampler* sampler = info->bindings[i].immutableSamplers[j];
+            if (sampler->handleType() != ObjectType::Sampler) {
+                /* TODO: error */
+                return Result::ErrorUnknown;
+            }
+
+            vkImmutableSamplers.push_back(sampler->handle<VkSampler>());
+        }
+
+        bindingCreateInfos[i].binding = info->bindings[i].binding;
+        bindingCreateInfos[i].descriptorType = castEnum<VkDescriptorType>(info->bindings[i].flags);
+        bindingCreateInfos[i].descriptorCount = info->bindings[i].count;
+        bindingCreateInfos[i].stageFlags = castEnum<VkShaderStageFlags>(info->bindings[i].stages);
+        bindingCreateInfos[i].pImmutableSamplers = ((vkImmutableSamplers.size() == immutableSamplersStart) ? nullptr : &vkImmutableSamplers[immutableSamplersStart]);
+    }
+
+    VkDescriptorSetLayoutCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    createInfo.flags = castEnum<VkDescriptorSetLayoutCreateFlags>(info->flags);
+    createInfo.bindingCount = static_cast<uint32_t>(bindingCreateInfos.size());
+    createInfo.pBindings = (bindingCreateInfos.empty() ? nullptr : &bindingCreateInfos[0]);
+
+    VkDescriptorSetLayout vkDescriptorSetLayout;
+    Result result = castEnum<Result>(_deviceData.functionPointers.device10.vkCreateDescriptorSetLayout(_deviceData.vkDevice, &createInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkDescriptorSetLayout));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VulkanDescriptorSetLayoutData layoutData = VulkanDescriptorSetLayoutData(_deviceData, vkDescriptorSetLayout);
+
+    try {
+        *layout = new VulkanDescriptorSetLayout(false, this, *info, layoutData);
+    } catch (std::runtime_error err) {
+        /* TODO: error */
+        _deviceData.functionPointers.device10.vkDestroyDescriptorSetLayout(_deviceData.vkDevice, vkDescriptorSetLayout, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    adopt(*layout);
+    return Result::Success;
+}
+
+Result VulkanDevice::createDescriptorPool(DescriptorPoolInfo const* info, IDescriptorPool** pool) noexcept {
+    std::vector<VkDescriptorPoolSize> vkPoolSizes(info->descriptorCount);
+    for (uint32_t i = 0; i < info->descriptorCount; i += 1) {
+        vkPoolSizes[i].type = castEnum<VkDescriptorType>(info->descriptors[i].flags);
+        vkPoolSizes[i].descriptorCount = info->descriptors[i].count;
+    }
+
+    VkDescriptorPoolCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    createInfo.flags = castEnum<VkDescriptorPoolCreateFlags>(info->flags);
+    createInfo.maxSets = info->maxDescriptorSets;
+    createInfo.poolSizeCount = static_cast<uint32_t>(vkPoolSizes.size());
+    createInfo.pPoolSizes = (vkPoolSizes.empty() ? nullptr : &vkPoolSizes[0]);
+
+    VkDescriptorPool vkDescriptorPool;
+    Result result = castEnum<Result>(_deviceData.functionPointers.device10.vkCreateDescriptorPool(_deviceData.vkDevice, &createInfo, _deviceData.adapterData.instanceData.vkAllocationCallbacks, &vkDescriptorPool));
+    if (result != Result::Success) {
+        return result;
+    }
+
+    VulkanDescriptorPoolData poolData = VulkanDescriptorPoolData(_deviceData, vkDescriptorPool);
+
+    try {
+        *pool = new VulkanDescriptorPool(false, this, *info, poolData);
+    } catch (std::runtime_error err) {
+        /* TODO: error */
+        _deviceData.functionPointers.device10.vkDestroyDescriptorPool(_deviceData.vkDevice, vkDescriptorPool, _deviceData.adapterData.instanceData.vkAllocationCallbacks);
+        return Result::ErrorUnknown;
+    }
+
+    adopt(*pool);
     return Result::Success;
 }
 
 Result VulkanDevice::createPipelineLayout(PipelineLayoutInfo const* info, IPipelineLayout** layout) noexcept {
-    if (info->descriptorSetLayoutCount != 0) {
-        /* TODO: */
-        return Result::ErrorUnknown;
-    }
-
     std::vector<VkDescriptorSetLayout> vkDescriptorSetLayouts(info->descriptorSetLayoutCount);
     for (uint32_t i = 0; i < info->descriptorSetLayoutCount; i += 1) {
-        vkDescriptorSetLayouts[i] = VK_NULL_HANDLE; /* TODO: info->descriptorSetLayouts[i]->handle<VkDescriptorSetLayout>(); */
+        if (info->descriptorSetLayouts[i]->handleType() != ObjectType::DescriptorSetLayout) {
+            /* TODO: error */
+            return Result::ErrorUnknown;
+        }
+
+        vkDescriptorSetLayouts[i] = info->descriptorSetLayouts[i]->handle<VkDescriptorSetLayout>();
     }
 
     std::vector<VkPushConstantRange> pushConstantRanges(info->pushConstantRangeCount);
@@ -486,8 +576,8 @@ Result VulkanDevice::createPipelineLayout(PipelineLayoutInfo const* info, IPipel
 
     VkPipelineLayoutCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    createInfo.setLayoutCount = info->descriptorSetLayoutCount;
-    createInfo.pSetLayouts = nullptr; /* TODO: */
+    createInfo.setLayoutCount = static_cast<uint32_t>(vkDescriptorSetLayouts.size());
+    createInfo.pSetLayouts = (vkDescriptorSetLayouts.empty() ? nullptr : &vkDescriptorSetLayouts[0]);
     createInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
     createInfo.pPushConstantRanges = (pushConstantRanges.empty() ? nullptr : &pushConstantRanges[0]);
 
@@ -506,6 +596,7 @@ Result VulkanDevice::createPipelineLayout(PipelineLayoutInfo const* info, IPipel
         return Result::ErrorUnknown;
     }
 
+    adopt(*layout);
     return Result::Success;
 }
 
@@ -524,6 +615,7 @@ Result VulkanDevice::createGraphicsPipeline(GraphicsPipelineInfo const* info, IP
         return Result::ErrorUnknown;
     }
 
+    adopt(*pipeline);
     return Result::Success;
 }
 
@@ -602,6 +694,7 @@ Result VulkanDevice::createComputePipeline(ComputePipelineInfo const* info, IPip
         return Result::ErrorUnknown;
     }
 
+    adopt(*pipeline);
     return Result::Success;
 }
 

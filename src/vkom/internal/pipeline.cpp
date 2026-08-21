@@ -1,6 +1,3 @@
-#include "vkom/pipeline.hpp"
-#include "vkom/enums.hpp"
-#include "vulkan/vulkan_core.h"
 #include <vkom/internal/pipeline.hpp>
 
 #include <vkom/internal/enums.hpp>

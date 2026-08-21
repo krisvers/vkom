@@ -23,7 +23,7 @@ class IPipelineLayout;
 class IPass : virtual public IChild {
 public:
     virtual void bindPipeline(IPipeline* pipeline) noexcept = 0;
-    virtual void bindDescriptorSet(uint32_t id, IDescriptorSet* descriptorSet, uint32_t dynamicOffset) noexcept = 0;
+    virtual void bindDescriptorSet(IPipelineLayout* layout, uint32_t id, IDescriptorSet* descriptorSet, uint32_t dynamicOffsetCount, uint32_t const* dynamicOffsets) noexcept = 0;
     virtual void pushConstants(IPipelineLayout* layout, ShaderStageFlags stages, uint32_t offset, uint32_t size, void const* data) noexcept = 0;
     virtual void end() noexcept = 0;
 
@@ -36,7 +36,7 @@ public:
 class IComputePass : virtual public IPass {
 public:
     virtual void dispatch(uint32_t width, uint32_t height, uint32_t depth) noexcept = 0;
-    virtual void dispatchIndirect(IBuffer* buffer, uint32_t offset) noexcept = 0;
+    virtual void dispatchIndirect(IIndirectBuffer* buffer, uint32_t offset) noexcept = 0;
 
     static inline IID const& iid() noexcept {
         static IID iid = IID("c5062949-36c0-470b-bc5f-561caf85cae2");

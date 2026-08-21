@@ -33,9 +33,11 @@ public:
 
     /* IComputePass */
     void dispatch(uint32_t width, uint32_t height, uint32_t depth) noexcept override;
+    void dispatchIndirect(IIndirectBuffer* buffer, uint32_t offset) noexcept override;
 
     /* IPass */
     void bindPipeline(IPipeline* pipeline) noexcept override;
+    void bindDescriptorSet(IPipelineLayout* layout, uint32_t id, IDescriptorSet* descriptorSet, uint32_t dynamicOffsetCount, uint32_t const* dynamicOffsets) noexcept override;
     void pushConstants(IPipelineLayout* layout, ShaderStageFlags stages, uint32_t offset, uint32_t size, void const* data) noexcept override;
     void end() noexcept override;
 
@@ -87,6 +89,7 @@ public:
 
     /* IPass */
     void bindPipeline(IPipeline* pipeline) noexcept override;
+    void bindDescriptorSet(IPipelineLayout* layout, uint32_t id, IDescriptorSet* descriptorSet, uint32_t dynamicOffsetCount, uint32_t const* dynamicOffsets) noexcept override;
     void pushConstants(IPipelineLayout* layout, ShaderStageFlags stages, uint32_t offset, uint32_t size, void const* data) noexcept override;
     void end() noexcept override;
 

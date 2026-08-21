@@ -17,13 +17,43 @@ namespace vkom {
 
 namespace internal {
 
-/* NOTE: while this class implements IIndirectBuffer, IIndexBuffer, IVertexBuffer,
- *  IUniformBuffer, IStorageBuffer, ITexelBuffer, and IDeviceAddressBuffer,
+class VulkanBufferView final : virtual public IBufferView, virtual public CollectedByHeap {
+private:
+    bool _inheritedHandle = false;
+    IBuffer* _buffer = nullptr;
+    IHeap* _heap = nullptr;
+    IDevice* _device = nullptr;
+    IAdapter* _adapter = nullptr;
+    IInstance* _instance = nullptr;
+    BufferViewInfo _info = {};
+    VulkanBufferViewData _viewData;
+
+public:
+    VulkanBufferView(bool inheritedHandle, IBuffer* buffer, BufferViewInfo const& info, VulkanBufferViewData const& viewData);
+    ~VulkanBufferView();
+
+    /* IBufferView */
+    void getInfo(BufferViewInfo* info) const noexcept override;
+
+    /* IHandled */
+    uint64_t handle() const noexcept override;
+    ObjectType handleType() const noexcept override;
+
+    void const* vkData() const noexcept override;
+
+    /* IChild */
+    IParent* parent() const noexcept override;
+
+    /* IInterface */
+    void* queryInterface(IID const& iid) noexcept override;
+};
+
+/* NOTE: while this class implements a lot of IBuffer-derived interfaces (like IVertexBuffer),
  *  only instances that were created with the appropriate usage flags will advertise
  *  support for each interface
 */
 
-class VulkanBuffer final : virtual public IBuffer, virtual public IIndirectBuffer, virtual public IIndexBuffer, virtual public IVertexBuffer, virtual public IUniformBuffer, virtual public IStorageBuffer, virtual public ITexelBuffer, virtual public IDeviceAddressBuffer, virtual public ParentByVector, virtual public CollectedByHeap {
+class VulkanBuffer final : virtual public IBuffer, virtual public ITransferSourceBuffer, virtual public ITransferDestinationBuffer, virtual public IIndirectBuffer, virtual public IIndexBuffer, virtual public IVertexBuffer, virtual public IUniformBuffer, virtual public IStorageBuffer, virtual public IUniformTexelBuffer, virtual public IStorageTexelBuffer, virtual public IDeviceAddressBuffer, virtual public ParentByVector, virtual public CollectedByHeap {
 private:
     bool _inheritedHandle = false;
     bool _alias = false;

@@ -7,6 +7,8 @@
 
 #include <vkom/heap.hpp>
 #include <vkom/queue.hpp>
+#include <vkom/pipeline.hpp>
+#include <vkom/descriptor.hpp>
 #include <vkom/adapter.hpp>
 #include <vkom/instance.hpp>
 
@@ -65,7 +67,8 @@ public:
     Result acquireFence(bool signaled, IFence** fence) noexcept override;
 
     Result createShaderModule(ShaderModuleInfo const* info, IShaderModule** shader) noexcept override;
-
+    Result createDescriptorSetLayout(DescriptorSetLayoutInfo const* info, IDescriptorSetLayout** layout) noexcept override;
+    Result createDescriptorPool(DescriptorPoolInfo const* info, IDescriptorPool** pool) noexcept override;
     Result createPipelineLayout(PipelineLayoutInfo const* info, IPipelineLayout** layout) noexcept override;
     Result createGraphicsPipeline(GraphicsPipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IGraphicsPipeline** pipeline) noexcept override;
     Result createComputePipeline(ComputePipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IComputePipeline** pipeline) noexcept override;

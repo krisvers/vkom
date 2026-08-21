@@ -44,17 +44,17 @@ public:
     void pushDebugGroup(const char* label) noexcept override;
     void popDebugGroup() noexcept override;
 
-    void copyBufferToBuffer(IBuffer* dstBuffer, IBuffer* srcBuffer, BufferCopy const* copy) noexcept override;
-    void copyBufferToTexture(ITexture* dstTexture, IBuffer* srcBuffer, BufferTextureCopy const* copy) noexcept override;
-    void copyTextureToTexture(ITexture* dstTexture, ITexture* srcTexture, TextureCopy const* copy) noexcept override;
-    void copyTextureToBuffer(IBuffer* dstBuffer, ITexture* srcTexture, BufferTextureCopy const* copy) noexcept override;
-    void smallBufferUpload(IBuffer* dstBuffer, SmallBufferUpload const* upload) noexcept override;
-    void fillBuffer(IBuffer* dstBuffer, BufferFill const* fill) noexcept override;
+    void copyBufferToBuffer(ITransferDestinationBuffer* dstBuffer, ITransferSourceBuffer* srcBuffer, BufferCopy const* copy) noexcept override;
+    void copyBufferToTexture(ITransferDestinationTexture* dstTexture, ITransferSourceBuffer* srcBuffer, BufferTextureCopy const* copy) noexcept override;
+    void copyTextureToTexture(ITransferDestinationTexture* dstTexture, ITransferSourceTexture* srcTexture, TextureCopy const* copy) noexcept override;
+    void copyTextureToBuffer(ITransferDestinationBuffer* dstBuffer, ITransferSourceTexture* srcTexture, BufferTextureCopy const* copy) noexcept override;
+    void smallBufferUpload(ITransferDestinationBuffer* dstBuffer, SmallBufferUpload const* upload) noexcept override;
+    void fillBuffer(ITransferDestinationBuffer* dstBuffer, BufferFill const* fill) noexcept override;
 
-    void blitTexture(ITexture* dstTexture, ITexture* srcTexture, TextureBlit const* blit) noexcept override;
-    void resolveTexture(ITexture* dstTexture, ITexture* srcTexture, TextureResolve const* resolve) noexcept override;
-    void clearColorTexture(ITexture* texture, ColorTextureClear const* clear) noexcept override;
-    void clearDepthStencilTexture(ITexture* texture, DepthStencilTextureClear const* clear) noexcept override;
+    void blitTexture(ITransferDestinationTexture* dstTexture, ITransferSourceTexture* srcTexture, TextureBlit const* blit) noexcept override;
+    void resolveTexture(ITransferDestinationTexture* dstTexture, ITransferSourceTexture* srcTexture, TextureResolve const* resolve) noexcept override;
+    void clearColorTexture(ITransferDestinationTexture* texture, ColorTextureClear const* clear) noexcept override;
+    void clearDepthStencilTexture(ITransferDestinationTexture* texture, DepthStencilTextureClear const* clear) noexcept override;
 
     void globalMemoryBarrier(GeneralBarrier const* barrier) noexcept override;
     void transitionTexture(ITexture* texture, TextureTransition const* transition) noexcept override;

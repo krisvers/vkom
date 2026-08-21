@@ -8,6 +8,7 @@
 #include <vkom/surface.hpp>
 #include <vkom/swapchain.hpp>
 #include <vkom/pipeline.hpp>
+#include <vkom/descriptor.hpp>
 
 namespace vkom {
 
@@ -35,7 +36,8 @@ public:
     virtual Result acquireFence(bool signalled, IFence** fence) noexcept = 0;
 
     virtual Result createShaderModule(ShaderModuleInfo const* info, IShaderModule** shader) noexcept = 0;
-
+    virtual Result createDescriptorSetLayout(DescriptorSetLayoutInfo const* info, IDescriptorSetLayout** layout) noexcept = 0;
+    virtual Result createDescriptorPool(DescriptorPoolInfo const* info, IDescriptorPool** pool) noexcept = 0;
     virtual Result createPipelineLayout(PipelineLayoutInfo const* info, IPipelineLayout** layout) noexcept = 0;
     virtual Result createGraphicsPipeline(GraphicsPipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IGraphicsPipeline** pipeline) noexcept = 0;
     virtual Result createComputePipeline(ComputePipelineInfo const* info, IPipelineCache* cache, IPipelineLayout* layout, IComputePipeline** pipeline) noexcept = 0;

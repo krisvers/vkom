@@ -20,6 +20,8 @@ namespace vkom {
 namespace internal {
 
 VulkanCommandBatch::VulkanCommandBatch(bool inheritedHandle, IQueue* queue, VulkanCommandBatchData const& batchData) : _inheritedHandle(inheritedHandle), _queue(queue), _device(_queue->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _batchData(batchData) {
+    _queue->retain();
+
     if (_batchData.functionPointers.commandBuffer10.vkResetCommandBuffer(_batchData.vkCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT) != VK_SUCCESS) {
         throw std::runtime_error("Failed to reset command buffer");
     }
@@ -44,6 +46,8 @@ VulkanCommandBatch::~VulkanCommandBatch() {
     if (!_inheritedHandle) {
         _batchData.queueData.deviceData.functionPointers.device10.vkFreeCommandBuffers(_batchData.queueData.deviceData.vkDevice, _batchData.vkCommandPool, 1, &_batchData.vkCommandBuffer);
     }
+
+    _queue->release();
 }
 
 /* ICommandBatch */

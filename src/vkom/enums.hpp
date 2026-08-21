@@ -482,6 +482,7 @@ enum class TextureChannelSwizzle : uint32_t {
 
 enum class TextureAspectFlags : uint32_t {
     None = 0x0000,
+
     Color = 0x0001,
     Depth = 0x0002,
     Stencil = 0x0004,
@@ -507,7 +508,17 @@ enum class TexelFilter : uint32_t {
     Cubic = 1000015000,
 };
 
+enum class TexelAddressing : uint32_t {
+    Repeat = 0,
+    MirroredRepeat = 1,
+    ClampToEdge = 2,
+    ClampToBorder = 3,
+    MirrorClampToEdge = 4,
+};
+
 enum class ShaderStageFlags : uint32_t {
+    None = 0x00000000,
+
     Vertex = 0x00000001,
     Hull = 0x0000002,
     Domain = 0x00000004,
@@ -522,6 +533,60 @@ enum class ShaderStageFlags : uint32_t {
 };
 
 VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(ShaderStageFlags)
+
+enum class DescriptorFlags : uint32_t {
+    None = 0x00000000,
+
+    Sampler = 0x00000001,
+    Uniform = 0x00000002,
+    Sampled = Uniform,
+    Storage = 0x00000004,
+    Texture = 0x00000008,
+    Buffer = 0x00000010,
+    Texel = 0x00000020,
+    Input = 0x00000040,
+
+    TexelBuffer = Buffer | Texel,
+    SampledTexture = Sampled | Texture,
+    StorageTexture = Storage | Texture,
+    UniformBuffer = Uniform | Buffer,
+    StorageBuffer = Storage | Buffer,
+
+    CombinedTextureSampler = Sampler | SampledTexture,
+    UniformTexelBuffer = Uniform | TexelBuffer,
+    StorageTexelBuffer = Storage | TexelBuffer,
+    InputTarget = Texture | Input,
+
+    /* TODO: */
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(DescriptorFlags)
+
+enum class DescriptorSetLayoutFlags : uint32_t {
+    None = 0x00000000,
+
+    PushDescriptor = 0x00000001,
+    UpdateAfterBindPool = 0x00000002,
+    HostOnlyPool = 0x00000004,
+    DescriptorBuffer = 0x00000010,
+    EmbeddedImmutableSamplers = 0x00000020,
+    PerStageNV = 0x00000040,
+    IndirectBindableNV = 0x00000080,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(DescriptorSetLayoutFlags)
+
+enum class DescriptorPoolFlags : uint32_t {
+    None = 0x00000000,
+
+    FreeDescriptorSet = 0x00000001,
+    UpdateAfterBind = 0x00000002,
+    HostOnly = 0x00000004,
+    AllowOverallocationSetsNV = 0x00000008,
+    AllowOverallocationPoolsNV = 0x00000010,
+};
+
+VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(DescriptorPoolFlags)
 
 enum class PipelineShaderFlags : uint32_t {
     None = 0x00000000,

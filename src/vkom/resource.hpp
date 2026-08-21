@@ -26,4 +26,12 @@ public:
     }
 };
 
+class IResourceView : virtual public IHandled, virtual public ICollected, virtual public IChild {
+public:
+    static inline IID const& iid() noexcept {
+        static IID iid = IID("33a0e380-54ad-43eb-be8c-c069940fdc71");
+        return iid;
+    }
+};
+
 }

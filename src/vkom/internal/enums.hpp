@@ -232,25 +232,98 @@ inline QueueFlags castEnum<QueueFlags, VkQueueFlags>(VkQueueFlags v) {
 }
 
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkPipelineStageFlags, PipelineStageFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkPipelineStageFlagBits, PipelineStageFlags)
+
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkAccessFlags, ResourceAccessFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkAccessFlagBits, ResourceAccessFlags)
 
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkBufferUsageFlags, BufferUsageFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkBufferUsageFlagBits, BufferUsageFlags)
 
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkImageUsageFlags, TextureUsageFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkImageUsageFlagBits, TextureUsageFlags)
+
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkImageAspectFlags, TextureAspectFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkImageAspectFlagBits, TextureAspectFlags)
+
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkImageLayout, TextureLayout)
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkFormat, Format)
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkComponentSwizzle, TextureChannelSwizzle)
-VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkImageAspectFlags, TextureAspectFlags)
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkImageViewType, TextureViewType)
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkFilter, TexelFilter)
 
-VKOM_INTERNAL_ENUM_DEFINE_CAST(VkShaderStageFlagBits, ShaderStageFlags)
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkShaderStageFlags, ShaderStageFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkShaderStageFlagBits, ShaderStageFlags)
+
+
+/* NOTE: due to vkom::DescriptorFlags being comprised of flags and not distinct
+ *  values, it needs to be parsed and validated to be converted to VkDescriptorType
+*/
+template<>
+inline VkDescriptorType castEnum<VkDescriptorType, DescriptorFlags>(DescriptorFlags v) {
+    switch (v) {
+        case DescriptorFlags::Sampler:
+            return VK_DESCRIPTOR_TYPE_SAMPLER;
+        case DescriptorFlags::CombinedTextureSampler:
+            return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        case DescriptorFlags::SampledTexture:
+            return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        case DescriptorFlags::StorageTexture:
+            return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        case DescriptorFlags::UniformBuffer:
+            return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        case DescriptorFlags::StorageBuffer:
+            return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        case DescriptorFlags::UniformTexelBuffer:
+            return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+        case DescriptorFlags::StorageTexelBuffer:
+            return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+        case DescriptorFlags::InputTarget:
+            return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        default:
+            break;
+    }
+
+    return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+}
+
+template<>
+inline DescriptorFlags castEnum<DescriptorFlags, VkDescriptorType>(VkDescriptorType v) {
+    switch (v) {
+        case VK_DESCRIPTOR_TYPE_SAMPLER:
+            return DescriptorFlags::Sampler;
+        case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            return DescriptorFlags::CombinedTextureSampler;
+        case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+            return DescriptorFlags::SampledTexture;
+        case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            return DescriptorFlags::StorageTexture;
+        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+            return DescriptorFlags::UniformBuffer;
+        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            return DescriptorFlags::StorageBuffer;
+        case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+            return DescriptorFlags::UniformTexelBuffer;
+        case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+            return DescriptorFlags::StorageTexelBuffer;
+        case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+            return DescriptorFlags::InputTarget;
+        default:
+            break;
+    }
+
+    return DescriptorFlags::None;
+}
+
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkDescriptorSetLayoutCreateFlags, DescriptorSetLayoutFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkDescriptorPoolCreateFlags, DescriptorPoolFlags)
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkPipelineShaderStageCreateFlags, PipelineShaderFlags)
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkPipelineCreateFlags, PipelineFlags)
 
 VKOM_INTERNAL_ENUM_DEFINE_CAST(VkIndexType, IndexType)
+
 VKOM_INTERNAL_ENUM_DEFINE_CAST_NON_UNDERLYING(VkStencilFaceFlags, StencilFaceFlags)
+VKOM_INTERNAL_ENUM_DEFINE_CAST(VkStencilFaceFlagBits, StencilFaceFlags)
 
 template<typename Flags>
 inline Flags lowestFlag(Flags f) {

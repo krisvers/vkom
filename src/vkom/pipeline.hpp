@@ -24,7 +24,7 @@ struct PushConstantRange {
 
 struct PipelineLayoutInfo {
     uint32_t descriptorSetLayoutCount;
-    IDescriptorSetLayout const* descriptorSetLayouts;
+    IDescriptorSetLayout* const* descriptorSetLayouts;
     uint32_t pushConstantRangeCount;
     PushConstantRange const* pushConstantRanges;
 };

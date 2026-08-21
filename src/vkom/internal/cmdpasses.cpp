@@ -1,11 +1,9 @@
-#include "vkom/enums.hpp"
-#include "vkom/pipeline.hpp"
-#include "vulkan/vulkan_core.h"
 #include <vkom/internal/cmdpasses.hpp>
 
 #include <vkom/internal/enums.hpp>
 #include <vkom/internal/cmdencoder.hpp>
 #include <vkom/internal/queue.hpp>
+#include <vkom/internal/descriptor.hpp>
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
@@ -33,6 +31,16 @@ void VulkanComputePass::dispatch(uint32_t width, uint32_t height, uint32_t depth
     _passData.encoderData.functionPointers.commandBuffer10.vkCmdDispatch(_passData.encoderData.vkCommandBuffer, width, height, depth);
 }
 
+void VulkanComputePass::dispatchIndirect(IIndirectBuffer* buffer, uint32_t offset) noexcept {
+    if (buffer->handleType() != ObjectType::Buffer) {
+        /* TODO: error */
+        return;
+    }
+
+    VkBuffer vkBuffer = buffer->handle<VkBuffer>();
+    _passData.encoderData.functionPointers.commandBuffer10.vkCmdDispatchIndirect(_passData.encoderData.vkCommandBuffer, vkBuffer, offset);
+}
+
 /* IPass */
 void VulkanComputePass::bindPipeline(IPipeline* pipeline) noexcept {
     if (pipeline->queryInterface<IComputePipeline>() == nullptr) {
@@ -42,6 +50,23 @@ void VulkanComputePass::bindPipeline(IPipeline* pipeline) noexcept {
 
     VkPipeline vkPipeline = pipeline->handle<VkPipeline>();
     _passData.encoderData.functionPointers.commandBuffer10.vkCmdBindPipeline(_passData.encoderData.vkCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, vkPipeline);
+}
+
+void VulkanComputePass::bindDescriptorSet(IPipelineLayout* layout, uint32_t id, IDescriptorSet* descriptorSet, uint32_t dynamicOffsetCount, uint32_t const* dynamicOffsets) noexcept {
+    if (layout->handleType() != ObjectType::PipelineLayout) {
+        /* TODO: error */
+        return;
+    }
+
+    if (descriptorSet->handleType() != ObjectType::DescriptorSet) {
+        /* TODO: error */
+        return;
+    }
+
+    VkPipelineLayout vkPipelineLayout = layout->handle<VkPipelineLayout>();
+    VkDescriptorSet vkDescriptorSet = descriptorSet->handle<VkDescriptorSet>();
+
+    _passData.encoderData.functionPointers.commandBuffer10.vkCmdBindDescriptorSets(_passData.encoderData.vkCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, vkPipelineLayout, id, 1, &vkDescriptorSet, dynamicOffsetCount, dynamicOffsets);
 }
 
 void VulkanComputePass::pushConstants(IPipelineLayout* layout, ShaderStageFlags stages, uint32_t offset, uint32_t size, void const* data) noexcept {
@@ -234,6 +259,23 @@ void VulkanRenderPass::bindPipeline(IPipeline* pipeline) noexcept {
 
     VkPipeline vkPipeline = pipeline->handle<VkPipeline>();
     _passData.encoderData.functionPointers.commandBuffer10.vkCmdBindPipeline(_passData.encoderData.vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
+}
+
+void VulkanRenderPass::bindDescriptorSet(IPipelineLayout* layout, uint32_t id, IDescriptorSet* descriptorSet, uint32_t dynamicOffsetCount, uint32_t const* dynamicOffsets) noexcept {
+    if (layout->handleType() != ObjectType::PipelineLayout) {
+        /* TODO: error */
+        return;
+    }
+
+    if (descriptorSet->handleType() != ObjectType::DescriptorSet) {
+        /* TODO: error */
+        return;
+    }
+
+    VkPipelineLayout vkPipelineLayout = layout->handle<VkPipelineLayout>();
+    VkDescriptorSet vkDescriptorSet = descriptorSet->handle<VkDescriptorSet>();
+
+    _passData.encoderData.functionPointers.commandBuffer10.vkCmdBindDescriptorSets(_passData.encoderData.vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipelineLayout, id, 1, &vkDescriptorSet, dynamicOffsetCount, dynamicOffsets);
 }
 
 void VulkanRenderPass::pushConstants(IPipelineLayout* layout, ShaderStageFlags stages, uint32_t offset, uint32_t size, void const* data) noexcept {

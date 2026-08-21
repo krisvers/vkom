@@ -275,6 +275,54 @@ void* VulkanManualBackbuffer::queryInterface(IID const& iid) noexcept {
         return static_cast<ITexture*>(this);
     } else if (iid == IBackbuffer::iid()) {
         return static_cast<IBackbuffer*>(this);
+    } else if (iid == ITransferSourceTexture::iid()) {
+        if ((_info.usage & TextureUsageFlags::TransferSource) != TextureUsageFlags::None) {
+            return static_cast<ITransferSourceTexture*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == ITransferDestinationTexture::iid()) {
+        if ((_info.usage & TextureUsageFlags::TransferDestination) != TextureUsageFlags::None) {
+            return static_cast<ITransferDestinationTexture*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == ISampledTexture::iid()) {
+        if ((_info.usage & TextureUsageFlags::Sampled) != TextureUsageFlags::None) {
+            return static_cast<ISampledTexture*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == IStorageTexture::iid()) {
+        if ((_info.usage & TextureUsageFlags::Storage) != TextureUsageFlags::None) {
+            return static_cast<IStorageTexture*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == IRenderTarget::iid()) {
+        if ((_info.usage & TextureUsageFlags::RenderTarget) != TextureUsageFlags::None) {
+            return static_cast<IRenderTarget*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == IDepthStencilTarget::iid()) {
+        if ((_info.usage & TextureUsageFlags::DepthStencilTarget) != TextureUsageFlags::None) {
+            return static_cast<IDepthStencilTarget*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == ITransientTarget::iid()) {
+        if ((_info.usage & TextureUsageFlags::TransientTarget) != TextureUsageFlags::None) {
+            return static_cast<ITransientTarget*>(this);
+        }
+
+        return nullptr;
+    } else if (iid == IInputTarget::iid()) {
+        if ((_info.usage & TextureUsageFlags::InputTarget) != TextureUsageFlags::None) {
+            return static_cast<IInputTarget*>(this);
+        }
+
+        return nullptr;
     }
 
     return nullptr;

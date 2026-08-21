@@ -1,6 +1,5 @@
 #pragma once
 
-#include "vulkan/vulkan_core.h"
 #include <vkom/internal/funcptrs.hpp>
 #include <vkom/internal/vulkan.hpp>
 #include <vkom/internal/vma.hpp>
@@ -124,6 +123,14 @@ struct VulkanBufferData {
     VulkanBufferData(VulkanHeapData const& heapData, VmaAllocation vmaAllocation, VmaAllocationInfo2 const& vmaAllocationInfo2, VkBuffer vkBuffer) : heapData(heapData), vmaAllocation(vmaAllocation), vmaAllocationInfo2(vmaAllocationInfo2), vkBuffer(vkBuffer) {}
 };
 
+struct VulkanBufferViewData {
+    VulkanBufferData const& bufferData;
+
+    VkBufferView vkBufferView;
+
+    VulkanBufferViewData(VulkanBufferData const& bufferData, VkBufferView vkBufferView) : bufferData(bufferData), vkBufferView(vkBufferView) {}
+};
+
 struct VulkanTextureData {
     VulkanHeapData const& heapData;
 
@@ -134,12 +141,44 @@ struct VulkanTextureData {
     VulkanTextureData(VulkanHeapData const& heapData, VmaAllocation vmaAllocation, VmaAllocationInfo2 vmaAllocationInfo2, VkImage vkImage) : heapData(heapData), vmaAllocation(vmaAllocation), vmaAllocationInfo2(vmaAllocationInfo2), vkImage(vkImage) {}
 };
 
+struct VulkanTextureViewData {
+    VulkanTextureData const& textureData;
+
+    VkImageView vkImageView;
+
+    VulkanTextureViewData(VulkanTextureData const& textureData, VkImageView vkImageView) : textureData(textureData), vkImageView(vkImageView) {}
+};
+
 struct VulkanShaderModuleData {
     VulkanDeviceData const& deviceData;
 
     VkShaderModule vkShaderModule;
 
     VulkanShaderModuleData(VulkanDeviceData const& deviceData, VkShaderModule vkShaderModule) : deviceData(deviceData), vkShaderModule(vkShaderModule) {}
+};
+
+struct VulkanDescriptorSetLayoutData {
+    VulkanDeviceData const& deviceData;
+
+    VkDescriptorSetLayout vkDescriptorSetLayout;
+
+    VulkanDescriptorSetLayoutData(VulkanDeviceData const& deviceData, VkDescriptorSetLayout vkDescriptorSetLayout) : deviceData(deviceData), vkDescriptorSetLayout(vkDescriptorSetLayout) {}
+};
+
+struct VulkanDescriptorPoolData {
+    VulkanDeviceData const& deviceData;
+
+    VkDescriptorPool vkDescriptorPool;
+
+    VulkanDescriptorPoolData(VulkanDeviceData const& deviceData, VkDescriptorPool vkDescriptorPool) : deviceData(deviceData), vkDescriptorPool(vkDescriptorPool) {}
+};
+
+struct VulkanDescriptorSetData {
+    VulkanDescriptorPoolData const& poolData;
+
+    VkDescriptorSet vkDescriptorSet;
+
+    VulkanDescriptorSetData(VulkanDescriptorPoolData const& poolData, VkDescriptorSet vkDescriptorSet) : poolData(poolData), vkDescriptorSet(vkDescriptorSet) {}
 };
 
 struct VulkanPipelineLayoutData {

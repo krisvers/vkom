@@ -128,18 +128,18 @@ public:
     virtual void popDebugGroup() noexcept = 0;
 
     /* transfer commands */
-    virtual void copyBufferToBuffer(IBuffer* dstBuffer, IBuffer* srcBuffer, BufferCopy const* copy) noexcept = 0;
-    virtual void copyBufferToTexture(ITexture* dstTexture, IBuffer* srcBuffer, BufferTextureCopy const* copy) noexcept = 0;
-    virtual void copyTextureToTexture(ITexture* dstTexture, ITexture* srcTexture, TextureCopy const* copy) noexcept = 0;
-    virtual void copyTextureToBuffer(IBuffer* dstBuffer, ITexture* srcTexture, BufferTextureCopy const* copy) noexcept = 0;
-    virtual void smallBufferUpload(IBuffer* dstBuffer, SmallBufferUpload const* upload) noexcept = 0;
-    virtual void fillBuffer(IBuffer* dstBuffer, BufferFill const* fill) noexcept = 0;
+    virtual void copyBufferToBuffer(ITransferDestinationBuffer* dstBuffer, ITransferSourceBuffer* srcBuffer, BufferCopy const* copy) noexcept = 0;
+    virtual void copyBufferToTexture(ITransferDestinationTexture* dstTexture, ITransferSourceBuffer* srcBuffer, BufferTextureCopy const* copy) noexcept = 0;
+    virtual void copyTextureToTexture(ITransferDestinationTexture* dstTexture, ITransferSourceTexture* srcTexture, TextureCopy const* copy) noexcept = 0;
+    virtual void copyTextureToBuffer(ITransferDestinationBuffer* dstBuffer, ITransferSourceTexture* srcTexture, BufferTextureCopy const* copy) noexcept = 0;
+    virtual void smallBufferUpload(ITransferDestinationBuffer* dstBuffer, SmallBufferUpload const* upload) noexcept = 0;
+    virtual void fillBuffer(ITransferDestinationBuffer* dstBuffer, BufferFill const* fill) noexcept = 0;
 
     /* texture modification commands */
-    virtual void blitTexture(ITexture* dstTexture, ITexture* srcTexture, TextureBlit const* blit) noexcept = 0;
-    virtual void resolveTexture(ITexture* dstTexture, ITexture* srcTexture, TextureResolve const* resolve) noexcept = 0;
-    virtual void clearColorTexture(ITexture* texture, ColorTextureClear const* clear) noexcept = 0;
-    virtual void clearDepthStencilTexture(ITexture* texture, DepthStencilTextureClear const* clear) noexcept = 0;
+    virtual void blitTexture(ITransferDestinationTexture* dstTexture, ITransferSourceTexture* srcTexture, TextureBlit const* blit) noexcept = 0;
+    virtual void resolveTexture(ITransferDestinationTexture* dstTexture, ITransferSourceTexture* srcTexture, TextureResolve const* resolve) noexcept = 0;
+    virtual void clearColorTexture(ITransferDestinationTexture* texture, ColorTextureClear const* clear) noexcept = 0;
+    virtual void clearDepthStencilTexture(ITransferDestinationTexture* texture, DepthStencilTextureClear const* clear) noexcept = 0;
 
     /* synchronization commands */
     virtual void globalMemoryBarrier(GeneralBarrier const* barrier) noexcept = 0;

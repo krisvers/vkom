@@ -102,8 +102,12 @@ public:
     void* queryInterface(IID const& iid) noexcept override;
 };
 
-/* TODO: backbuffer */
-class VulkanManualBackbuffer final : virtual public IBackbuffer, virtual public ParentByVector {
+/* NOTE: while this class implements a lot of ITexture-derived interfaces (like IStorageTexture),
+ *  only instances that were created with the appropriate usage flags will advertise
+ *  support for each interface
+*/
+
+class VulkanManualBackbuffer final : virtual public IBackbuffer, virtual public ITransferSourceTexture, virtual public ITransferDestinationTexture, virtual public ISampledTexture, virtual public IStorageTexture, virtual public IRenderTarget, virtual public IDepthStencilTarget, virtual public ITransientTarget, virtual public IInputTarget, virtual public ParentByVector {
 private:
     bool _inheritedHandle = false;
     bool _alias = false;

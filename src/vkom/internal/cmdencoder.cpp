@@ -62,7 +62,7 @@ VulkanCommandEncoder::~VulkanCommandEncoder() {
 
 /* ICommandEncoder */
 IComputePass* VulkanCommandEncoder::beginComputePass(ComputePassDescriptor const* descriptor) noexcept {
-    VulkanCommandPassData passData = VulkanCommandPassData(_encoderData);
+    VulkanComputePassData passData = VulkanComputePassData(_encoderData);
 
     try {
         return new VulkanComputePass(this, passData);
@@ -126,7 +126,7 @@ void VulkanCommandEncoder::popDebugGroup() noexcept {
     _encoderData.functionPointers.debugUtilsEXT.vkCmdEndDebugUtilsLabelEXT(_encoderData.vkCommandBuffer);
 }
 
-void VulkanCommandEncoder::copyBufferToBuffer(IBuffer* dstBuffer, IBuffer* srcBuffer, BufferCopy const* copy) noexcept {
+void VulkanCommandEncoder::copyBufferToBuffer(ITransferDestinationBuffer* dstBuffer, ITransferSourceBuffer* srcBuffer, BufferCopy const* copy) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -156,7 +156,7 @@ void VulkanCommandEncoder::copyBufferToBuffer(IBuffer* dstBuffer, IBuffer* srcBu
     _encoderData.functionPointers.commandBuffer10.vkCmdCopyBuffer(_encoderData.vkCommandBuffer, vkSrcBuffer, vkDstBuffer, 1, &vkCopy);
 }
 
-void VulkanCommandEncoder::copyBufferToTexture(ITexture* dstTexture, IBuffer* srcBuffer, BufferTextureCopy const* copy) noexcept {
+void VulkanCommandEncoder::copyBufferToTexture(ITransferDestinationTexture* dstTexture, ITransferSourceBuffer* srcBuffer, BufferTextureCopy const* copy) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -196,7 +196,7 @@ void VulkanCommandEncoder::copyBufferToTexture(ITexture* dstTexture, IBuffer* sr
     _encoderData.functionPointers.commandBuffer10.vkCmdCopyBufferToImage(_encoderData.vkCommandBuffer, vkSrcBuffer, vkDstImage, castEnum<VkImageLayout>(copy->textureLayout), 1, &vkCopy);
 }
 
-void VulkanCommandEncoder::copyTextureToTexture(ITexture* dstTexture, ITexture* srcTexture, TextureCopy const* copy) noexcept {
+void VulkanCommandEncoder::copyTextureToTexture(ITransferDestinationTexture* dstTexture, ITransferSourceTexture* srcTexture, TextureCopy const* copy) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -240,7 +240,7 @@ void VulkanCommandEncoder::copyTextureToTexture(ITexture* dstTexture, ITexture* 
     _encoderData.functionPointers.commandBuffer10.vkCmdCopyImage(_encoderData.vkCommandBuffer, vkSrcImage, castEnum<VkImageLayout>(copy->srcLayout), vkDstImage, castEnum<VkImageLayout>(copy->dstLayout), 1, &vkCopy);
 }
 
-void VulkanCommandEncoder::copyTextureToBuffer(IBuffer* dstBuffer, ITexture* srcTexture, BufferTextureCopy const* copy) noexcept {
+void VulkanCommandEncoder::copyTextureToBuffer(ITransferDestinationBuffer* dstBuffer, ITransferSourceTexture* srcTexture, BufferTextureCopy const* copy) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -280,7 +280,7 @@ void VulkanCommandEncoder::copyTextureToBuffer(IBuffer* dstBuffer, ITexture* src
     _encoderData.functionPointers.commandBuffer10.vkCmdCopyImageToBuffer(_encoderData.vkCommandBuffer, vkSrcImage, castEnum<VkImageLayout>(copy->textureLayout), vkDstBuffer, 1, &vkCopy);
 }
 
-void VulkanCommandEncoder::smallBufferUpload(IBuffer* dstBuffer, SmallBufferUpload const* upload) noexcept {
+void VulkanCommandEncoder::smallBufferUpload(ITransferDestinationBuffer* dstBuffer, SmallBufferUpload const* upload) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -302,7 +302,7 @@ void VulkanCommandEncoder::smallBufferUpload(IBuffer* dstBuffer, SmallBufferUplo
     _encoderData.functionPointers.commandBuffer10.vkCmdUpdateBuffer(_encoderData.vkCommandBuffer, vkDstBuffer, upload->dstOffset, upload->size, reinterpret_cast<void const*>(upload->data));
 }
 
-void VulkanCommandEncoder::fillBuffer(IBuffer* dstBuffer, BufferFill const* fill) noexcept {
+void VulkanCommandEncoder::fillBuffer(ITransferDestinationBuffer* dstBuffer, BufferFill const* fill) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -319,7 +319,7 @@ void VulkanCommandEncoder::fillBuffer(IBuffer* dstBuffer, BufferFill const* fill
     _encoderData.functionPointers.commandBuffer10.vkCmdFillBuffer(_encoderData.vkCommandBuffer, vkDstBuffer, fill->dstOffset, fill->size, fill->word);
 }
 
-void VulkanCommandEncoder::blitTexture(ITexture* dstTexture, ITexture* srcTexture, TextureBlit const* blit) noexcept {
+void VulkanCommandEncoder::blitTexture(ITransferDestinationTexture* dstTexture, ITransferSourceTexture* srcTexture, TextureBlit const* blit) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -366,7 +366,7 @@ void VulkanCommandEncoder::blitTexture(ITexture* dstTexture, ITexture* srcTextur
     _encoderData.functionPointers.commandBuffer10.vkCmdBlitImage(_encoderData.vkCommandBuffer, vkSrcImage, castEnum<VkImageLayout>(blit->srcLayout), vkDstImage, castEnum<VkImageLayout>(blit->dstLayout), 1, &vkBlit, castEnum<VkFilter>(blit->filter));
 }
 
-void VulkanCommandEncoder::resolveTexture(ITexture* dstTexture, ITexture* srcTexture, TextureResolve const* resolve) noexcept {
+void VulkanCommandEncoder::resolveTexture(ITransferDestinationTexture* dstTexture, ITransferSourceTexture* srcTexture, TextureResolve const* resolve) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -411,7 +411,7 @@ void VulkanCommandEncoder::resolveTexture(ITexture* dstTexture, ITexture* srcTex
     _encoderData.functionPointers.commandBuffer10.vkCmdResolveImage(_encoderData.vkCommandBuffer, vkSrcImage, castEnum<VkImageLayout>(resolve->srcLayout), vkDstImage, castEnum<VkImageLayout>(resolve->dstLayout), 1, &vkResolve);
 }
 
-void VulkanCommandEncoder::clearColorTexture(ITexture* texture, ColorTextureClear const* clear) noexcept {
+void VulkanCommandEncoder::clearColorTexture(ITransferDestinationTexture* texture, ColorTextureClear const* clear) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -434,16 +434,16 @@ void VulkanCommandEncoder::clearColorTexture(ITexture* texture, ColorTextureClea
 
     VkImageSubresourceRange vkSubresourceRange = {};
     vkSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    vkSubresourceRange.baseMipLevel = clear->subresourcePosition.mip;
-    vkSubresourceRange.levelCount = clear->subresourceDimensions.mips;
-    vkSubresourceRange.baseArrayLayer = clear->subresourcePosition.layer;
-    vkSubresourceRange.layerCount = clear->subresourceDimensions.layers;
+    vkSubresourceRange.baseMipLevel = clear->subresourceOffset.mip;
+    vkSubresourceRange.levelCount = clear->subresourceRange.mips;
+    vkSubresourceRange.baseArrayLayer = clear->subresourceOffset.layer;
+    vkSubresourceRange.layerCount = clear->subresourceRange.layers;
 
     /* TODO: possibly cache clear commands and pool them together between barriers/passes? */
     _encoderData.functionPointers.commandBuffer10.vkCmdClearColorImage(_encoderData.vkCommandBuffer, vkImage, castEnum<VkImageLayout>(clear->layout), &vkColor, 1, &vkSubresourceRange);
 }
 
-void VulkanCommandEncoder::clearDepthStencilTexture(ITexture* texture, DepthStencilTextureClear const* clear) noexcept {
+void VulkanCommandEncoder::clearDepthStencilTexture(ITransferDestinationTexture* texture, DepthStencilTextureClear const* clear) noexcept {
     if (_ended) {
         /* TODO: encoder already ended: can't encode anymore commands */
         return;
@@ -464,10 +464,10 @@ void VulkanCommandEncoder::clearDepthStencilTexture(ITexture* texture, DepthSten
 
     VkImageSubresourceRange vkSubresourceRange = {};
     vkSubresourceRange.aspectMask = castEnum<VkImageAspectFlags>(clear->aspectFlags);
-    vkSubresourceRange.baseMipLevel = clear->subresourcePosition.mip;
-    vkSubresourceRange.levelCount = clear->subresourceDimensions.mips;
-    vkSubresourceRange.baseArrayLayer = clear->subresourcePosition.layer;
-    vkSubresourceRange.layerCount = clear->subresourceDimensions.layers;
+    vkSubresourceRange.baseMipLevel = clear->subresourceOffset.mip;
+    vkSubresourceRange.levelCount = clear->subresourceRange.mips;
+    vkSubresourceRange.baseArrayLayer = clear->subresourceOffset.layer;
+    vkSubresourceRange.layerCount = clear->subresourceRange.layers;
 
     /* TODO: possibly cache clear commands and pool them together between barriers/passes? */
     _encoderData.functionPointers.commandBuffer10.vkCmdClearDepthStencilImage(_encoderData.vkCommandBuffer, vkImage, castEnum<VkImageLayout>(clear->layout), &vkDepthStencil, 1, &vkSubresourceRange);

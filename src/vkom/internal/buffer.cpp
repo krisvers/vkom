@@ -17,6 +17,8 @@ namespace internal {
 
 VulkanBufferView::VulkanBufferView(bool inheritedHandle, IBuffer* buffer, BufferViewInfo const& info, VulkanBufferViewData const& viewData) : _inheritedHandle(inheritedHandle), _buffer(buffer), _heap(_buffer->parent<IHeap>()), _device(_heap->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _viewData(viewData) {
     _buffer->retain();
+
+    _device->label(this, fmt::label(_device, this, "{} offset, {} range ({})", info.offset, info.range, info.format).c_str());
 }
 
 VulkanBufferView::~VulkanBufferView() {
@@ -73,6 +75,8 @@ void* VulkanBufferView::queryInterface(IID const& iid) noexcept {
 
 VulkanBuffer::VulkanBuffer(bool inheritedHandle, bool alias, IHeap* heap, BufferInfo const& info, VulkanBufferData const& bufferData) : _inheritedHandle(inheritedHandle), _alias(alias), _heap(heap), _device(_heap->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _bufferData(bufferData) {
     _heap->retain();
+
+    _device->label(this, fmt::label(_device, this, "{} bytes, {}, {} ({})", info.size, info.location, info.queueConcurrency ? "concurrent" : "exclusive", info.usage).c_str());
 }
 
 VulkanBuffer::~VulkanBuffer() {

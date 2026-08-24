@@ -16,6 +16,8 @@ namespace internal {
 
 VulkanFence::VulkanFence(bool inheritedHandle, IDevice* device, VulkanFenceData const& fenceData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _fenceData(fenceData) {
     _device->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanFence::~VulkanFence() {

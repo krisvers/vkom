@@ -6,6 +6,7 @@
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
+#include <vkom/internal/format.hpp>
 
 #include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>
@@ -18,6 +19,8 @@ namespace internal {
 
 VulkanQueueEvent::VulkanQueueEvent(bool inheritedHandle, IQueue* queue, VulkanQueueEventData const& eventData) : _inheritedHandle(inheritedHandle), _queue(queue), _device(_queue->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _eventData(eventData) {
     _queue->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanQueueEvent::~VulkanQueueEvent() {
@@ -89,6 +92,8 @@ VulkanQueue::VulkanQueue(bool inheritedHandle, IDevice* device, VulkanQueueData 
     }
 
     _device->retain();
+
+    _device->label(this, fmt::label(_device, this, "({}:{}) [{}]", family(), index(), flags()).c_str());
 }
 
 VulkanQueue::~VulkanQueue() {

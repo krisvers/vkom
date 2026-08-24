@@ -13,6 +13,8 @@ namespace internal {
 
 VulkanSwapchainMaintenance1PresentFence::VulkanSwapchainMaintenance1PresentFence(bool inheritedHandle, ISwapchain* swapchain, uint64_t presentID, VulkanFenceData const& fenceData, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _presentID(presentID), _fenceData(fenceData), _swapchainData(swapchainData) {
     _swapchain->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanSwapchainMaintenance1PresentFence::~VulkanSwapchainMaintenance1PresentFence() {
@@ -89,6 +91,8 @@ void* VulkanSwapchainMaintenance1PresentFence::queryInterface(IID const& iid) no
 
 VulkanPresentWaitPresentIDFence::VulkanPresentWaitPresentIDFence(ISwapchain* swapchain, uint64_t presentID, VulkanSwapchainData const& swapchainData) : _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _presentID(presentID), _swapchainData(swapchainData) {
     _swapchain->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanPresentWaitPresentIDFence::~VulkanPresentWaitPresentIDFence() {
@@ -164,7 +168,9 @@ void* VulkanPresentWaitPresentIDFence::queryInterface(IID const& iid) noexcept {
     return nullptr;
 }
 
-VulkanManualBackbuffer::VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSemaphoreData const& semaphoreData, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _index(index), _textureData(textureData), _semaphoreData(semaphoreData), _swapchainData(swapchainData) {}
+VulkanManualBackbuffer::VulkanManualBackbuffer(bool inheritedHandle, ISwapchain* swapchain, TextureInfo const& info, uint32_t index, VulkanTextureData const& textureData, VulkanSemaphoreData const& semaphoreData, VulkanSwapchainData const& swapchainData) : _inheritedHandle(inheritedHandle), _swapchain(swapchain), _device(_swapchain->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _index(index), _textureData(textureData), _semaphoreData(semaphoreData), _swapchainData(swapchainData) {
+    _device->label(this, fmt::label(_device, this).c_str());
+}
 
 VulkanManualBackbuffer::~VulkanManualBackbuffer() {
     ParentByVector::disownAll();
@@ -416,6 +422,9 @@ VulkanManualSwapchain::VulkanManualSwapchain(bool inheritedHandle, IDevice* devi
 
     _surface->retain();
     _device->retain();
+
+    _device->label(_surface, fmt::label(_device, _surface).c_str());
+    _device->label(this, fmt::label(_device, this, "{} {}x{} backbuffers, {} {}, {} ({})", info.backbufferCount, info.backbufferInfo.dimensions.extent.width, info.backbufferInfo.dimensions.extent.height, info.preTransform, info.compositeAlpha, info.clipped ? "clipped" : "unclipped", info.presentModeFlags).c_str());
 }
 
 VulkanManualSwapchain::~VulkanManualSwapchain() {

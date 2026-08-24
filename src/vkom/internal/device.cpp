@@ -1,5 +1,3 @@
-#include "vkom/enums.hpp"
-#include "vulkan/vulkan_core.h"
 #include <vkom/internal/device.hpp>
 
 #include <stdexcept>
@@ -18,6 +16,7 @@
 #include <vkom/internal/descriptor.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
+#include <vkom/internal/format.hpp>
 
 #include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>
@@ -45,7 +44,15 @@ VulkanDevice::VulkanDevice(bool inheritedHandle, IAdapter* adapter, VulkanDevice
 
     VulkanHeapData heapData = VulkanHeapData(_deviceData, nullptr);
     _defaultHeap = new VulkanHeap(false, IInterface::queryInterface<IDevice>(), heapData);
+    label(_defaultHeap, fmt::label(this, _defaultHeap, "default heap").c_str());
     adopt(_defaultHeap);
+
+    AdapterInfo adapterInfo;
+    _adapter->queryInfo(&adapterInfo);
+
+    label(_adapter, fmt::label(this, _adapter, "\"{}\"", adapterInfo.deviceName).c_str());
+    label(this, fmt::label(this, this).c_str());
+    label(nullptr, "[invalid handle]");
 }
 
 VulkanDevice::~VulkanDevice() {
@@ -196,8 +203,22 @@ void VulkanDevice::labelHandle(ObjectType handleType, uint64_t handle, const cha
     vkSetDebugUtilsObjectNameEXT(_deviceData.vkDevice, &nameInfo);
 }
 
-void VulkanDevice::label(IHandled* handled, const char* name) noexcept {
-    labelHandle(handled->handleType(), handled->handle(), name);
+void VulkanDevice::label(IBase* object, const char* name) noexcept {
+    _objectLabelTable[object] = name;
+
+    IHandled* handled = object->queryInterface<IHandled>();
+    if (handled != nullptr) {
+        labelHandle(handled->handleType(), handled->handle(), name);
+    }
+}
+
+const char* VulkanDevice::queryLabel(IBase* object) const noexcept {
+    auto it = _objectLabelTable.find(object);
+    if (it == _objectLabelTable.end()) {
+        return nullptr;
+    }
+
+    return it->second.c_str();
 }
 
 Result VulkanDevice::acquireQueue(uint32_t family, QueueFlags flags, IQueue** queue) noexcept {

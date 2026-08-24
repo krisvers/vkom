@@ -196,7 +196,6 @@ VulkanAdapter::VulkanAdapter(bool inheritedHandle, IInstance* instance, VulkanAd
     }
 
     _adapterData.functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_adapterData.vkPhysicalDevice, &_limits.queueFamilyCount, nullptr);
-
     _instance->retain();
 }
 

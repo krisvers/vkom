@@ -42,6 +42,8 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(bool inheritedHandle, IDevi
 
     _info.info = info;
     _info.info.bindings = &_info.bindings[0];
+
+    _device->label(this, fmt::label(_device, this, "{} bindings ({})", queryDescriptorBindingCount(), flags()).c_str());
 }
 
 VulkanDescriptorSetLayout::~VulkanDescriptorSetLayout() {
@@ -154,6 +156,8 @@ VulkanDescriptorSet::VulkanDescriptorSet(bool inheritedHandle, IDescriptorPool* 
 
     _layoutInfo.info = layoutInfo;
     _layoutInfo.info.bindings = &_layoutInfo.bindings[0];
+
+    _device->label(this, fmt::label(_device, this, "{} bindings ({})", queryDescriptorBindingCount(), poolFlags()).c_str());
 }
 
 VulkanDescriptorSet::~VulkanDescriptorSet() {
@@ -460,6 +464,8 @@ void* VulkanDescriptorSet::queryInterface(IID const& iid) noexcept {
 
 VulkanDescriptorPool::VulkanDescriptorPool(bool inheritedHandle, IDevice* device, DescriptorPoolInfo const& info, VulkanDescriptorPoolData const& poolData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _poolData(poolData) {
     _device->retain();
+
+    _device->label(this, fmt::label(_device, this, "{} max sets, ({})", queryDescriptorSetCapacity(), flags()).c_str());
 }
 
 VulkanDescriptorPool::~VulkanDescriptorPool() {

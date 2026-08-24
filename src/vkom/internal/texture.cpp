@@ -18,6 +18,8 @@ namespace internal {
 
 VulkanTextureView::VulkanTextureView(bool inheritedHandle, ITexture* texture, TextureViewInfo const& info, VulkanTextureViewData const& viewData) : _inheritedHandle(inheritedHandle), _texture(texture), _heap(_texture->parent<IHeap>()), _device(_heap->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _viewData(viewData) {
     _texture->retain();
+
+    _device->label(this, fmt::label(_device, this, "{}.{} {}.{}, {}, {}.{}.{}.{} ({}), ({})", info.subresourcePosition.layer, info.subresourcePosition.mip, info.subresourceDimensions.layers, info.subresourceDimensions.mips, info.type, info.redSwizzle, info.greenSwizzle, info.blueSwizzle, info.alphaSwizzle, info.aspectFlags, info.format).c_str());
 }
 
 VulkanTextureView::~VulkanTextureView() {
@@ -74,6 +76,8 @@ void* VulkanTextureView::queryInterface(IID const& iid) noexcept {
 
 VulkanTexture::VulkanTexture(bool inheritedHandle, bool alias, IHeap* heap, TextureInfo const& info, VulkanTextureData const& TextureData) : _inheritedHandle(inheritedHandle), _alias(alias), _heap(heap), _device(_heap->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _info(info), _textureData(TextureData) {
     _heap->retain();
+
+    _device->label(this, fmt::label(_device, this, "{}x{}x{}:{}.{}, {}x sampling, {}, {} {} ({}) ({})", info.dimensions.extent.width, info.dimensions.extent.height, info.dimensions.extent.depth, info.dimensions.subresource.layers, info.dimensions.subresource.mips, info.samplesPerTexel, info.location, info.linearTiling ? "linear" : "optimal", info.queueConcurrency ? "concurrent" : "exclusive", info.format, info.usage).c_str());
 }
 
 VulkanTexture::~VulkanTexture() {

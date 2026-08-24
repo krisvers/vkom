@@ -18,6 +18,8 @@ namespace internal {
 
 VulkanSemaphore::VulkanSemaphore(bool inheritedHandle, IDevice* device, VulkanSemaphoreData const& semaphoreData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _semaphoreData(semaphoreData) {
     _device->retain();
+
+    _device->label(this, fmt::label(_device, this, "{}", semaphoreData.vkSemaphoreType == VK_SEMAPHORE_TYPE_TIMELINE ? "timeline" : "binary").c_str());
 }
 
 VulkanSemaphore::~VulkanSemaphore() {

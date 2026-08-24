@@ -10,6 +10,7 @@
 #include <vkom/internal/device.hpp>
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/instance.hpp>
+#include <vkom/internal/format.hpp>
 
 #include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>
@@ -38,6 +39,8 @@ VulkanCommandEncoder::VulkanCommandEncoder(bool inheritedHandle, IQueue* queue, 
     }
 
     _queue->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanCommandEncoder::~VulkanCommandEncoder() {

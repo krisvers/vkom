@@ -13,6 +13,8 @@ namespace internal {
 
 VulkanShaderModule::VulkanShaderModule(bool inheritedHandle, IDevice* device, VulkanShaderModuleData const& moduleData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _moduleData(moduleData) {
     _device->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanShaderModule::~VulkanShaderModule() {
@@ -62,6 +64,8 @@ void* VulkanShaderModule::queryInterface(IID const& iid) noexcept {
 
 VulkanPipelineLayout::VulkanPipelineLayout(bool inheritedHandle, IDevice* device, VulkanPipelineLayoutData const& layoutData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _layoutData(layoutData) {
     _device->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanPipelineLayout::~VulkanPipelineLayout() {
@@ -111,6 +115,8 @@ void* VulkanPipelineLayout::queryInterface(IID const& iid) noexcept {
 
 VulkanPipeline::VulkanPipeline(bool inheritedHandle, IDevice* device, VulkanPipelineData const& pipelineData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _pipelineData(pipelineData) {
     _device->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanPipeline::~VulkanPipeline() {

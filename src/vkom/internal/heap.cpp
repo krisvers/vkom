@@ -23,6 +23,8 @@ namespace internal {
 
 VulkanHeap::VulkanHeap(bool inheritedHandle, IDevice* device, VulkanHeapData const& heapData) : _inheritedHandle(inheritedHandle), _device(device), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _heapData(heapData) {
     _device->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanHeap::~VulkanHeap() {

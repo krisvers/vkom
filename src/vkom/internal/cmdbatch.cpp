@@ -33,6 +33,8 @@ VulkanCommandBatch::VulkanCommandBatch(bool inheritedHandle, IQueue* queue, Vulk
     if (_batchData.functionPointers.commandBuffer10.vkBeginCommandBuffer(_batchData.vkCommandBuffer, &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("Failed to begin command buffer");
     }
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanCommandBatch::~VulkanCommandBatch() {

@@ -118,6 +118,7 @@ enum class DebugMessageSeverityFlags : int32_t {
 VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(DebugMessageSeverityFlags)
 
 enum class DebugMessageTypeFlags : int32_t {
+    None = 0x0000,
     General = 0x0001,
     Validation = 0x0002,
     Performance = 0x0004,
@@ -190,6 +191,7 @@ enum class AdapterType : uint32_t {
 };
 
 enum class SurfaceTransformFlags : uint32_t {
+    None = 0x0000,
     Identity = 0x0001,
     Rotate90 = 0x0002,
     Rotate180 = 0x0004,
@@ -204,6 +206,7 @@ enum class SurfaceTransformFlags : uint32_t {
 VKOM_DEFINE_ENUM_BITFLAGS_OPERATORS(SurfaceTransformFlags)
 
 enum class CompositeAlphaFlags : uint32_t {
+    None = 0x0000,
     Opaque = 0x0001,
     PreMultiplied = 0x0002,
     PostMultiplied = 0x0004,
@@ -482,7 +485,6 @@ enum class TextureChannelSwizzle : uint32_t {
 
 enum class TextureAspectFlags : uint32_t {
     None = 0x0000,
-
     Color = 0x0001,
     Depth = 0x0002,
     Stencil = 0x0004,
@@ -622,6 +624,7 @@ enum class IndexType : uint32_t {
 };
 
 enum class StencilFaceFlags : uint32_t {
+    None = 0x0000,
     Front = 0x0001,
     Back = 0x0002,
 };

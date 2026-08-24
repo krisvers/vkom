@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 
 #include <vkom/enums.hpp>
 #include <vkom/device.hpp>
@@ -43,6 +44,8 @@ private:
     std::vector<VulkanDeviceQueueFamily> _queueFamilies = {};
     IHeap* _defaultHeap = nullptr;
 
+    std::unordered_map<IBase*, std::string> _objectLabelTable = {};
+
 public:
     VulkanDevice(bool inheritedHandle, IAdapter* adapter, VulkanDeviceData const& deviceData, std::vector<const char*> const& enabledExtensions);
     ~VulkanDevice();
@@ -56,7 +59,8 @@ public:
     bool queryExtension(const char* extension) const noexcept override;
 
     void labelHandle(ObjectType handleType, uint64_t handle, const char* name) noexcept override;
-    void label(IHandled* handled, const char* name) noexcept override;
+    void label(IBase* object, const char* name) noexcept override;
+    const char* queryLabel(IBase* object) const noexcept override;
 
     Result acquireQueue(uint32_t family, QueueFlags flags, IQueue** queue) noexcept override;
 

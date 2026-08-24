@@ -19,6 +19,8 @@ namespace internal {
 
 VulkanComputePass::VulkanComputePass(ICommandEncoder* encoder, VulkanComputePassData const& passData) : _encoder(encoder), _queue(_encoder->parent<IQueue>()), _device(_queue->parent<IDevice>()), _adapter(_device->parent<IAdapter>()), _instance(_adapter->parent<IInstance>()), _passData(passData) {
     encoder->retain();
+
+    _device->label(this, fmt::label(_device, this).c_str());
 }
 
 VulkanComputePass::~VulkanComputePass() {

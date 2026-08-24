@@ -25,7 +25,8 @@ public:
     virtual bool queryExtension(const char* extension) const noexcept = 0;
 
     virtual void labelHandle(ObjectType handleType, uint64_t handle, const char* name) noexcept = 0;
-    virtual void label(IHandled* handled, const char* name) noexcept = 0;
+    virtual void label(IBase* object, const char* name) noexcept = 0;
+    virtual const char* queryLabel(IBase* object) const noexcept = 0;
 
     virtual Result acquireQueue(uint32_t family, QueueFlags flags, IQueue** queue) noexcept = 0;
 

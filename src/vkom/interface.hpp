@@ -1,19 +1,10 @@
 #pragma once
 
-#include <vkom/uuid.hpp>
+#include <kom/kom.hpp>
 
 namespace vkom {
 
-using IID = UUID;
-
-class IInterface {
-public:
-    virtual void* queryInterface(IID const& iid) noexcept = 0;
-
-    template<typename T>
-    T* queryInterface() {
-        return reinterpret_cast<T*>(queryInterface(T::iid()));
-    }
-};
+using IID = kom::IID;
+using IInterface = kom::IInterface;
 
 }

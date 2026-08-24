@@ -10,7 +10,7 @@ kom_subproject = subproject('kom')
 
 vk = dependency('vulkan', version: '>=1.3.0', required: true)
 vma = dependency('VulkanMemoryAllocator', version: '>=3.0.0', required: true)
-kom = dependency('kom', version: '>=1.0.0', required: true)
+kom = dependency('kom', version: '>=1.0.1', required: true)
 
 if get_option('default_library') == 'shared'
   vkom_c_args = [ '-DVKOM_COMPILING_DYNAMIC_LIBRARY' ]

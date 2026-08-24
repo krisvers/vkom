@@ -8,6 +8,7 @@
 #include <vkom/internal/adapter.hpp>
 #include <vkom/internal/surface.hpp>
 #include <vkom/internal/vksurface.hpp>
+#include <vkom/internal/format.hpp>
 
 #include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>

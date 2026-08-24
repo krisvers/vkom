@@ -1,6 +1,7 @@
 #include <vkom/internal/pipeline.hpp>
 
 #include <vkom/internal/enums.hpp>
+#include <vkom/internal/format.hpp>
 
 #include <vkom/internal/object.hpp>
 #include <vkom/internal/vulkan.hpp>

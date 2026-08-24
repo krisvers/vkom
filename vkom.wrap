@@ -1,9 +1,0 @@
-[wrap-file]
-directory = vkom-0.1.0
-source_url = https://github.com/krisvers/vkom/archive/refs/tags/0.1.0.tar.gz
-source_filename = vkom-0.1.0.tar.gz
-source_hash = 61ced705b14d3cf5eec60086a1be26296a44d645e7f902839795d8fdd3d8b9eb
-wrapdb_version = 0.1.0
-
-[provide]
-dependency_names = vkom

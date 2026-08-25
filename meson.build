@@ -2,7 +2,7 @@ project('vkom',
     'cpp',
     license: 'MIT',
     default_options: ['cpp_std=c++17'],
-    version: '0.1.1'
+    version: '0.1.2'
 )
 
 vma_subproject = subproject('vulkan-memory-allocator')
@@ -13,9 +13,9 @@ vma = dependency('VulkanMemoryAllocator', version: '>=3.0.0', required: true)
 kom = dependency('kom', version: '>=1.0.1', required: true)
 
 if get_option('default_library') == 'shared'
-  vkom_c_args = [ '-DVKOM_COMPILING_DYNAMIC_LIBRARY' ]
+  vkom_cpp_args = [ '-DVKOM_COMPILING_DYNAMIC_LIBRARY' ]
 else
-  vkom_c_args = []
+  vkom_cpp_args = []
 endif
 
 vkom_sources = [
@@ -87,7 +87,7 @@ vkom_lib = library('vkom',
     include_directories: vkom_includes,
     dependencies: vkom_dependencies,
     override_options: vkom_override_options,
-    c_args: vkom_c_args,
+    cpp_args: vkom_cpp_args,
     install: true,
 )
 

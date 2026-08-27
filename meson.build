@@ -2,7 +2,7 @@ project('vkom',
     'cpp',
     license: 'MIT',
     default_options: ['cpp_std=c++17'],
-    version: '0.1.2'
+    version: '0.1.3'
 )
 
 vma_subproject = subproject('vulkan-memory-allocator')

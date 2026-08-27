@@ -85,7 +85,9 @@ inline std::string label(IDevice* device, IBase* object, size_t parentLabelMax, 
         IParent* parent = child->parent();
         if (parent != nullptr) {
             const char* cstr = device->queryLabel(parent);
-            parentLabel = std::string(cstr, std::min(std::strlen(cstr), parentLabelMax));
+            if (cstr != nullptr) {
+                parentLabel = std::string(cstr, std::min(std::strlen(cstr), parentLabelMax));
+            }
         }
     }
 
@@ -109,7 +111,9 @@ inline std::string label(IDevice* device, IBase* object, size_t parentLabelMax =
         IParent* parent = child->parent();
         if (parent != nullptr) {
             const char* cstr = device->queryLabel(parent);
-            parentLabel = std::string(cstr, std::min(std::strlen(cstr), parentLabelMax));
+            if (cstr != nullptr) {
+                parentLabel = std::string(cstr, std::min(std::strlen(cstr), parentLabelMax));
+            }
         }
     }
 

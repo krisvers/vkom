@@ -210,6 +210,10 @@ void VulkanDevice::labelHandle(ObjectType handleType, uint64_t handle, const cha
 void VulkanDevice::label(IBase* object, const char* name) noexcept {
     _objectLabelTable[object] = name;
 
+    if (object == nullptr) {
+        return;
+    }
+
     IHandled* handled = object->queryInterface<IHandled>();
     if (handled != nullptr) {
         labelHandle(handled->handleType(), handled->handle(), name);

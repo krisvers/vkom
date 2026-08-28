@@ -198,6 +198,13 @@ void VulkanDevice::labelHandle(ObjectType handleType, uint64_t handle, const cha
         return;
     }
 
+    switch (handleType) {
+        case ObjectType::VmaPool:
+            return;
+        default:
+            break;
+    }
+
     VkDebugUtilsObjectNameInfoEXT nameInfo = {};
     nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
     nameInfo.objectType = castEnum<VkObjectType>(handleType);

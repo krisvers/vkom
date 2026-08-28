@@ -179,9 +179,33 @@ DescriptorPoolFlags VulkanDescriptorSet::poolFlags() const noexcept {
 }
 
 void VulkanDescriptorSet::write(uint32_t writeCount, DescriptorWrite const* writes) noexcept {
-    std::vector<VkDescriptorImageInfo> vkImageInfos = {};
-    std::vector<VkDescriptorBufferInfo> vkBufferInfos = {};
-    std::vector<VkBufferView> vkTexelBufferViews = {};
+    size_t vkImageInfoCount = 0;
+    size_t vkBufferInfoCount = 0;
+    size_t vkTexelBufferViewCount = 0;
+
+    for (uint32_t i = 0; i < writeCount; i += 1) {
+        DescriptorBindingInfo bindingInfo;
+        if (!queryDescriptorBindingInfo(writes[i].binding, &bindingInfo)) {
+            /* TODO: warning (discarded) */
+            continue;
+        }
+
+        if ((bindingInfo.flags & DescriptorFlags::Texel) != DescriptorFlags::None) {
+            vkTexelBufferViewCount += 1;
+        } else if ((bindingInfo.flags & DescriptorFlags::Texture) != DescriptorFlags::None) {
+            vkImageInfoCount += 1;
+        } else if ((bindingInfo.flags & DescriptorFlags::Buffer) != DescriptorFlags::None) {
+            vkBufferInfoCount += 1;
+        }
+    }
+
+    std::vector<VkDescriptorImageInfo> vkImageInfos(vkImageInfoCount);
+    std::vector<VkDescriptorBufferInfo> vkBufferInfos(vkBufferInfoCount);
+    std::vector<VkBufferView> vkTexelBufferViews(vkTexelBufferViewCount);
+
+    size_t vkImageInfoIndex = 0;
+    size_t vkBufferInfoIndex = 0;
+    size_t vkTexelBufferViewIndex = 0;
 
     std::vector<VkWriteDescriptorSet> vkWrites(writeCount);
     for (uint32_t i = 0; i < writeCount; i += 1) {
@@ -199,7 +223,7 @@ void VulkanDescriptorSet::write(uint32_t writeCount, DescriptorWrite const* writ
         vkWrites[i].descriptorType = castEnum<VkDescriptorType>(bindingInfo.flags);
 
         if ((bindingInfo.flags & DescriptorFlags::Texel) != DescriptorFlags::None) {
-            size_t texelBufferViewsStart = vkTexelBufferViews.size();
+            size_t texelBufferViewsStart = vkTexelBufferViewIndex;
             for (uint32_t j = 0; j < writes[i].count; j += 1) {
                 IResourceView* view = writes[i].views[j];
                 IBufferView* bufferView = view->queryInterface<IBufferView>();
@@ -233,13 +257,13 @@ void VulkanDescriptorSet::write(uint32_t writeCount, DescriptorWrite const* writ
                     return;
                 }
 
-                VkBufferView vkBufferView = bufferView->handle<VkBufferView>();
-                vkTexelBufferViews.push_back(vkBufferView);
+                vkTexelBufferViews[vkTexelBufferViewIndex] = bufferView->handle<VkBufferView>();
+                vkTexelBufferViewIndex += 1;
             }
 
-            vkWrites[i].pTexelBufferView = (vkTexelBufferViews.size() == texelBufferViewsStart ? nullptr : &vkTexelBufferViews[texelBufferViewsStart]);
+            vkWrites[i].pTexelBufferView = (vkTexelBufferViewIndex == texelBufferViewsStart ? nullptr : &vkTexelBufferViews[texelBufferViewsStart]);
         } else if ((bindingInfo.flags & DescriptorFlags::Texture) != DescriptorFlags::None) {
-            size_t imageInfosStart = vkImageInfos.size();
+            size_t imageInfosStart = vkImageInfoIndex;
             for (uint32_t j = 0; j < writes[i].count; j += 1) {
                 VkSampler vkSampler = VK_NULL_HANDLE;
                 if ((bindingInfo.flags & DescriptorFlags::Sampler) != DescriptorFlags::None) {
@@ -297,19 +321,16 @@ void VulkanDescriptorSet::write(uint32_t writeCount, DescriptorWrite const* writ
                     return;
                 }
 
-                VkImageView vkImageView = textureView->handle<VkImageView>();
-
-                VkDescriptorImageInfo vkImageInfo = {};
-                vkImageInfo.sampler = vkSampler;
-                vkImageInfo.imageView = vkImageView;
-                vkImageInfo.imageLayout = castEnum<VkImageLayout>(writes[i].textureInfos[j].layout);
-
-                vkImageInfos.push_back(vkImageInfo);
+                vkImageInfos[vkImageInfoIndex] = {};
+                vkImageInfos[vkImageInfoIndex].sampler = vkSampler;
+                vkImageInfos[vkImageInfoIndex].imageView = textureView->handle<VkImageView>();
+                vkImageInfos[vkImageInfoIndex].imageLayout = castEnum<VkImageLayout>(writes[i].textureInfos[j].layout);
+                vkImageInfoIndex += 1;
             }
 
-            vkWrites[i].pImageInfo = (vkImageInfos.size() == imageInfosStart ? nullptr : &vkImageInfos[imageInfosStart]);
+            vkWrites[i].pImageInfo = (vkImageInfoIndex == imageInfosStart ? nullptr : &vkImageInfos[imageInfosStart]);
         } else if ((bindingInfo.flags & DescriptorFlags::Buffer) != DescriptorFlags::None) {
-            size_t bufferInfosStart = vkBufferInfos.size();
+            size_t bufferInfosStart = vkBufferInfoIndex;
             for (uint32_t j = 0; j < writes[i].count; j += 1) {
                 IResourceView* view = writes[i].views[j];
                 if (view == nullptr) {
@@ -348,20 +369,17 @@ void VulkanDescriptorSet::write(uint32_t writeCount, DescriptorWrite const* writ
                     return;
                 }
 
-                VkBuffer vkBuffer = buffer->handle<VkBuffer>();
-
                 BufferViewInfo viewInfo;
                 bufferView->getInfo(&viewInfo);
 
-                VkDescriptorBufferInfo vkBufferInfo = {};
-                vkBufferInfo.buffer = vkBuffer;
-                vkBufferInfo.offset = static_cast<VkDeviceSize>(viewInfo.offset);
-                vkBufferInfo.range = static_cast<VkDeviceSize>(viewInfo.range);
-
-                vkBufferInfos.push_back(vkBufferInfo);
+                vkBufferInfos[vkBufferInfoIndex] = {};
+                vkBufferInfos[vkBufferInfoIndex].buffer = buffer->handle<VkBuffer>();
+                vkBufferInfos[vkBufferInfoIndex].offset = static_cast<VkDeviceSize>(viewInfo.offset);
+                vkBufferInfos[vkBufferInfoIndex].range = static_cast<VkDeviceSize>(viewInfo.range);
+                vkBufferInfoIndex += 1;
             }
 
-            vkWrites[i].pBufferInfo = (vkBufferInfos.size() == bufferInfosStart ? nullptr : &vkBufferInfos[bufferInfosStart]);
+            vkWrites[i].pBufferInfo = (vkBufferInfoIndex == bufferInfosStart ? nullptr : &vkBufferInfos[bufferInfosStart]);
         }
     }
 

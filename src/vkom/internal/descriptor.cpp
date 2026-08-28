@@ -42,7 +42,7 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(bool inheritedHandle, IDevi
     });
 
     _info.info = info;
-    _info.info.bindings = &_info.bindings[0];
+    _info.info.bindings = (_info.bindings.empty() ? nullptr : &_info.bindings[0]);
 
     _device->label(this, fmt::label(_device, this, "{} bindings ({})", queryDescriptorBindingCount(), flags()).c_str());
 }
@@ -156,7 +156,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(bool inheritedHandle, IDescriptorPool* 
     });
 
     _layoutInfo.info = layoutInfo;
-    _layoutInfo.info.bindings = &_layoutInfo.bindings[0];
+    _layoutInfo.info.bindings = (_layoutInfo.bindings.empty() ? nullptr : &_layoutInfo.bindings[0]);
 
     _device->label(this, fmt::label(_device, this, "{} bindings ({})", queryDescriptorBindingCount(), poolFlags()).c_str());
 }

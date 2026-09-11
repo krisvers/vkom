@@ -2,7 +2,7 @@
 
 [COM](https://en.wikipedia.org/wiki/Component_Object_Model)-style C++17 library wrapping around [Vulkan](https://vulkan.org) ([API documentation](https://docs.vulkan.org/spec/latest/index.html))
 
-- NOTE: no AI tooling was used to create any of this project whether it be assets, code, comments, configuration, ...; everything was painfully and lovingly hand-written
+**NOTE: no AI tooling was used to create any of this project whether it be assets, code, comments, configuration, ...; everything was painfully and lovingly hand-written**
 
 ## design
 

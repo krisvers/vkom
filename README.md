@@ -1,10 +1,10 @@
 # vkom
 
-COM-style C++ library wrapping around Vulkan
+[COM](https://en.wikipedia.org/wiki/Component_Object_Model)-style C++17 library wrapping around [Vulkan](https://vulkan.org) ([API documentation](https://docs.vulkan.org/spec/latest/index.html))
 
 ## design
 
-- basically just inherited from core Vulkan 1.0 design
+- basically just inherited from core Vulkan 1.x design plus less stressful methods for accessing extensions
 
 ### notable changes
 
@@ -15,7 +15,7 @@ COM-style C++ library wrapping around Vulkan
 
 ## COM-style behavior
 
-- inherited from krisvers/kom (as this is the source of the COM-style behavior)
+- inherited from [krisvers/kom](https://github.com/krisvers/kom) (as this is the source of the [COM](https://en.wikipedia.org/wiki/Component_Object_Model)-style behavior)
 - generally:
   - interfaces are a window into an object
   - the interfaces always share a single object

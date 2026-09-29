@@ -39,7 +39,7 @@ private:
     IAdapter* _adapter = nullptr;
     IInstance* _instance = nullptr;
     VulkanDeviceData _deviceData;
-    std::vector<const char*> _enabledExtensions = {};
+    std::vector<std::string> _enabledExtensions = {};
 
     std::vector<VulkanDeviceQueueFamily> _queueFamilies = {};
     IHeap* _defaultHeap = nullptr;

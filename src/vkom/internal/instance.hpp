@@ -28,7 +28,7 @@ private:
     bool _inheritedHandle = false;
     IDynlib* _vulkanDynlib = nullptr;
     VulkanInstanceData _instanceData;
-    std::vector<const char*> _enabledExtensions = {};
+    std::vector<std::string> _enabledExtensions = {};
     VkDebugUtilsMessengerEXT _vkDebugUtilsMessenger = VK_NULL_HANDLE;
 
     /* IInstance */

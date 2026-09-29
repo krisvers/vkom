@@ -28,7 +28,7 @@ namespace vkom {
 
 namespace internal {
 
-VulkanDevice::VulkanDevice(bool inheritedHandle, IAdapter* adapter, VulkanDeviceData const& deviceData, std::vector<const char*> const& enabledExtensions) : _inheritedHandle(inheritedHandle), _adapter(adapter), _instance(_adapter->parent<IInstance>()), _deviceData(deviceData), _enabledExtensions(enabledExtensions) {
+VulkanDevice::VulkanDevice(bool inheritedHandle, IAdapter* adapter, VulkanDeviceData const& deviceData, std::vector<const char*> const& enabledExtensions) : _inheritedHandle(inheritedHandle), _adapter(adapter), _instance(_adapter->parent<IInstance>()), _deviceData(deviceData), _enabledExtensions(enabledExtensions.begin(), enabledExtensions.end()) {
     uint32_t queueFamilyCount;
     _deviceData.adapterData.functionPointers.physical10.vkGetPhysicalDeviceQueueFamilyProperties(_deviceData.adapterData.vkPhysicalDevice, &queueFamilyCount, nullptr);
 
@@ -179,8 +179,8 @@ Result VulkanDevice::waitIdle() const noexcept {
 }
 
 bool VulkanDevice::queryExtension(const char* extension) const noexcept {
-    for (const char* s : _enabledExtensions) {
-        if (std::strcmp(s, extension) == 0) {
+    for (std::string const& s : _enabledExtensions) {
+        if (s == extension) {
             return true;
         }
     }

@@ -19,7 +19,7 @@ namespace vkom {
 
 namespace internal {
 
-VulkanInstance::VulkanInstance(uint32_t vkApiVersion, bool inheritedHandle, IDynlib* dynlib, VulkanInstanceData const& instanceData, std::vector<const char*> const& enabledExtensions, PFN_vkDebugUtilsMessengerCallbackEXT vkDebugUtilsMessengerUserCallback, void* vkDebugUtilsMessengerUserData) : _vkApiVersion(vkApiVersion), _inheritedHandle(inheritedHandle), _vulkanDynlib(dynlib), _instanceData(instanceData), _enabledExtensions(enabledExtensions) {
+VulkanInstance::VulkanInstance(uint32_t vkApiVersion, bool inheritedHandle, IDynlib* dynlib, VulkanInstanceData const& instanceData, std::vector<const char*> const& enabledExtensions, PFN_vkDebugUtilsMessengerCallbackEXT vkDebugUtilsMessengerUserCallback, void* vkDebugUtilsMessengerUserData) : _vkApiVersion(vkApiVersion), _inheritedHandle(inheritedHandle), _vulkanDynlib(dynlib), _instanceData(instanceData), _enabledExtensions(enabledExtensions.begin(), enabledExtensions.end()) {
     uint32_t physicalDeviceCount;
     if (_instanceData.functionPointers.instance10.vkEnumeratePhysicalDevices(_instanceData.vkInstance, &physicalDeviceCount, nullptr) != VK_SUCCESS) {
         throw std::runtime_error("vkEnumeratePhysicalDevices failed");
@@ -112,8 +112,8 @@ void VulkanInstance::log(DebugMessageSeverityFlags severity, DebugMessageTypeFla
 }
 
 bool VulkanInstance::queryExtension(const char* extension) const noexcept {
-    for (const char* s : _enabledExtensions) {
-        if (std::strcmp(s, extension) == 0) {
+    for (std::string const& s : _enabledExtensions) {
+        if (s == extension) {
             return true;
         }
     }

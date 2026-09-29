@@ -324,7 +324,7 @@ Result VulkanDevice::createHeap(BufferUsageFlags bufferUsages, TextureUsageFlags
         uint32_t queueFamily = 0;
 
         VkImageCreateInfo dummyCreateInfo = {};
-        dummyCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        dummyCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         dummyCreateInfo.imageType = VK_IMAGE_TYPE_2D;
         dummyCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
         dummyCreateInfo.extent.width = 256;

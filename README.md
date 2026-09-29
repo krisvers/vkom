@@ -1,4 +1,4 @@
-# vkom 0.1.9
+# vkom 0.1.10
 
 [COM](https://en.wikipedia.org/wiki/Component_Object_Model)-style C++17 library wrapping around [Vulkan](https://vulkan.org) ([API documentation](https://docs.vulkan.org/spec/latest/index.html))
 
